@@ -23,10 +23,15 @@ jobs:
           --health-interval 5s --health-timeout 3s --health-retries 10
 
     env:
-      # role alcada precisa existir também como não-superusuário para o REVOKE da trilha valer
       QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://localhost:5432/alcada_test
       QUARKUS_DATASOURCE_USERNAME: alcada
       QUARKUS_DATASOURCE_PASSWORD: alcada
+      # Na imagem oficial do postgres o POSTGRES_USER (alcada) é SUPERUSUÁRIO.
+      # TrilhaImutavelTest usa uma conexão de superusuário para provar que o
+      # bloqueio append-only é do TRIGGER (que barra até superusuário), não só
+      # do REVOKE. Localmente o superusuário é `postgres` (default do teste).
+      ALCADA_TEST_SUPERUSER: alcada
+      ALCADA_TEST_SUPERPASS: alcada
 
     steps:
       - uses: actions/checkout@v4

@@ -27,7 +27,19 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 class TrilhaImutavelTest {
 
-    private static final String URL = "jdbc:postgresql://localhost:5432/alcada_test";
+    // Conexão de SUPERUSUÁRIO para provar que o bloqueio é do TRIGGER (não só do
+    // REVOKE do role da aplicação). Parametrizável por ambiente: no dev local o
+    // superusuário é `postgres` (trust/sem senha); no CI a imagem postgres cria o
+    // POSTGRES_USER como superusuário, então lá aponta-se para ele com senha.
+    private static final String URL = envOu("ALCADA_TEST_JDBC_URL",
+            envOu("QUARKUS_DATASOURCE_JDBC_URL", "jdbc:postgresql://localhost:5432/alcada_test"));
+    private static final String SU_USER = envOu("ALCADA_TEST_SUPERUSER", "postgres");
+    private static final String SU_PASS = envOu("ALCADA_TEST_SUPERPASS", "");
+
+    private static String envOu(String chave, String padrao) {
+        String v = System.getenv(chave);
+        return (v == null || v.isBlank()) ? padrao : v;
+    }
 
     @Inject
     Trilha trilha;
@@ -47,7 +59,7 @@ class TrilhaImutavelTest {
     @Test
     void update_na_trilha_e_bloqueado_pelo_trigger() throws Exception {
         semearLinha();
-        try (Connection c = DriverManager.getConnection(URL, "postgres", "");
+        try (Connection c = DriverManager.getConnection(URL, SU_USER, SU_PASS);
              Statement st = c.createStatement()) {
             SQLException ex = assertThrows(SQLException.class, () ->
                     st.executeUpdate("UPDATE trilha SET tipo='RESOLVIDA' WHERE org_id IS NOT NULL"));
@@ -59,7 +71,7 @@ class TrilhaImutavelTest {
     @Test
     void delete_na_trilha_e_bloqueado_pelo_trigger() throws Exception {
         semearLinha();
-        try (Connection c = DriverManager.getConnection(URL, "postgres", "");
+        try (Connection c = DriverManager.getConnection(URL, SU_USER, SU_PASS);
              Statement st = c.createStatement()) {
             SQLException ex = assertThrows(SQLException.class, () ->
                     st.executeUpdate("DELETE FROM trilha WHERE org_id IS NOT NULL"));
