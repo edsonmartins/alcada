@@ -33,5 +33,6 @@
 
 ## Verificação
 - [x] JVM suite verde (105) + 27 Vitest
-- [ ] build nativo + RSS ≤120 MB
-- [ ] Deploy no piloto (GHCR pull) e conferência de /alcadas
+- [x] build nativo (endpoints respondem, DTOs serializam) — RSS 70 MB
+- [x] Deploy no piloto (GHCR pull) e conferência de /alcadas — laço minerar→aceitar→regra ativa
+      verificado ao vivo (proposta some, regra passa a rotear)
