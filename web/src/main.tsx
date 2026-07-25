@@ -18,7 +18,9 @@ import { limparSessao, pessoaId, rotuloSessao, temSessao } from "./api/config";
 import { EntradaPage } from "./components/EntradaPage";
 import { ExecutorPage } from "./components/ExecutorPage";
 import { HojePage } from "./components/HojePage";
+import { RadarPage } from "./components/RadarPage";
 import { SessaoPage } from "./components/SessaoPage";
+import { SextaPage } from "./components/SextaPage";
 import { theme } from "./theme";
 
 function Layout() {
@@ -49,6 +51,8 @@ function Layout() {
             <Link to="/">Entrada</Link>
             <Link to="/hoje">Hoje</Link>
             <Link to="/executor">Delegado a mim</Link>
+            <Link to="/radar">Radar</Link>
+            <Link to="/sexta">Sexta</Link>
             {temSessao() && (
               <Group gap={6} ml="auto">
                 <Text size="xs" c="dimmed">
@@ -84,9 +88,11 @@ const rootRoute = createRootRoute({ component: Layout });
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: EntradaPage });
 const hojeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/hoje", component: HojePage });
 const executorRoute = createRoute({ getParentRoute: () => rootRoute, path: "/executor", component: ExecutorPage });
+const radarRoute = createRoute({ getParentRoute: () => rootRoute, path: "/radar", component: RadarPage });
+const sextaRoute = createRoute({ getParentRoute: () => rootRoute, path: "/sexta", component: SextaPage });
 const sessaoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/entrar", component: SessaoPage });
 const router = createRouter({
-  routeTree: rootRoute.addChildren([indexRoute, hojeRoute, executorRoute, sessaoRoute]),
+  routeTree: rootRoute.addChildren([indexRoute, hojeRoute, executorRoute, radarRoute, sextaRoute, sessaoRoute]),
 });
 
 declare module "@tanstack/react-router" {

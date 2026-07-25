@@ -29,8 +29,20 @@ POST   /v1/pendencias/{id}/desfundir       { cobranca_id }   # reverte deduplica
 ### Hoje e fila
 ```
 GET    /v1/hoje                            # no máximo 3 itens + justificativa por item
+GET    /v1/radar                           # diagnóstico organizacional (ADR-0017), leitura pura
 GET    /v1/revisao-semanal                 # roteiro conduzido da sexta
 ```
+
+`GET /v1/radar` (pacote 009) → `dependeDoGestor{qtd,total,pct}`, `rodandoSemVoce`,
+`adiados[{id,titulo,adiadoCount,oQueTrava,quemEspera,valorEmJogo}]`,
+`piorEspera{pendenciaId,titulo,dias,quemEspera}`,
+`autonomia{deliberada,porAusencia,devolvida,escalada,promovida}` (separados — ADR-0024),
+`fechamentoCanal{entregue,falho,impossivel}` (ADR-0025),
+`encolhimento[{semana,entraram,fecharam}]` (8 semanas, fluxo).
+
+`GET /v1/revisao-semanal` → `entrada{qtd,itens[]}`, `adiados[]` (idem radar),
+`podeVirarRegra[{classe,ocorrencias}]` (dica, não regra),
+`resumoSemana{resolvidas,executadas,delegadas,escaladas,devolvidas,fechadas}`.
 
 ### Delegações (superfície do executor)
 ```
