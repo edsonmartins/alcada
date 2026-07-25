@@ -33,5 +33,5 @@
 
 ## Verificação
 - [x] JVM suite verde (119) + 30 Vitest
-- [ ] build nativo + RSS ≤120 MB
-- [ ] Deploy no piloto (GHCR pull) e conferência de /esteira
+- [x] build nativo (endpoints respondem) — RSS 71 MB
+- [x] Deploy no piloto (GHCR pull); /esteira verificado (aprovada avança, reprovadas geram pendência, §B propõe critério)
