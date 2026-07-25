@@ -33,6 +33,6 @@
 - [x] Web (Vitest): radar renderiza cards + contagem honesta; sexta percorre os passos — radar.test.tsx
 
 ## Verificação
-- [x] JVM suite verde (98)
-- [ ] build nativo + RSS ≤120 MB
-- [ ] Deploy no piloto (VPS) e conferência visual de /radar e /sexta
+- [x] JVM suite verde (98) + 25 Vitest
+- [x] build nativo (endpoints respondem, DTOs serializam) — RSS 72 MB
+- [x] Deploy no piloto via GHCR (pull) e conferência visual de /radar e /sexta
