@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRadar, type ItemAdiado } from "../api/metricas";
 import { aplicarSaida } from "../api/pendencias";
 import { formatValor } from "../util/formato";
+import { PageHeader } from "./PageHeader";
 
 export function RadarPage() {
   const { data } = useQuery({ queryKey: ["radar"], queryFn: getRadar });
@@ -11,12 +12,7 @@ export function RadarPage() {
 
   return (
     <Stack>
-      <div>
-        <Title order={4}>Radar de gargalo</Title>
-        <Text size="xs" c="dimmed">
-          Diagnóstico organizacional — não placar pessoal.
-        </Text>
-      </div>
+      <PageHeader titulo="Radar de gargalo" sub="Diagnóstico organizacional — não placar pessoal." />
 
       <SimpleGrid cols={{ base: 2, sm: 4 }}>
         <Metrica valor={`${d.dependeDoGestor.pct}%`} rotulo="trava em você"
@@ -78,7 +74,7 @@ export function RadarPage() {
 function Metrica({ valor, rotulo, nota }: { valor: string | number; rotulo: string; nota: string }) {
   return (
     <Paper withBorder p="md">
-      <Text fw={700} fz={28} lh={1}>{valor}</Text>
+      <Text fz={30} lh={1} style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, letterSpacing: "-.03em" }}>{valor}</Text>
       <Text size="sm">{rotulo}</Text>
       <Text size="xs" c="dimmed">{nota}</Text>
     </Paper>

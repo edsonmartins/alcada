@@ -1,8 +1,9 @@
-import { Badge, Button, Collapse, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Badge, Button, Collapse, Group, Paper, Stack, Text } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { getPerguntas, responder, type PerguntaAprendizado, type Resposta } from "../api/aprendizado";
 import { getHoje } from "../api/pendencias";
+import { PageHeader } from "./PageHeader";
 import { TrilhaTimeline } from "./TrilhaTimeline";
 
 /** Hoje: no máximo 3 (o backend já limita; a UI reforça). Nada contemplativo. */
@@ -13,7 +14,7 @@ export function HojePage() {
   return (
     <Stack>
       <PerguntaAprendizadoCard />
-      <Title order={4}>Hoje</Title>
+      <PageHeader titulo="Hoje" sub="No máximo três. Nada contemplativo — o que precisa de você agora." />
       {itens.map((h) => (
         <Paper key={h.id} withBorder p="sm" data-testid="item-hoje">
           <Text fw={500}>{h.titulo}</Text>

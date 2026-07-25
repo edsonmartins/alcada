@@ -7,6 +7,7 @@ import { useUI } from "../store/ui";
 import { useTriagem } from "../triagem/useTriagem";
 import { useTriagemKeys } from "../triagem/useTriagemKeys";
 import { DrawerDetalhe } from "./DrawerDetalhe";
+import { PageHeader } from "./PageHeader";
 
 const LIMITE_IMPRODUTIVA_MS = 60_000;
 
@@ -86,6 +87,7 @@ export function EntradaPage() {
 
   return (
     <Box>
+      <PageHeader titulo="Entrada" sub="A fila a esvaziar — uma pergunta: isso precisa mesmo de você?" />
       {improdutiva && (
         <Alert color="yellow" mb="sm" data-testid="sessao-improdutiva">
           Você está aqui há um tempo sem decidir nada. Esta lista é para esvaziar, não para organizar.
@@ -139,88 +141,77 @@ export function EntradaPage() {
         </Chip.Group>
       </Group>
 
-      <Stack gap={4} role="list" aria-label="entrada">
+      <Paper p={0} role="list" aria-label="entrada" style={{ overflow: "hidden" }}>
         {itensFiltrados.map((p, i) => (
-          <Paper
+          <div
             key={p.id}
-            withBorder
-            p="sm"
             role="listitem"
             data-testid={`item-${p.id}`}
             data-cursor={i === cursor ? "true" : undefined}
             aria-selected={selecao.has(p.id)}
             onClick={() => setCursor(i)}
             style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "flex-start",
+              padding: "11px 14px",
               cursor: "pointer",
               borderLeft: `3px solid ${COR_CLASSE[p.classe]}`,
-              outline: i === cursor ? "2px solid var(--mantine-color-dark-4)" : undefined,
+              borderBottom: i < itensFiltrados.length - 1 ? "1px solid var(--linha)" : undefined,
+              background: i === cursor ? "var(--mantine-color-indigo-0)" : selecao.has(p.id) ? "var(--papel-2)" : "#fff",
             }}
           >
-            <Group justify="space-between" wrap="nowrap" align="flex-start">
-              <div style={{ minWidth: 0 }}>
-                <Text fw={500}>{p.titulo}</Text>
-                {p.oQueTrava && (
-                  <Text size="sm" c="dimmed">
-                    {p.oQueTrava}
-                  </Text>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <Text fw={500} lineClamp={1}>{p.titulo}</Text>
+              {p.oQueTrava && (
+                <Text size="sm" c="dimmed" lineClamp={1}>
+                  {p.oQueTrava}
+                </Text>
+              )}
+              <Group gap={8} mt={5} wrap="wrap">
+                <Badge size="xs" variant="light" color={corClasse(p.classe)}>
+                  {ROTULO_CLASSE[p.classe]}
+                </Badge>
+                {p.quemEspera && (
+                  <Text size="xs" c="dimmed">espera: {p.quemEspera}</Text>
                 )}
-                <Group gap={6} mt={4} wrap="wrap">
-                  <Badge size="xs" variant="light" color={corClasse(p.classe)}>
-                    {ROTULO_CLASSE[p.classe]}
+                {p.temperatura > 0 && (
+                  <Badge size="xs" color="orange" variant="light">
+                    {p.temperatura} {p.temperatura === 1 ? "cobrança" : "cobranças"}
                   </Badge>
-                  {p.quemEspera && (
-                    <Text size="xs" c="dimmed">
-                      espera: {p.quemEspera}
-                    </Text>
-                  )}
-                  {p.temperatura > 0 && (
-                    <Badge size="xs" color="orange">
-                      {p.temperatura} {p.temperatura === 1 ? "cobrança" : "cobranças"}
-                    </Badge>
-                  )}
-                  {p.baixaConfianca && (
-                    <Badge size="xs" color="gray" variant="outline">
-                      rever
-                    </Badge>
-                  )}
-                  {selecao.has(p.id) && (
-                    <Badge size="xs" data-testid="selecionado">
-                      no lote
-                    </Badge>
-                  )}
-                  <Anchor href={`/bloco/${p.id}`} size="xs" onClick={(e) => e.stopPropagation()}>
-                    abrir bloco
-                  </Anchor>
-                </Group>
-              </div>
-              <Stack gap={2} align="flex-end" style={{ flexShrink: 0 }}>
-                {formatValor(p.valorEmJogo) && (
-                  <Text fw={600} size="sm">
-                    {formatValor(p.valorEmJogo)}
-                  </Text>
                 )}
-                {idadeRelativa(p.criadaEm) && (
-                  <Text size="xs" c="dimmed">
-                    {idadeRelativa(p.criadaEm)}
-                  </Text>
+                {p.baixaConfianca && (
+                  <Badge size="xs" color="gray" variant="outline">rever</Badge>
                 )}
-                {formatPrazo(p.prazoImplicito) && (
-                  <Text size="xs" c="red.7">
-                    prazo {formatPrazo(p.prazoImplicito)}
-                  </Text>
+                {selecao.has(p.id) && (
+                  <Badge size="xs" data-testid="selecionado">no lote</Badge>
                 )}
-              </Stack>
-            </Group>
-          </Paper>
+                <Anchor href={`/bloco/${p.id}`} size="xs" onClick={(e) => e.stopPropagation()}>
+                  abrir bloco
+                </Anchor>
+              </Group>
+            </div>
+            <Stack gap={1} align="flex-end" style={{ flexShrink: 0 }}>
+              {formatValor(p.valorEmJogo) && (
+                <Text fw={700} size="sm">{formatValor(p.valorEmJogo)}</Text>
+              )}
+              {idadeRelativa(p.criadaEm) && (
+                <Text size="xs" c="dimmed" ff="monospace">{idadeRelativa(p.criadaEm)}</Text>
+              )}
+              {formatPrazo(p.prazoImplicito) && (
+                <Text size="xs" c="red.7" ff="monospace">prazo {formatPrazo(p.prazoImplicito)}</Text>
+              )}
+            </Stack>
+          </div>
         ))}
         {itensFiltrados.length === 0 && (
-          <Text c="dimmed" ta="center" py="xl">
+          <Text c="dimmed" ta="center" py={48}>
             {itens.length === 0
               ? "Entrada vazia. Nada depende de você agora."
               : "Nada neste filtro."}
           </Text>
         )}
-      </Stack>
+      </Paper>
 
       <DrawerDetalhe />
     </Box>

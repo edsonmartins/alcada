@@ -11,6 +11,7 @@ import {
 } from "../api/regras";
 import type { Nivel } from "../api/types";
 import { formatValor } from "../util/formato";
+import { PageHeader } from "./PageHeader";
 import { TrilhaTimeline } from "./TrilhaTimeline";
 
 const PROPOSTAS = ["regras-propostas"] as const;
@@ -27,12 +28,10 @@ export function AlcadasPage() {
 
   return (
     <Stack>
-      <div>
-        <Title order={4}>Alçadas</Title>
-        <Text size="xs" c="dimmed">
-          Regras de autonomia mineradas do seu histórico. Nada vira regra sem você aceitar (INV-10).
-        </Text>
-      </div>
+      <PageHeader
+        titulo="Alçadas"
+        sub="Regras de autonomia mineradas do seu histórico. Nada vira regra sem você aceitar (INV-10)."
+      />
 
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md" style={{ alignItems: "start" }}>
         <div>

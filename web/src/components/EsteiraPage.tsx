@@ -14,6 +14,7 @@ import {
   type Instancia,
 } from "../api/esteira";
 import { rotulo } from "../util/rotulos";
+import { PageHeader, Vazio } from "./PageHeader";
 
 export function EsteiraPage() {
   const { data: esteiras } = useQuery({ queryKey: ["esteiras"], queryFn: getEsteiras });
@@ -23,20 +24,15 @@ export function EsteiraPage() {
   if (!esteira) {
     return (
       <Stack>
-        <Title order={4}>Esteira</Title>
-        <Text c="dimmed" size="sm">Nenhuma esteira configurada.</Text>
+        <PageHeader titulo="Esteira" sub="Fluxos repetíveis: critérios objetivos viram checklist; julgamento fica com você." />
+        <Vazio>Nenhuma esteira configurada.</Vazio>
       </Stack>
     );
   }
 
   return (
     <Stack>
-      <div>
-        <Title order={4}>Esteira — {esteira.nome}</Title>
-        <Text size="xs" c="dimmed">
-          {esteira.etapas.map((e) => e.nome).join(" → ")}
-        </Text>
-      </div>
+      <PageHeader titulo={`Esteira — ${esteira.nome}`} sub={esteira.etapas.map((e) => e.nome).join(" → ")} />
       <NovaInstancia esteiraId={esteira.id} />
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md" style={{ alignItems: "start" }}>
         <Instancias esteiraId={esteira.id} />

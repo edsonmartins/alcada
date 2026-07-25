@@ -1,4 +1,4 @@
-import { Badge, Button, Collapse, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Badge, Button, Collapse, Group, Paper, Stack, Text, TextInput } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -12,6 +12,7 @@ import {
 import { formatValor } from "../util/formato";
 import { rotulo } from "../util/rotulos";
 import { Countdown } from "./Countdown";
+import { PageHeader } from "./PageHeader";
 import { TrilhaTimeline } from "./TrilhaTimeline";
 
 const MINHAS = ["minhas-delegacoes"] as const;
@@ -24,7 +25,7 @@ export function ExecutorPage() {
 
   return (
     <Stack>
-      <Title order={4}>Delegado a você</Title>
+      <PageHeader titulo="Delegado a você" sub="O que decidir por conta própria — no silêncio, o sistema executa por ausência." />
       {delegacoes.map((d) => (
         <CardDelegacao key={d.id} d={d} />
       ))}

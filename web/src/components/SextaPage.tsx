@@ -2,6 +2,7 @@ import { Badge, Button, Group, Paper, Progress, SimpleGrid, Stack, Text, Title }
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { getRevisao } from "../api/metricas";
+import { PageHeader } from "./PageHeader";
 
 export function SextaPage() {
   const { data } = useQuery({ queryKey: ["revisao-semanal"], queryFn: getRevisao });
@@ -82,10 +83,7 @@ export function SextaPage() {
   const atual = passos[passo];
   return (
     <Stack>
-      <div>
-        <Title order={4}>Revisão de sexta</Title>
-        <Text size="xs" c="dimmed">Roteiro de ~20 minutos. Um passo de cada vez.</Text>
-      </div>
+      <PageHeader titulo="Revisão de sexta" sub="Roteiro de ~20 minutos. Um passo de cada vez." />
       <Progress value={((passo + 1) / passos.length) * 100} size="sm" />
 
       <Paper withBorder p="md">
@@ -110,8 +108,8 @@ export function SextaPage() {
 function Contador({ v, r }: { v: number; r: string }) {
   return (
     <Paper withBorder p="sm">
-      <Text fw={700} fz={22} lh={1}>{v}</Text>
-      <Text size="xs" c="dimmed">{r}</Text>
+      <Text fz={26} lh={1} style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, letterSpacing: "-.03em" }}>{v}</Text>
+      <Text size="xs" c="dimmed" mt={4}>{r}</Text>
     </Paper>
   );
 }

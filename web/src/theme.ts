@@ -1,4 +1,4 @@
-import { createTheme } from "@mantine/core";
+import { createTheme, Paper } from "@mantine/core";
 
 /**
  * Sistema visual do protótipo (spec/prototipo/alcada-sistema.html):
@@ -23,6 +23,10 @@ export const theme = createTheme({
   },
   defaultRadius: "md",
   cursorType: "pointer",
+  components: {
+    // Cards com borda + leve profundidade por padrão (linguagem do protótipo).
+    Paper: Paper.extend({ defaultProps: { withBorder: true, shadow: "xs", radius: "md" } }),
+  },
   colors: {
     // navy da sidebar/superfícies escuras (índice 9 ≈ #131A2B)
     tinta: [
