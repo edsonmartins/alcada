@@ -52,15 +52,22 @@ POST   /v1/delegacoes/{id}/concluir        { resultado }
 POST   /v1/delegacoes/{id}/devolver        { motivo }
 ```
 
-### Regras de autonomia
+### Regras de autonomia (pacote 010, RFC-0003 §A)
 ```
-GET    /v1/regras
-POST   /v1/regras                         { classe, faixa, nivel, escopo }
+GET    /v1/regras                          # regras ativas
+GET    /v1/regras/propostas                # candidatas mineradas + evidência navegável
+POST   /v1/regras                          { classe, nivel, donoId }   # aceitar (humano confirma, INV-10)
+POST   /v1/regras/propostas/silenciar      { classe }
 POST   /v1/regras/{id}/desativar
-GET    /v1/regras/propostas               # candidatas + evidência navegável
-POST   /v1/regras/propostas/{id}/aceitar
-POST   /v1/regras/propostas/{id}/silenciar
 ```
+
+`GET /v1/regras` → `[{id, classe, nivel, donoId, criadaEm}]`.
+`GET /v1/regras/propostas` → `[{classe, ocorrencias, consistencia, nivelSugerido, donoSugerido,
+casos:[{pendenciaId, titulo, desfecho, valorEmJogo}]}]`.
+`POST /v1/regras`: `409` se já há regra ativa da classe; `422` se `nivel` excede
+`classe_decisao.nivel_maximo`. A regra criada por classe é aplicada pelo motor de captura
+(`ROTEADA_POR_REGRA`). Assinatura fina `{faixa, tipo_solicitante, escopo}` fica para pacote futuro
+(exige motor de aplicação por faixa).
 
 ### Esteira
 ```
