@@ -80,16 +80,23 @@ teto 3/semana). `responder`: `SIM` cria a regra (dono sugerido ou quem respondeu
 sem silenciar; `NAO_PERGUNTAR` silencia a classe (010). Trilha: `SUGESTAO_EMITIDA/ACEITA/RECUSADA/
 SILENCIADA`.
 
-### Esteira
+### Esteira (pacote 012, ADR-0012 / RFC-0006)
 ```
-GET    /v1/esteiras
+GET    /v1/esteiras                          # esteiras + etapas
+POST   /v1/esteiras                          { nome, etapas:[{ordem,nome,donoId,sla,etapaDoGestor}] }
 GET    /v1/esteiras/{id}/instancias?etapa=
-POST   /v1/esteiras/{id}/instancias
-POST   /v1/instancias/{id}/avaliar         { checklist_versao, resultados[] }
+POST   /v1/esteiras/{id}/instancias          { entidadeExterna }
+POST   /v1/instancias/{id}/avaliar           { resultados:[{criterioChave,resultado}], apontamentos:[{texto,tipo}] }
 POST   /v1/instancias/{id}/avancar
-GET    /v1/esteiras/{id}/checklist
-POST   /v1/esteiras/{id}/checklist         # nova versão (nunca update)
+GET    /v1/esteiras/{id}/checklist           # versão vigente + critérios
+POST   /v1/esteiras/{id}/checklist           { criterios:[{chave,descricao,tipo,obrigatorio}] }  # nova versão
+GET    /v1/esteiras/{id}/checklist/propostas # mineração §B: objetivos ≥50% + julgamento à parte
 ```
+
+`avaliar` → `{desfecho, pendenciaId}`. `APROVADA` avança a instância sem pendência; `REPROVADA`/
+`PENDENTE_JULGAMENTO` geram pendência classe `ESTEIRA` em `ENTRADA` com o resultado anexado (trilha
+`CAPTADA`). Checklist é versionado (nunca update). Propostas: apontamento `OBJETIVO` em ≥50% das
+reprovações vira candidato; `JULGAMENTO` fica à parte (não vira checklist).
 
 ### Assistente
 ```

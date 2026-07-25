@@ -17,6 +17,7 @@ import { createRoot } from "react-dom/client";
 import { limparSessao, pessoaId, rotuloSessao, temSessao } from "./api/config";
 import { AlcadasPage } from "./components/AlcadasPage";
 import { EntradaPage } from "./components/EntradaPage";
+import { EsteiraPage } from "./components/EsteiraPage";
 import { ExecutorPage } from "./components/ExecutorPage";
 import { HojePage } from "./components/HojePage";
 import { RadarPage } from "./components/RadarPage";
@@ -54,6 +55,7 @@ function Layout() {
             <Link to="/executor">Delegado a mim</Link>
             <Link to="/radar">Radar</Link>
             <Link to="/alcadas">Alçadas</Link>
+            <Link to="/esteira">Esteira</Link>
             <Link to="/sexta">Sexta</Link>
             {temSessao() && (
               <Group gap={6} ml="auto">
@@ -92,11 +94,12 @@ const hojeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/hoje", 
 const executorRoute = createRoute({ getParentRoute: () => rootRoute, path: "/executor", component: ExecutorPage });
 const radarRoute = createRoute({ getParentRoute: () => rootRoute, path: "/radar", component: RadarPage });
 const alcadasRoute = createRoute({ getParentRoute: () => rootRoute, path: "/alcadas", component: AlcadasPage });
+const esteiraRoute = createRoute({ getParentRoute: () => rootRoute, path: "/esteira", component: EsteiraPage });
 const sextaRoute = createRoute({ getParentRoute: () => rootRoute, path: "/sexta", component: SextaPage });
 const sessaoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/entrar", component: SessaoPage });
 const router = createRouter({
   routeTree: rootRoute.addChildren([
-    indexRoute, hojeRoute, executorRoute, radarRoute, alcadasRoute, sextaRoute, sessaoRoute,
+    indexRoute, hojeRoute, executorRoute, radarRoute, alcadasRoute, esteiraRoute, sextaRoute, sessaoRoute,
   ]),
 });
 
