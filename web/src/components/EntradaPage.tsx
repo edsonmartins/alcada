@@ -2,6 +2,7 @@ import { Alert, Anchor, Badge, Box, Button, Chip, Group, Paper, Stack, Text } fr
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Classe, Horizonte, SaidaDireta } from "../api/types";
 import { formatPrazo, formatValor, idadeRelativa } from "../util/formato";
+import { corClasse } from "../util/rotulos";
 import { useUI } from "../store/ui";
 import { useTriagem } from "../triagem/useTriagem";
 import { useTriagemKeys } from "../triagem/useTriagemKeys";
@@ -164,7 +165,7 @@ export function EntradaPage() {
                   </Text>
                 )}
                 <Group gap={6} mt={4} wrap="wrap">
-                  <Badge size="xs" variant="light" color="gray">
+                  <Badge size="xs" variant="light" color={corClasse(p.classe)}>
                     {ROTULO_CLASSE[p.classe]}
                   </Badge>
                   {p.quemEspera && (

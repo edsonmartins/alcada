@@ -1,4 +1,4 @@
-import { Badge, Button, Collapse, Group, Paper, Select, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Badge, Button, Collapse, Group, Paper, Select, SimpleGrid, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -34,28 +34,37 @@ export function AlcadasPage() {
         </Text>
       </div>
 
-      <Title order={6}>Propostas</Title>
-      {(propostas ?? []).map((p) => (
-        <CardProposta key={p.classe} p={p} aoAgir={invalidar} />
-      ))}
-      {propostas && propostas.length === 0 && (
-        <Text size="sm" c="dimmed">Nenhum padrão consistente o suficiente para virar regra ainda.</Text>
-      )}
-
-      <Title order={6} mt="md">Regras ativas</Title>
-      {(ativas ?? []).map((r) => (
-        <Paper key={r.id} withBorder p="sm">
-          <Group justify="space-between">
-            <Text size="sm">
-              <b>{r.classe}</b> roteia automaticamente em <Badge size="xs">{r.nivel}</Badge>
-            </Text>
-            <BotaoDesativar id={r.id} aoAgir={invalidar} />
-          </Group>
-        </Paper>
-      ))}
-      {ativas && ativas.length === 0 && (
-        <Text size="sm" c="dimmed">Nenhuma regra ativa. Tudo ainda passa por você.</Text>
-      )}
+      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md" style={{ alignItems: "start" }}>
+        <div>
+          <Stack gap="xs">
+            <Title order={6}>Propostas</Title>
+            {(propostas ?? []).map((p) => (
+              <CardProposta key={p.classe} p={p} aoAgir={invalidar} />
+            ))}
+            {propostas && propostas.length === 0 && (
+              <Text size="sm" c="dimmed">Nenhum padrão consistente o suficiente para virar regra ainda.</Text>
+            )}
+          </Stack>
+        </div>
+        <div>
+          <Stack gap="xs">
+            <Title order={6}>Regras ativas</Title>
+            {(ativas ?? []).map((r) => (
+              <Paper key={r.id} withBorder p="sm">
+                <Group justify="space-between">
+                  <Text size="sm">
+                    <b>{r.classe}</b> roteia automaticamente em <Badge size="xs">{r.nivel}</Badge>
+                  </Text>
+                  <BotaoDesativar id={r.id} aoAgir={invalidar} />
+                </Group>
+              </Paper>
+            ))}
+            {ativas && ativas.length === 0 && (
+              <Text size="sm" c="dimmed">Nenhuma regra ativa. Tudo ainda passa por você.</Text>
+            )}
+          </Stack>
+        </div>
+      </SimpleGrid>
     </Stack>
   );
 }

@@ -1,8 +1,9 @@
-import { Alert, Badge, Button, Group, Paper, Radio, SegmentedControl, Stack, Text, Textarea, TextInput, Title } from "@mantine/core";
+import { Alert, Badge, Button, Group, Paper, Radio, SegmentedControl, SimpleGrid, Stack, Text, Textarea, TextInput, Title } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { decidir, getBloco, perguntarDossie, redigir, type RespostaDossie } from "../api/bloco";
+import { rotulo } from "../util/rotulos";
 import { TrilhaTimeline } from "./TrilhaTimeline";
 
 export function BlocoPage() {
@@ -47,6 +48,7 @@ export function BlocoPage() {
         <Text size="xs" c="dimmed">Bloco de decisão · {d.classe}</Text>
       </div>
 
+      <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="md" style={{ alignItems: "start" }}>
       <Paper withBorder p="md">
         <Title order={6}>Dossiê</Title>
         <Text size="xs" c="dimmed" mb="sm">Fatos do item. Fonte: a trilha.</Text>
@@ -97,6 +99,7 @@ export function BlocoPage() {
           <Button disabled={!opcao} onClick={() => mDecidir.mutate()}>Decidir e comunicar</Button>
         </Group>
       </Paper>
+      </SimpleGrid>
     </Stack>
   );
 }
@@ -126,7 +129,7 @@ function PerguntarDossie({ id }: { id: string }) {
           <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>{resp.resposta}</Text>
           <Group gap={4}>
             {resp.fontes.map((f, i) => (
-              <Badge key={i} size="xs" variant="light" color="blue">{f.fonteTipo}</Badge>
+              <Badge key={i} size="xs" variant="light" color="blue">{rotulo(f.fonteTipo)}</Badge>
             ))}
           </Group>
         </Stack>

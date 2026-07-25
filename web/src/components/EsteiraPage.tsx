@@ -1,4 +1,4 @@
-import { Badge, Button, Collapse, Group, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Badge, Button, Collapse, Group, Paper, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -13,6 +13,7 @@ import {
   type Checklist,
   type Instancia,
 } from "../api/esteira";
+import { rotulo } from "../util/rotulos";
 
 export function EsteiraPage() {
   const { data: esteiras } = useQuery({ queryKey: ["esteiras"], queryFn: getEsteiras });
@@ -37,8 +38,10 @@ export function EsteiraPage() {
         </Text>
       </div>
       <NovaInstancia esteiraId={esteira.id} />
-      <Instancias esteiraId={esteira.id} />
-      <Propostas esteiraId={esteira.id} />
+      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md" style={{ alignItems: "start" }}>
+        <Instancias esteiraId={esteira.id} />
+        <Propostas esteiraId={esteira.id} />
+      </SimpleGrid>
     </Stack>
   );
 }
@@ -109,7 +112,7 @@ function CardInstancia({ esteiraId, i, checklist }: { esteiraId: string; i: Inst
       <Group justify="space-between">
         <Text size="sm" fw={500}>{i.entidadeExterna}</Text>
         <Group gap="xs">
-          <Badge size="xs" variant="light">{i.etapaAtualNome ?? i.status}</Badge>
+          <Badge size="xs" variant="light">{i.etapaAtualNome ?? rotulo(i.status)}</Badge>
           {i.status === "EM_ANDAMENTO" && (
             <Button size="compact-xs" variant="subtle" onClick={() => setAberto((v) => !v)}>Avaliar</Button>
           )}
@@ -126,16 +129,17 @@ function CardInstancia({ esteiraId, i, checklist }: { esteiraId: string; i: Inst
         <Stack gap={6} mt="xs">
           {(checklist?.criterios ?? []).map((c) => (
             <Group key={c.chave} justify="space-between">
-              <Text size="xs">{c.descricao} <Badge size="xs" variant="light" color="gray">{c.tipo}</Badge></Text>
-              <SegmentedControl size="xs" data={["OK", "FALHOU", "NAO_APLICA"]}
+              <Text size="xs">{c.descricao} <Badge size="xs" variant="light" color={c.tipo === "JULGAMENTO" ? "grape" : "blue"}>{rotulo(c.tipo)}</Badge></Text>
+              <SegmentedControl size="xs"
+                data={[{ value: "OK", label: "OK" }, { value: "FALHOU", label: "Falhou" }, { value: "NAO_APLICA", label: "Não aplica" }]}
                 value={res[c.chave] ?? "OK"} onChange={(v) => setRes((s) => ({ ...s, [c.chave]: v }))} />
             </Group>
           ))}
           <Group gap="xs">
             <TextInput placeholder="apontamento (motivo)" value={apTexto} size="xs" style={{ flex: 1 }}
               onChange={(e) => setApTexto(e.currentTarget.value)} />
-            <Select size="xs" w={130} data={["OBJETIVO", "JULGAMENTO"]} value={apTipo}
-              onChange={(v) => setApTipo(v ?? "OBJETIVO")} />
+            <Select size="xs" w={140} value={apTipo} onChange={(v) => setApTipo(v ?? "OBJETIVO")}
+              data={[{ value: "OBJETIVO", label: "Objetivo" }, { value: "JULGAMENTO", label: "Julgamento" }]} />
           </Group>
           <Button size="xs" onClick={() => m.mutate()}>Registrar avaliação</Button>
         </Stack>

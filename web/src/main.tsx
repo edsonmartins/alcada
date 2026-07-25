@@ -124,7 +124,7 @@ function Layout() {
     <div style={{ display: "flex", height: "100vh" }}>
       <Sidebar />
       <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
-        <main style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 72px" }}>
+        <main style={{ maxWidth: 1440, padding: "24px 28px 72px" }}>
           <Outlet />
         </main>
       </div>

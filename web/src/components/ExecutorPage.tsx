@@ -10,6 +10,7 @@ import {
   type Delegacao,
 } from "../api/delegacoes";
 import { formatValor } from "../util/formato";
+import { rotulo } from "../util/rotulos";
 import { Countdown } from "./Countdown";
 import { TrilhaTimeline } from "./TrilhaTimeline";
 
@@ -72,7 +73,7 @@ function CardDelegacao({ d }: { d: Delegacao }) {
             </Text>
           )}
           <Badge>{d.nivel}</Badge>
-          <Badge variant="light">{d.status}</Badge>
+          <Badge variant="light">{rotulo(d.status)}</Badge>
           {emJanela && <Countdown prazo={d.prazo} onVencido={invalidar} />}
         </Group>
       </Group>
