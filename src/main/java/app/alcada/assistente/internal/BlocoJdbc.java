@@ -54,7 +54,7 @@ public class BlocoJdbc implements Bloco {
             add(dossie, "Valor em jogo", "R$ " + ((Number) p[4]).longValue());
         }
         if (p[5] != null) {
-            add(dossie, "Prazo", p[5].toString());
+            add(dossie, "Prazo", formatarPrazo(p[5]));
         }
         int temperatura = ((Number) p[6]).intValue();
         if (temperatura > 0) {
@@ -131,6 +131,18 @@ public class BlocoJdbc implements Bloco {
                     new BlocoDados.Opcao("aprovar", "Aprovar", "segue a proposta; o solicitante é avisado"),
                     new BlocoDados.Opcao("recusar", "Recusar", "nega; o solicitante é avisado com a justificativa"));
         };
+    }
+
+    /** timestamptz → data curta em America/Sao_Paulo (ex.: 28/07/2026). */
+    private static String formatarPrazo(Object v) {
+        java.time.Instant inst = v instanceof java.sql.Timestamp ts ? ts.toInstant()
+                : v instanceof java.time.OffsetDateTime odt ? odt.toInstant()
+                : v instanceof java.time.Instant i ? i : null;
+        if (inst == null) {
+            return v.toString();
+        }
+        return java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                .withZone(java.time.ZoneId.of("America/Sao_Paulo")).format(inst);
     }
 
     private static String json(String s) {
