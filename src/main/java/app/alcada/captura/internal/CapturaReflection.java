@@ -16,6 +16,8 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         CapturaResource.FonteResumo.class,
         CapturaResource.Problema.class,
         PendenciaResource.PendenciaResumo.class,
+        PendenciaResource.EscapeRequest.class,
+        PendenciaResource.EscapeCriada.class,
         PendenciaResource.DesfundirRequest.class,
         PendenciaResource.DesfundirResposta.class,
         PendenciaResource.Problema.class

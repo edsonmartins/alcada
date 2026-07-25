@@ -42,6 +42,41 @@ public class PendenciaResource {
         this.trilha = trilha;
     }
 
+    /**
+     * Escape manual (ADR-0005): cria pendência direto em ENTRADA, sem canal de
+     * origem. É métrica de falha da captura — e o plano B da demo (injetar um
+     * item sem depender do Linktor). Fechada depois → COMUNICACAO_IMPOSSIVEL
+     * (não há conversa; ADR-0025).
+     */
+    @POST
+    @Transactional
+    public Response criar(@HeaderParam("X-Pessoa-Id") String pessoa, EscapeRequest req) {
+        Optional<OrgId> org = contexto.atual();
+        if (org.isEmpty() || pessoa == null) {
+            return problema(400, "requisicao.invalida", "X-Org-Id e X-Pessoa-Id são obrigatórios");
+        }
+        if (req == null || req.titulo() == null || req.titulo().isBlank()) {
+            return problema(400, "escape.sem_titulo", "titulo é obrigatório");
+        }
+        String classe = req.classe() == null ? "DECISAO" : req.classe();
+        if (!List.of("DECISAO", "BLOQUEIO", "ESTEIRA").contains(classe)) {
+            return problema(422, "classe.invalida", "classe deve ser DECISAO, BLOQUEIO ou ESTEIRA");
+        }
+        UUID id = UUID.randomUUID();
+        em.createNativeQuery("""
+                INSERT INTO pendencia (id, org_id, titulo, quem_espera, o_que_trava, classe, horizonte, status)
+                VALUES (?, ?, ?, ?, ?, ?, 'SEMANA', 'ENTRADA')
+                """)
+                .setParameter(1, id).setParameter(2, org.get().valor())
+                .setParameter(3, req.titulo()).setParameter(4, req.quemEspera())
+                .setParameter(5, req.oQueTrava()).setParameter(6, classe)
+                .executeUpdate();
+        // trilha do escape — ator humano; sem identificador direto na carga (ADR-0016)
+        trilha.registrar(new EventoTrilha(org.get(), id, TipoEvento.CAPTADA,
+                Ator.humano(UUID.fromString(pessoa)), null, "ENTRADA", null, "{\"escape\":true}"));
+        return Response.status(201).entity(new EscapeCriada(id.toString())).build();
+    }
+
     @GET
     @Transactional
     public Response listar(@QueryParam("status") String status) {
@@ -146,6 +181,12 @@ public class PendenciaResource {
 
     public record PendenciaResumo(String id, String titulo, String classe, String horizonte,
                                   String status, String quemEspera, int temperatura, boolean baixaConfianca) {
+    }
+
+    public record EscapeRequest(String titulo, String quemEspera, String oQueTrava, String classe) {
+    }
+
+    public record EscapeCriada(String id) {
     }
 
     public record DesfundirRequest(String cobrancaId) {

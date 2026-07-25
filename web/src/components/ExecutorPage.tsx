@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Badge, Button, Collapse, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -9,11 +9,15 @@ import {
   propor,
   type Delegacao,
 } from "../api/delegacoes";
+import { Countdown } from "./Countdown";
+import { TrilhaTimeline } from "./TrilhaTimeline";
 
 const MINHAS = ["minhas-delegacoes"] as const;
 
 export function ExecutorPage() {
-  const { data } = useQuery({ queryKey: MINHAS, queryFn: getMinhasDelegacoes });
+  // refetch modesto: na janela de silêncio, o servidor executa por ausência e a
+  // tela reflete isso sozinha — sem o executor tocar em nada (critério da demo).
+  const { data } = useQuery({ queryKey: MINHAS, queryFn: getMinhasDelegacoes, refetchInterval: 5000 });
   const delegacoes = data ?? [];
 
   return (
@@ -36,11 +40,18 @@ function CardDelegacao({ d }: { d: Delegacao }) {
   const [proposta, setProposta] = useState(d.proposta ?? "");
   const [resultado, setResultado] = useState("");
   const [motivo, setMotivo] = useState("");
+  const [verTrilha, setVerTrilha] = useState(false);
 
-  const invalidar = () => qc.invalidateQueries({ queryKey: MINHAS });
+  const invalidar = () => {
+    qc.invalidateQueries({ queryKey: MINHAS });
+    qc.invalidateQueries({ queryKey: ["trilha", d.pendenciaId] });
+  };
   const mPropor = useMutation({ mutationFn: () => propor(d.id, proposta), onSuccess: invalidar });
   const mConcluir = useMutation({ mutationFn: () => concluir(d.id, resultado || "concluído"), onSuccess: invalidar });
   const mDevolver = useMutation({ mutationFn: () => devolver(d.id, motivo), onSuccess: invalidar });
+
+  // Só a delegação em janela de silêncio tem contagem — os demais estados não têm prazo.
+  const emJanela = d.status === "PROPOSTA" || d.status === "AGUARDANDO_JANELA";
 
   return (
     <Paper withBorder p="md" data-testid={`delegacao-${d.id}`}>
@@ -49,6 +60,7 @@ function CardDelegacao({ d }: { d: Delegacao }) {
         <Group gap="xs">
           <Badge>{d.nivel}</Badge>
           <Badge variant="light">{d.status}</Badge>
+          {emJanela && <Countdown prazo={d.prazo} onVencido={invalidar} />}
         </Group>
       </Group>
 
@@ -56,7 +68,7 @@ function CardDelegacao({ d }: { d: Delegacao }) {
         {d.proposta ? `Proposta: ${d.proposta}` : "Sem proposta registrada."}
       </Text>
       <Text size="xs" c="dimmed">
-        Prazo: {d.prazo ?? "—"} · {contratoDoSilencio(d)}
+        {contratoDoSilencio(d)}
       </Text>
 
       <Stack gap="xs" mt="sm">
@@ -97,6 +109,22 @@ function CardDelegacao({ d }: { d: Delegacao }) {
           </Button>
         </Group>
       </Stack>
+
+      <Button
+        size="xs"
+        variant="subtle"
+        mt="xs"
+        px={0}
+        onClick={() => setVerTrilha((v) => !v)}
+        aria-expanded={verTrilha}
+      >
+        {verTrilha ? "Ocultar trilha" : "Ver trilha"}
+      </Button>
+      <Collapse expanded={verTrilha}>
+        <Stack gap={4} mt="xs">
+          <TrilhaTimeline pendenciaId={d.pendenciaId} enabled={verTrilha} />
+        </Stack>
+      </Collapse>
     </Paper>
   );
 }

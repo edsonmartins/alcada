@@ -56,6 +56,11 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-rest-jackson</artifactId>
     </dependency>
+    <!-- Fallback de SPA (serve index.html para rotas do cliente) -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-reactive-routes</artifactId>
+    </dependency>
 
     <!-- Persistência: PostgreSQL e só ele (ADR-0023) -->
     <dependency>
@@ -188,6 +193,43 @@
   </build>
 
   <profiles>
+    <!-- Empacota o SPA (web/dist) dentro do app, servido same-origin pelo Quarkus.
+         Auto-ativado quando o front já foi buildado (pnpm build). Sem web/dist,
+         o build é só-backend e não quebra. -->
+    <profile>
+      <id>spa</id>
+      <activation>
+        <file>
+          <exists>web/dist/index.html</exists>
+        </file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copiar-spa</id>
+                <phase>process-resources</phase>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <configuration>
+                  <outputDirectory>${project.build.outputDirectory}/META-INF/resources</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>web/dist</directory>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <!-- JVM em desenvolvimento/testes é o default. Nativo só no release. -->
     <profile>
       <id>native</id>
