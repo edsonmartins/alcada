@@ -16,6 +16,11 @@ vi.mock("../api/pendencias", () => ({
   adiar: vi.fn(),
 }));
 
+vi.mock("../api/aprendizado", () => ({
+  getPerguntas: () => Promise.resolve([]),
+  responder: vi.fn(),
+}));
+
 import { HojePage } from "../components/HojePage";
 import { renderComProviders } from "../test/util";
 

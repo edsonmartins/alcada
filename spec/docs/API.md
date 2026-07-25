@@ -69,6 +69,17 @@ casos:[{pendenciaId, titulo, desfecho, valorEmJogo}]}]`.
 (`ROTEADA_POR_REGRA`). Assinatura fina `{faixa, tipo_solicitante, escopo}` fica para pacote futuro
 (exige motor de aplicação por faixa).
 
+### Laço de aprendizado (pacote 011, RFC-0003 / ADR-0019)
+```
+GET    /v1/aprendizado/perguntas                    # gera sob demanda + lista abertas (com evidência)
+POST   /v1/aprendizado/perguntas/{id}/responder     { resposta: SIM|AGORA_NAO|NAO_PERGUNTAR }
+```
+
+`GET` → `[{id, classe, nivelSugerido, donoSugerido, ocorrencias, casos[]}]` (uma aberta por classe,
+teto 3/semana). `responder`: `SIM` cria a regra (dono sugerido ou quem respondeu); `AGORA_NAO` recusa
+sem silenciar; `NAO_PERGUNTAR` silencia a classe (010). Trilha: `SUGESTAO_EMITIDA/ACEITA/RECUSADA/
+SILENCIADA`.
+
 ### Esteira
 ```
 GET    /v1/esteiras

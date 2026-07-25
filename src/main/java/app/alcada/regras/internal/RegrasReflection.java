@@ -1,5 +1,6 @@
 package app.alcada.regras.internal;
 
+import app.alcada.regras.port.PerguntaAprendizado;
 import app.alcada.regras.port.PropostaRegra;
 import app.alcada.regras.port.RegraAtiva;
 import io.quarkus.runtime.annotations.RegisterForReflection;
@@ -9,10 +10,12 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         PropostaRegra.class,
         PropostaRegra.Caso.class,
         RegraAtiva.class,
+        PerguntaAprendizado.class,
         RegrasResource.CriarRegra.class,
         RegrasResource.RegraCriada.class,
         RegrasResource.SilenciarRegra.class,
-        RegrasResource.Problema.class
+        RegrasResource.Problema.class,
+        AprendizadoResource.RespostaReq.class
 })
 public final class RegrasReflection {
     private RegrasReflection() {
