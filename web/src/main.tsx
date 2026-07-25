@@ -1,6 +1,6 @@
 import "@mantine/core/styles.css";
 
-import { MantineProvider } from "@mantine/core";
+import { Anchor, Group, MantineProvider, Text } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Link,
@@ -9,35 +9,73 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  useNavigate,
+  useRouterState,
 } from "@tanstack/react-router";
-import { StrictMode } from "react";
+import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import { limparSessao, pessoaId, rotuloSessao, temSessao } from "./api/config";
 import { EntradaPage } from "./components/EntradaPage";
 import { ExecutorPage } from "./components/ExecutorPage";
 import { HojePage } from "./components/HojePage";
+import { SessaoPage } from "./components/SessaoPage";
 import { theme } from "./theme";
 
 function Layout() {
+  const navigate = useNavigate();
+  const rota = useRouterState({ select: (s) => s.location.pathname });
+  const naSessao = rota === "/entrar";
+
+  // Guarda do piloto: sem sessão, manda para /entrar (menos na própria /entrar).
+  useEffect(() => {
+    if (!naSessao && !temSessao()) {
+      navigate({ to: "/entrar" });
+    }
+  }, [naSessao, rota, navigate]);
+
+  const sair = () => {
+    limparSessao();
+    navigate({ to: "/entrar" });
+  };
+
+  const quem = rotuloSessao() || (pessoaId() ? pessoaId().slice(0, 8) + "…" : "");
+
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", padding: 16 }}>
-      <header style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+      <header style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
         <strong>Alçada</strong>
-        <Link to="/">Entrada</Link>
-        <Link to="/hoje">Hoje</Link>
-        <Link to="/executor">Delegado a mim</Link>
+        {!naSessao && (
+          <>
+            <Link to="/">Entrada</Link>
+            <Link to="/hoje">Hoje</Link>
+            <Link to="/executor">Delegado a mim</Link>
+            {temSessao() && (
+              <Group gap={6} ml="auto">
+                <Text size="xs" c="dimmed">
+                  {quem}
+                </Text>
+                <Anchor component="button" type="button" size="xs" onClick={sair}>
+                  trocar
+                </Anchor>
+              </Group>
+            )}
+          </>
+        )}
       </header>
       <Outlet />
-      <div
-        style={{
-          position: "fixed",
-          bottom: 12,
-          right: 14,
-          fontFamily: "var(--mantine-font-family-monospace)",
-          fontSize: 11,
-        }}
-      >
-        <b>j k</b> navegar · <b>1–4</b> decidir · <b>a</b> adiar · <b>espaço</b> lote
-      </div>
+      {!naSessao && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 12,
+            right: 14,
+            fontFamily: "var(--mantine-font-family-monospace)",
+            fontSize: 11,
+          }}
+        >
+          <b>j k</b> navegar · <b>1–4</b> decidir · <b>a</b> adiar · <b>espaço</b> lote
+        </div>
+      )}
     </div>
   );
 }
@@ -46,7 +84,10 @@ const rootRoute = createRootRoute({ component: Layout });
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: EntradaPage });
 const hojeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/hoje", component: HojePage });
 const executorRoute = createRoute({ getParentRoute: () => rootRoute, path: "/executor", component: ExecutorPage });
-const router = createRouter({ routeTree: rootRoute.addChildren([indexRoute, hojeRoute, executorRoute]) });
+const sessaoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/entrar", component: SessaoPage });
+const router = createRouter({
+  routeTree: rootRoute.addChildren([indexRoute, hojeRoute, executorRoute, sessaoRoute]),
+});
 
 declare module "@tanstack/react-router" {
   interface Register {
