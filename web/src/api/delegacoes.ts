@@ -10,6 +10,10 @@ export interface Delegacao {
   proposta: string | null;
   prazo: string | null;
   janelaSegundos: number;
+  titulo: string | null;
+  quemEspera: string | null;
+  oQueTrava: string | null;
+  valorEmJogo: number | null;
 }
 
 /** Fronteira de autorização: retorna só as delegações do executor autenticado. */

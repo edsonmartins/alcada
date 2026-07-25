@@ -9,6 +9,7 @@ import {
   propor,
   type Delegacao,
 } from "../api/delegacoes";
+import { formatValor } from "../util/formato";
 import { Countdown } from "./Countdown";
 import { TrilhaTimeline } from "./TrilhaTimeline";
 
@@ -55,9 +56,21 @@ function CardDelegacao({ d }: { d: Delegacao }) {
 
   return (
     <Paper withBorder p="md" data-testid={`delegacao-${d.id}`}>
-      <Group justify="space-between">
-        <Text fw={500}>Pendência {d.pendenciaId.slice(0, 8)}…</Text>
-        <Group gap="xs">
+      <Group justify="space-between" align="flex-start" wrap="nowrap">
+        <div style={{ minWidth: 0 }}>
+          <Text fw={500}>{d.titulo ?? `Pendência ${d.pendenciaId.slice(0, 8)}…`}</Text>
+          {d.oQueTrava && (
+            <Text size="sm" c="dimmed">
+              {d.oQueTrava}
+            </Text>
+          )}
+        </div>
+        <Group gap="xs" style={{ flexShrink: 0 }}>
+          {formatValor(d.valorEmJogo) && (
+            <Text fw={600} size="sm">
+              {formatValor(d.valorEmJogo)}
+            </Text>
+          )}
           <Badge>{d.nivel}</Badge>
           <Badge variant="light">{d.status}</Badge>
           {emJanela && <Countdown prazo={d.prazo} onVencido={invalidar} />}
@@ -68,6 +81,7 @@ function CardDelegacao({ d }: { d: Delegacao }) {
         {d.proposta ? `Proposta: ${d.proposta}` : "Sem proposta registrada."}
       </Text>
       <Text size="xs" c="dimmed">
+        {d.quemEspera ? `espera: ${d.quemEspera} · ` : ""}
         {contratoDoSilencio(d)}
       </Text>
 

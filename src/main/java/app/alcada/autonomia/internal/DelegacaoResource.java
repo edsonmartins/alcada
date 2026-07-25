@@ -92,14 +92,17 @@ public class DelegacaoResource {
             return problema(400, "requisicao.invalida", "X-Org-Id e X-Pessoa-Id são obrigatórios");
         }
         StringBuilder sql = new StringBuilder("""
-                SELECT id, pendencia_id, dono_id, nivel, status, proposta,
-                       prazo, EXTRACT(EPOCH FROM janela)::bigint
-                FROM delegacao WHERE org_id = ? AND dono_id = ?
+                SELECT d.id, d.pendencia_id, d.dono_id, d.nivel, d.status, d.proposta,
+                       d.prazo, EXTRACT(EPOCH FROM d.janela)::bigint,
+                       p.titulo, p.quem_espera, p.o_que_trava, p.valor_em_jogo
+                FROM delegacao d
+                JOIN pendencia p ON p.id = d.pendencia_id AND p.org_id = d.org_id
+                WHERE d.org_id = ? AND d.dono_id = ?
                 """);
         if (status != null) {
-            sql.append(" AND status = ?");
+            sql.append(" AND d.status = ?");
         }
-        sql.append(" ORDER BY criada_em DESC");
+        sql.append(" ORDER BY d.criada_em DESC");
 
         var q = em.createNativeQuery(sql.toString())
                 .setParameter(1, org.get().valor()).setParameter(2, UUID.fromString(pessoa));
@@ -112,7 +115,9 @@ public class DelegacaoResource {
         for (Object[] l : linhas) {
             res.add(new DelegacaoResumo(l[0].toString(), l[1].toString(), l[2].toString(),
                     (String) l[3], (String) l[4], (String) l[5],
-                    l[6] == null ? null : l[6].toString(), ((Number) l[7]).longValue()));
+                    l[6] == null ? null : l[6].toString(), ((Number) l[7]).longValue(),
+                    (String) l[8], (String) l[9], (String) l[10],
+                    l[11] == null ? null : ((Number) l[11]).doubleValue()));
         }
         return Response.ok(res).build();
     }
@@ -150,6 +155,7 @@ public class DelegacaoResource {
     }
 
     public record DelegacaoResumo(String id, String pendenciaId, String donoId, String nivel,
-                                  String status, String proposta, String prazo, long janelaSegundos) {
+                                  String status, String proposta, String prazo, long janelaSegundos,
+                                  String titulo, String quemEspera, String oQueTrava, Double valorEmJogo) {
     }
 }
