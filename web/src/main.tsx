@@ -1,6 +1,14 @@
+import "@fontsource/instrument-sans/400.css";
+import "@fontsource/instrument-sans/500.css";
+import "@fontsource/instrument-sans/600.css";
+import "@fontsource/bricolage-grotesque/700.css";
+import "@fontsource/bricolage-grotesque/800.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
 import "@mantine/core/styles.css";
+import "./global.css";
 
-import { Anchor, Group, MantineProvider, Text } from "@mantine/core";
+import { Anchor, MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Link,
@@ -27,70 +35,99 @@ import { SessaoPage } from "./components/SessaoPage";
 import { SextaPage } from "./components/SextaPage";
 import { theme } from "./theme";
 
+const NAV = [
+  {
+    grupo: "Trabalho",
+    itens: [
+      { to: "/", label: "Entrada", ic: "▸" },
+      { to: "/hoje", label: "Hoje", ic: "◈" },
+      { to: "/executor", label: "Delegado a mim", ic: "◇" },
+    ],
+  },
+  {
+    grupo: "Controle",
+    itens: [
+      { to: "/radar", label: "Radar", ic: "◱" },
+      { to: "/alcadas", label: "Alçadas", ic: "▤" },
+      { to: "/esteira", label: "Esteira", ic: "▦" },
+      { to: "/sexta", label: "Revisão de sexta", ic: "◷" },
+    ],
+  },
+];
+
+function Sidebar() {
+  const navigate = useNavigate();
+  const quem = rotuloSessao() || (pessoaId() ? pessoaId().slice(0, 8) + "…" : "");
+  const iniciais = (quem || "?").trim().slice(0, 2).toUpperCase();
+  const sair = () => {
+    limparSessao();
+    navigate({ to: "/entrar" });
+  };
+  return (
+    <aside style={{ width: 236, background: "#131a2b", color: "#fff", display: "flex", flexDirection: "column", flex: "none" }}>
+      <div style={{ padding: "16px 16px 14px", borderBottom: "1px solid #ffffff14" }}>
+        <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, fontSize: 19, letterSpacing: "-.03em", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 9, height: 9, background: "#d6246e", borderRadius: 2, display: "block" }} />
+          Alçada
+        </div>
+        <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", color: "#7C89A8", marginTop: 5 }}>
+          plano de controle
+        </div>
+      </div>
+      <nav style={{ padding: "6px 8px", flex: 1, overflowY: "auto" }}>
+        {NAV.map((g) => (
+          <div key={g.grupo}>
+            <div className="sb-grp">{g.grupo}</div>
+            {g.itens.map((i) => (
+              <Link key={i.to} to={i.to} className="sb-nav-item"
+                activeProps={{ className: "sb-nav-item ativo" }} activeOptions={{ exact: i.to === "/" }}>
+                <span className="ic">{i.ic}</span>
+                {i.label}
+              </Link>
+            ))}
+          </div>
+        ))}
+      </nav>
+      {temSessao() && (
+        <div style={{ padding: "12px 14px", borderTop: "1px solid #ffffff14", display: "flex", alignItems: "center", gap: 9 }}>
+          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#26314c", display: "grid", placeItems: "center", fontSize: 11.5, fontWeight: 600, flex: "none" }}>
+            {iniciais}
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <b style={{ fontSize: 12.5, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{quem}</b>
+            <Anchor component="button" type="button" onClick={sair} style={{ fontSize: 11, color: "#7C89A8" }}>trocar</Anchor>
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 function Layout() {
   const navigate = useNavigate();
   const rota = useRouterState({ select: (s) => s.location.pathname });
   const naSessao = rota === "/entrar";
   const portalPublico = rota.startsWith("/portal"); // portal externo: sem login, sem chrome interno
 
-  // Guarda do piloto: sem sessão, manda para /entrar (menos na /entrar e no portal público).
   useEffect(() => {
     if (!naSessao && !portalPublico && !temSessao()) {
       navigate({ to: "/entrar" });
     }
   }, [naSessao, portalPublico, rota, navigate]);
 
-  if (portalPublico) {
+  // Portal público e tela de sessão: sem sidebar (centralizados, sem chrome interno).
+  if (portalPublico || naSessao) {
     return <Outlet />;
   }
 
-  const sair = () => {
-    limparSessao();
-    navigate({ to: "/entrar" });
-  };
-
-  const quem = rotuloSessao() || (pessoaId() ? pessoaId().slice(0, 8) + "…" : "");
-
   return (
-    <div style={{ maxWidth: 820, margin: "0 auto", padding: 16 }}>
-      <header style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
-        <strong>Alçada</strong>
-        {!naSessao && (
-          <>
-            <Link to="/">Entrada</Link>
-            <Link to="/hoje">Hoje</Link>
-            <Link to="/executor">Delegado a mim</Link>
-            <Link to="/radar">Radar</Link>
-            <Link to="/alcadas">Alçadas</Link>
-            <Link to="/esteira">Esteira</Link>
-            <Link to="/sexta">Sexta</Link>
-            {temSessao() && (
-              <Group gap={6} ml="auto">
-                <Text size="xs" c="dimmed">
-                  {quem}
-                </Text>
-                <Anchor component="button" type="button" size="xs" onClick={sair}>
-                  trocar
-                </Anchor>
-              </Group>
-            )}
-          </>
-        )}
-      </header>
-      <Outlet />
-      {!naSessao && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 12,
-            right: 14,
-            fontFamily: "var(--mantine-font-family-monospace)",
-            fontSize: 11,
-          }}
-        >
-          <b>j k</b> navegar · <b>1–4</b> decidir · <b>a</b> adiar · <b>espaço</b> lote
-        </div>
-      )}
+    <div style={{ display: "flex", height: "100vh" }}>
+      <Sidebar />
+      <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
+        <main style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 72px" }}>
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

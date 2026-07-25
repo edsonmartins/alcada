@@ -1,0 +1,46 @@
+/* Fundo "papel" do protótipo e afinações globais. */
+:root {
+  --papel: #eef0f4;
+  --papel-2: #f7f8fb;
+  --linha: #dce0e9;
+}
+
+body {
+  background: var(--papel);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Barra de rolagem discreta, como no protótipo. */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c3cad8;
+  border-radius: 6px;
+}
+
+/* ---------- sidebar (linguagem do protótipo) ---------- */
+.sb-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  color: #b4bfd6;
+  font-size: 13.5px;
+  text-decoration: none;
+  transition: 0.13s;
+}
+.sb-nav-item:hover { background: #ffffff0e; color: #fff; }
+.sb-nav-item.ativo { background: #26314c; color: #fff; font-weight: 500; }
+.sb-nav-item .ic { width: 16px; text-align: center; font-size: 13px; opacity: 0.85; flex: none; }
+.sb-grp {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #5f6c8a;
+  padding: 14px 12px 6px;
+}
