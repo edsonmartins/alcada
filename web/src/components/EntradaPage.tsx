@@ -1,4 +1,4 @@
-import { Alert, Badge, Box, Button, Chip, Group, Paper, Stack, Text } from "@mantine/core";
+import { Alert, Anchor, Badge, Box, Button, Chip, Group, Paper, Stack, Text } from "@mantine/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Classe, Horizonte, SaidaDireta } from "../api/types";
 import { formatPrazo, formatValor, idadeRelativa } from "../util/formato";
@@ -187,6 +187,9 @@ export function EntradaPage() {
                       no lote
                     </Badge>
                   )}
+                  <Anchor href={`/bloco/${p.id}`} size="xs" onClick={(e) => e.stopPropagation()}>
+                    abrir bloco
+                  </Anchor>
                 </Group>
               </div>
               <Stack gap={2} align="flex-end" style={{ flexShrink: 0 }}>

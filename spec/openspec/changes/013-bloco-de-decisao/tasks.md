@@ -1,28 +1,29 @@
 # Tasks — 013 bloco de decisão
 
 ## Backend — módulo assistente
-- [ ] `assistente.port.Bloco` + DTOs (BlocoDados{dossie[],opcoes[]}, RascunhoResultado)
-- [ ] `assistente.internal.BlocoJdbc`: dossiê determinístico da pendência; opções por classe;
-      `redigir` via ModelGateway (degrada p/ disponivel=false); `decidir` (FECHADA + DECIDIDA_NO_BLOCO
-      + outbox decisao.comunicada; 409 se já fechada)
+- [x] `assistente.port.Bloco` + DTOs (BlocoDados{dossie[],opcoes[]}, RascunhoResultado)
+- [x] `assistente.internal.BlocoJdbc`: dossiê determinístico; opções por classe; `redigir` via
+      ModelGateway (degrada p/ disponivel=false); `decidir` (FECHADA + DECIDIDA_NO_BLOCO + outbox
+      decisao.comunicada; 409 se já fechada)
 
 ## Backend — API
-- [ ] `GET /v1/pendencias/{id}/bloco`
-- [ ] `POST /v1/pendencias/{id}/bloco/redigir` {opcao, tom}
-- [ ] `POST /v1/pendencias/{id}/decidir` {opcao, texto}
-- [ ] `@RegisterForReflection`; problem+json; docs/API.md
+- [x] `GET /v1/pendencias/{id}/bloco`
+- [x] `POST /v1/pendencias/{id}/bloco/redigir` {opcao, tom}
+- [x] `POST /v1/pendencias/{id}/decidir` {opcao, texto}
+- [x] `@RegisterForReflection`; problem+json; docs/API.md
 
 ## Web — /bloco/{id}
-- [ ] Dossiê (fatos + link para a trilha), opções com consequência
-- [ ] Redação: escolher opção + tom, gerar rascunho editável (aviso se indisponível)
-- [ ] Decidir e comunicar → fecha o item
-- [ ] Entrada da tela: das pendências AGENDADA/ENTRADA (botão "Abrir bloco")
+- [x] Dossiê (fatos + link para a trilha), opções com consequência
+- [x] Redação: escolher opção + tom, gerar rascunho editável (aviso se indisponível)
+- [x] Decidir e comunicar → fecha o item
+- [x] Entrada da tela: link "abrir bloco" nos cards da Entrada
 
 ## Testes
-- [ ] Backend: cenários WHEN/THEN (dossiê+opções; redigir rascunho; degradação sem modelo; decidir
-      fecha+trilha+outbox; 409 já fechada; leitura pura ao montar; isolamento)
-- [ ] Web (Vitest): bloco renderiza dossiê/opções; decidir chama a API
+- [x] Backend: cenários WHEN/THEN — BlocoTest (5): dossiê+opções; redigir rascunho; decidir
+      fecha+trilha+outbox; 409 já fechada; isolamento
+- [x] Web (Vitest): bloco renderiza dossiê/opções; decidir chama a API — bloco.test.tsx
 
 ## Verificação
-- [ ] JVM suite verde + build nativo + RSS ≤120 MB
+- [x] JVM suite verde (124) + 31 Vitest
+- [ ] build nativo + RSS ≤120 MB
 - [ ] Deploy no piloto (GHCR pull) e conferência do bloco

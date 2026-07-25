@@ -16,6 +16,7 @@ import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { limparSessao, pessoaId, rotuloSessao, temSessao } from "./api/config";
 import { AlcadasPage } from "./components/AlcadasPage";
+import { BlocoPage } from "./components/BlocoPage";
 import { EntradaPage } from "./components/EntradaPage";
 import { EsteiraPage } from "./components/EsteiraPage";
 import { ExecutorPage } from "./components/ExecutorPage";
@@ -95,11 +96,12 @@ const executorRoute = createRoute({ getParentRoute: () => rootRoute, path: "/exe
 const radarRoute = createRoute({ getParentRoute: () => rootRoute, path: "/radar", component: RadarPage });
 const alcadasRoute = createRoute({ getParentRoute: () => rootRoute, path: "/alcadas", component: AlcadasPage });
 const esteiraRoute = createRoute({ getParentRoute: () => rootRoute, path: "/esteira", component: EsteiraPage });
+const blocoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/bloco/$id", component: BlocoPage });
 const sextaRoute = createRoute({ getParentRoute: () => rootRoute, path: "/sexta", component: SextaPage });
 const sessaoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/entrar", component: SessaoPage });
 const router = createRouter({
   routeTree: rootRoute.addChildren([
-    indexRoute, hojeRoute, executorRoute, radarRoute, alcadasRoute, esteiraRoute, sextaRoute, sessaoRoute,
+    indexRoute, hojeRoute, executorRoute, radarRoute, alcadasRoute, esteiraRoute, blocoRoute, sextaRoute, sessaoRoute,
   ]),
 });
 

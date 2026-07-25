@@ -1,0 +1,101 @@
+import { Alert, Button, Group, Paper, Radio, SegmentedControl, Stack, Text, Textarea, Title } from "@mantine/core";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { decidir, getBloco, redigir } from "../api/bloco";
+import { TrilhaTimeline } from "./TrilhaTimeline";
+
+export function BlocoPage() {
+  const { id } = useParams({ from: "/bloco/$id" });
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ["bloco", id], queryFn: () => getBloco(id) });
+
+  const [opcao, setOpcao] = useState<string | null>(null);
+  const [tom, setTom] = useState("direto");
+  const [texto, setTexto] = useState("");
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [verTrilha, setVerTrilha] = useState(false);
+
+  const mRedigir = useMutation({
+    mutationFn: () => redigir(id, opcaoRotulo(), tom),
+    onSuccess: (r) => {
+      setTexto(r.rascunho);
+      setAviso(r.disponivel ? null : r.aviso);
+    },
+  });
+  const mDecidir = useMutation({
+    mutationFn: () => decidir(id, opcaoRotulo(), texto),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["entrada"] });
+      qc.invalidateQueries({ queryKey: ["hoje"] });
+      navigate({ to: "/" });
+    },
+  });
+
+  function opcaoRotulo() {
+    return data?.opcoes.find((o) => o.chave === opcao)?.rotulo ?? opcao ?? "";
+  }
+
+  if (!data) return null;
+  const d = data;
+
+  return (
+    <Stack>
+      <div>
+        <Title order={4}>{d.titulo}</Title>
+        <Text size="xs" c="dimmed">Bloco de decisão · {d.classe}</Text>
+      </div>
+
+      <Paper withBorder p="md">
+        <Title order={6}>Dossiê</Title>
+        <Text size="xs" c="dimmed" mb="sm">Fatos do item. Fonte: a trilha.</Text>
+        <Stack gap={4}>
+          {d.dossie.map((f) => (
+            <Group key={f.rotulo} justify="space-between">
+              <Text size="sm" c="dimmed">{f.rotulo}</Text>
+              <Text size="sm" fw={500}>{f.valor}</Text>
+            </Group>
+          ))}
+        </Stack>
+        <Button size="xs" variant="subtle" px={0} mt="xs" onClick={() => setVerTrilha((v) => !v)}>
+          {verTrilha ? "Ocultar trilha" : "Ver trilha (fonte)"}
+        </Button>
+        {verTrilha && <div style={{ marginTop: 8 }}><TrilhaTimeline pendenciaId={id} enabled={verTrilha} /></div>}
+      </Paper>
+
+      <Paper withBorder p="md">
+        <Title order={6}>Opção e consequência</Title>
+        <Radio.Group value={opcao} onChange={setOpcao}>
+          <Stack gap="xs" mt="xs">
+            {d.opcoes.map((o) => (
+              <Radio key={o.chave} value={o.chave} label={
+                <span><b>{o.rotulo}</b> <Text span size="xs" c="dimmed">— {o.consequencia}</Text></span>
+              } />
+            ))}
+          </Stack>
+        </Radio.Group>
+      </Paper>
+
+      <Paper withBorder p="md">
+        <Title order={6}>Comunicar a decisão</Title>
+        <Group gap="xs" mt="xs" mb="xs">
+          <SegmentedControl size="xs" data={[{ value: "direto", label: "Direto" }, { value: "diplomatico", label: "Diplomático" }]}
+            value={tom} onChange={setTom} />
+          <Button size="xs" variant="light" disabled={!opcao} onClick={() => mRedigir.mutate()}>
+            Gerar rascunho
+          </Button>
+        </Group>
+        {aviso && <Alert color="yellow" mb="xs" data-testid="aviso-modelo">{aviso}</Alert>}
+        <Textarea rows={5} placeholder="o texto que vai ao canal de origem"
+          value={texto} onChange={(e) => setTexto(e.currentTarget.value)} />
+        <Text size="xs" c="dimmed" mt={6}>
+          O texto sai no canal de origem, a decisão vai para a trilha e quem esperava é avisado.
+        </Text>
+        <Group justify="flex-end" mt="sm">
+          <Button disabled={!opcao} onClick={() => mDecidir.mutate()}>Decidir e comunicar</Button>
+        </Group>
+      </Paper>
+    </Stack>
+  );
+}

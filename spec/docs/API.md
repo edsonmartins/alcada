@@ -20,7 +20,16 @@ POST   /v1/pendencias/{id}/intervir        # interrompe N2, devolve para ENTRADA
 POST   /v1/pendencias/{id}/desfazer        # dentro da janela de reversibilidade
 GET    /v1/pendencias/{id}/trilha
 POST   /v1/pendencias/{id}/desfundir       { cobranca_id }   # reverte deduplicação
+GET    /v1/pendencias/{id}/bloco           # dossiê + opções (pacote 013)
+POST   /v1/pendencias/{id}/bloco/redigir   { opcao, tom }    # rascunho editável (modelo; proposta)
+POST   /v1/pendencias/{id}/decidir         { opcao, texto }  # fecha + DECIDIDA_NO_BLOCO + outbox
 ```
+
+Bloco de decisão (013, RFC-0004): `GET .../bloco` → `{titulo, classe, dossie:[{rotulo,valor}],
+opcoes:[{chave,rotulo,consequencia}]}` (dossiê determinístico; fonte = a trilha). `redigir` →
+`{rascunho, disponivel, aviso}` (modelo só propõe; `disponivel=false` degrada sem gateway).
+`decidir` fecha a pendência, grava `DECIDIDA_NO_BLOCO` e enfileira `decisao.comunicada` (INV-10:
+decidir é ação do gestor, nunca inferência; `409` se já fechada).
 
 `GET /v1/pendencias` devolve, por item:
 `id, titulo, classe, horizonte, status, quemEspera, temperatura, baixaConfianca,`
