@@ -143,14 +143,17 @@ public class TriagemService {
 
     // ---- Hoje (função de ordenação, PRODUTO §6) ----------------------------
 
-    public record ItemHoje(String id, String titulo, String justificativa) {
+    public record ItemHoje(String id, String titulo, String justificativa, String classe,
+                           String quemEspera, String oQueTrava, Double valorEmJogo,
+                           java.time.OffsetDateTime prazoImplicito, int temperatura) {
     }
 
     @Transactional
     public List<ItemHoje> hoje(OrgId org) {
         @SuppressWarnings("unchecked")
         List<Object[]> linhas = em.createNativeQuery("""
-                SELECT id, titulo, valor_em_jogo, prazo_implicito, temperatura
+                SELECT id, titulo, valor_em_jogo, prazo_implicito, temperatura,
+                       classe, quem_espera, o_que_trava
                 FROM pendencia
                 WHERE org_id = ? AND status = 'ENTRADA'
                 ORDER BY (valor_em_jogo IS NOT NULL) DESC, valor_em_jogo DESC NULLS LAST,
@@ -162,9 +165,26 @@ public class TriagemService {
 
         List<ItemHoje> hoje = new ArrayList<>(linhas.size());
         for (Object[] l : linhas) {
-            hoje.add(new ItemHoje(l[0].toString(), (String) l[1], justificativa(l)));
+            hoje.add(new ItemHoje(
+                    l[0].toString(), (String) l[1], justificativa(l), (String) l[5],
+                    (String) l[6], (String) l[7],
+                    l[2] == null ? null : ((Number) l[2]).doubleValue(),
+                    toOdt(l[3]), ((Number) l[4]).intValue()));
         }
         return hoje;
+    }
+
+    private static java.time.OffsetDateTime toOdt(Object v) {
+        if (v instanceof java.time.OffsetDateTime odt) {
+            return odt;
+        }
+        if (v instanceof java.sql.Timestamp ts) {
+            return ts.toInstant().atOffset(java.time.ZoneOffset.UTC);
+        }
+        if (v instanceof java.time.Instant inst) {
+            return inst.atOffset(java.time.ZoneOffset.UTC);
+        }
+        return null;
     }
 
     private static String justificativa(Object[] l) {

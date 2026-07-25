@@ -26,6 +26,12 @@ export interface ItemHoje {
   id: string;
   titulo: string;
   justificativa: string;
+  classe: Classe;
+  quemEspera: string | null;
+  oQueTrava: string | null;
+  valorEmJogo: number | null;
+  prazoImplicito: string | null; // ISO-8601
+  temperatura: number;
 }
 
 export interface RepassarBody {

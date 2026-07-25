@@ -120,6 +120,9 @@ class TriagemBackendTest {
         List<TriagemService.ItemHoje> hoje = QuarkusTransaction.requiringNew().call(() -> triagem.hoje(org));
         assertEquals(3, hoje.size());
         assertTrue(hoje.stream().allMatch(h -> h.justificativa() != null && !h.justificativa().isBlank()));
+        // 003+: o card do Hoje agora carrega o contexto do item (classe/valor), como na Entrada.
+        assertTrue(hoje.stream().allMatch(h -> "DECISAO".equals(h.classe())));
+        assertTrue(hoje.stream().allMatch(h -> h.valorEmJogo() != null));
     }
 
     // ---- helpers -----------------------------------------------------------

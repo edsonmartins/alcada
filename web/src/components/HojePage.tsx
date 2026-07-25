@@ -4,8 +4,23 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { getPerguntas, responder, type PerguntaAprendizado, type Resposta } from "../api/aprendizado";
 import { getHoje } from "../api/pendencias";
+import type { Classe } from "../api/types";
+import { formatPrazo, formatValor } from "../util/formato";
+import { corClasse } from "../util/rotulos";
 import { PageHeader } from "./PageHeader";
 import { TrilhaTimeline } from "./TrilhaTimeline";
+
+// Mesma linguagem visual da Entrada (barra de cor + rótulo por classe).
+const COR_CLASSE: Record<Classe, string> = {
+  DECISAO: "var(--mantine-color-blue-6)",
+  BLOQUEIO: "var(--mantine-color-red-6)",
+  ESTEIRA: "var(--mantine-color-grape-6)",
+};
+const ROTULO_CLASSE: Record<Classe, string> = {
+  DECISAO: "decisão",
+  BLOQUEIO: "bloqueio",
+  ESTEIRA: "esteira",
+};
 
 /** Hoje: no máximo 3 (o backend já limita; a UI reforça). Nada contemplativo. */
 export function HojePage() {
@@ -21,29 +36,56 @@ export function HojePage() {
         <Paper
           key={h.id}
           withBorder
-          p="sm"
+          p="md"
           data-testid="item-hoje"
           onClick={() => navigate({ to: "/bloco/$id", params: { id: h.id } })}
-          style={{ cursor: "pointer" }}
+          style={{ cursor: "pointer", borderLeft: `3px solid ${COR_CLASSE[h.classe]}` }}
         >
           <Group justify="space-between" wrap="nowrap" align="flex-start">
-            <div style={{ minWidth: 0 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <Text fw={500}>{h.titulo}</Text>
-              <Text size="xs" c="dimmed">
-                por quê: {h.justificativa}
-              </Text>
+              {h.oQueTrava && (
+                <Text size="sm" c="dimmed" lineClamp={1}>
+                  {h.oQueTrava}
+                </Text>
+              )}
+              <Group gap={8} mt={6} wrap="wrap">
+                <Badge size="xs" variant="light" color={corClasse(h.classe)}>
+                  {ROTULO_CLASSE[h.classe]}
+                </Badge>
+                <Badge size="xs" color="blue" variant="outline">
+                  por quê: {h.justificativa}
+                </Badge>
+                {h.quemEspera && (
+                  <Text size="xs" c="dimmed">espera: {h.quemEspera}</Text>
+                )}
+                {h.temperatura > 0 && (
+                  <Badge size="xs" color="orange" variant="light">
+                    {h.temperatura} {h.temperatura === 1 ? "cobrança" : "cobranças"}
+                  </Badge>
+                )}
+              </Group>
             </div>
-            <Button
-              size="xs"
-              variant="light"
-              style={{ flexShrink: 0 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate({ to: "/bloco/$id", params: { id: h.id } });
-              }}
-            >
-              Abrir bloco
-            </Button>
+            <Stack gap={6} align="flex-end" style={{ flexShrink: 0 }}>
+              <Group gap={12} wrap="nowrap">
+                {formatValor(h.valorEmJogo) && (
+                  <Text fw={700} size="sm">{formatValor(h.valorEmJogo)}</Text>
+                )}
+                {formatPrazo(h.prazoImplicito) && (
+                  <Text size="xs" c="red.7" ff="monospace">prazo {formatPrazo(h.prazoImplicito)}</Text>
+                )}
+              </Group>
+              <Button
+                size="xs"
+                variant="light"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate({ to: "/bloco/$id", params: { id: h.id } });
+                }}
+              >
+                Abrir bloco
+              </Button>
+            </Stack>
           </Group>
         </Paper>
       ))}
