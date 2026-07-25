@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual Alçada — guia para quem vai usar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400;75..125,600;75..125,700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --quadro:#14352B;
+  --quadro-2:#1E4A3C;
+  --giz:#EDF2EC;
+  --papel:#FAFAF8;
+  --tinta:#1C2320;
+  --fraco:#5F6B65;
+  --linha:#DDE0DA;
+  --resolver:#0F7A57;
+  --repassar:#2B57D4;
+  --reservar:#B8690D;
+  --repousar:#77857E;
+  --w:44rem;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--papel);color:var(--tinta);
+  font-family:'Source Serif 4',Georgia,serif;
+  font-size:17px;line-height:1.62;
+  font-optical-sizing:auto;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--w);margin:0 auto;padding:0 24px}
+h1,h2,h3,.disp{font-family:'Archivo',system-ui,sans-serif;font-variation-settings:'wdth' 92;letter-spacing:-.015em;margin:0;line-height:1.12}
+.mono{font-family:'IBM Plex Mono',monospace}
+a{color:var(--repassar)}
+:focus-visible{outline:2px solid var(--quadro);outline-offset:3px}
+
+/* ---------- capa ---------- */
+.capa{background:var(--quadro);color:var(--giz);padding:64px 0 56px;margin-bottom:52px}
+.capa .rot{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#8FAFA0}
+.capa h1{font-size:clamp(38px,7vw,60px);font-weight:700;font-variation-settings:'wdth' 88;margin:14px 0 0;color:#fff}
+.capa .sub-nome{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#8FAFA0;margin:10px 0 0}
+.capa .sub{font-size:19px;color:#B9D0C4;margin-top:16px;max-width:34ch}
+.risco{display:block;width:190px;height:9px;margin-top:22px;opacity:.75}
+
+/* ---------- sumário ---------- */
+.sumario{border-top:1px solid var(--linha);border-bottom:1px solid var(--linha);padding:20px 0;margin-bottom:48px}
+.sumario ol{margin:0;padding:0;list-style:none;columns:2;column-gap:32px}
+.sumario li{font-family:'Archivo',sans-serif;font-size:14px;padding:3px 0;break-inside:avoid}
+.sumario a{color:var(--tinta);text-decoration:none;display:flex;gap:10px}
+.sumario a:hover{color:var(--quadro);text-decoration:underline}
+.sumario .n{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fraco);padding-top:2px}
+
+/* ---------- seções ---------- */
+section{margin-bottom:52px}
+h2{font-size:27px;font-weight:600;margin-bottom:6px;position:relative}
+h2 .n{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;letter-spacing:.14em;color:var(--fraco);display:block;margin-bottom:9px}
+h3{font-size:19px;font-weight:600;margin:26px 0 4px}
+p{margin:14px 0}
+strong{font-weight:600}
+em{font-style:italic}
+.lede{font-size:19px;color:#37423C}
+
+blockquote{
+  margin:22px 0;padding:16px 20px;border-left:3px solid var(--quadro);
+  background:#F2F4F0;font-size:17px;
+}
+blockquote p{margin:0}
+blockquote p + p{margin-top:10px}
+
+table{width:100%;border-collapse:collapse;margin:20px 0;font-size:15.5px}
+th{font-family:'Archivo',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fraco);text-align:left;padding:0 12px 8px 0;border-bottom:1.5px solid var(--quadro)}
+td{padding:11px 12px 11px 0;border-bottom:1px solid var(--linha);vertical-align:top}
+tr:last-child td{border-bottom:none}
+
+/* portas */
+.porta{border-left:4px solid var(--c);padding:2px 0 2px 18px;margin:26px 0}
+.porta h3{margin:0;color:var(--c);font-size:20px}
+.porta .quando{font-size:15px;color:var(--fraco);margin:5px 0 0}
+.porta .ex{font-size:15.5px;margin:8px 0 0}
+.porta .ex b{font-family:'Archivo',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--fraco);font-weight:600;display:block;margin-bottom:2px}
+
+.alerta{background:#FDF6EC;border:1px solid #E8D3B0;border-radius:6px;padding:15px 18px;margin:22px 0;font-size:16px}
+.alerta b{color:var(--reservar)}
+
+/* níveis */
+.nivel{display:flex;gap:16px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--linha)}
+.nivel:last-of-type{border-bottom:none}
+.nivel .tag{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;color:var(--quadro);border:1px solid var(--quadro);border-radius:4px;padding:2px 8px;flex:none}
+.nivel .txt b{font-family:'Archivo',sans-serif;font-size:17px;font-weight:600;display:block}
+.nivel .txt span{font-size:15px;color:var(--fraco);display:block;margin-top:2px}
+
+/* passos */
+.passo{display:flex;gap:18px;margin:22px 0}
+.passo .n{font-family:'Archivo',sans-serif;font-variation-settings:'wdth' 78;font-size:30px;font-weight:700;color:var(--linha);line-height:1;flex:none;width:38px}
+.passo .c b{font-family:'Archivo',sans-serif;font-size:17px;font-weight:600;display:block;margin-bottom:3px}
+.passo .c p{margin:0;font-size:16px}
+
+.erro{margin:22px 0}
+.erro b{font-family:'Archivo',sans-serif;font-size:16.5px;font-weight:600;display:block}
+.erro p{margin:3px 0 0;font-size:16px}
+
+.faq{margin:24px 0}
+.faq b{font-family:'Archivo',sans-serif;font-size:16.5px;font-weight:600;display:block}
+.faq p{margin:4px 0 0;font-size:16px}
+
+/* ---------- folha de bolso: o quadro ---------- */
+.quadro{background:var(--quadro);color:var(--giz);border-radius:8px;padding:38px 34px;margin:44px 0 0;position:relative}
+.quadro::after{content:"";position:absolute;inset:9px;border:1px solid #ffffff1a;border-radius:4px;pointer-events:none}
+.quadro h2{color:#fff;font-size:25px;margin-bottom:4px}
+.quadro h2 .n{color:#8FAFA0}
+.quadro .risco2{display:block;width:150px;height:8px;margin:10px 0 26px;opacity:.7}
+.q-b{margin-bottom:24px}
+.q-b .rot{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#8FAFA0;margin-bottom:8px}
+.q-b .big{font-family:'Archivo',sans-serif;font-size:24px;font-weight:600;color:#fff;font-variation-settings:'wdth' 90}
+.q-l{display:flex;gap:12px;padding:6px 0;font-size:16px;align-items:baseline}
+.q-l i{width:9px;height:9px;border-radius:2px;flex:none;background:var(--c);display:block;transform:translateY(-1px)}
+.q-l b{font-family:'Archivo',sans-serif;font-weight:600;color:#fff}
+.q-l span{color:#B9D0C4}
+.q-b p{margin:6px 0 0;color:#CBDDD3;font-size:16px}
+.q-fim{border-top:1px solid #ffffff26;padding-top:18px;margin-top:26px;font-family:'Archivo',sans-serif;font-size:17px;color:#fff;font-weight:600}
+
+footer{border-top:1px solid var(--linha);margin-top:56px;padding:22px 0 70px;font-size:14px;color:var(--fraco)}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .sumario ol{columns:1}
+  .capa{padding:44px 0 38px}
+  .quadro{padding:28px 22px}
+}
+@media print{
+  :root{--papel:#fff}
+  body{font-size:11.5pt;line-height:1.5}
+  .capa{background:none;color:var(--quadro);padding:0 0 22px;margin-bottom:24px;border-bottom:2px solid var(--quadro)}
+  .capa h1{color:var(--quadro);font-size:30pt}
+  .capa .sub{color:var(--fraco)}
+  .capa .rot{color:var(--fraco)}
+  .sumario{display:none}
+  section{margin-bottom:26px;page-break-inside:avoid}
+  h2{page-break-after:avoid}
+  .porta,.passo,.faq,.erro,table,blockquote{page-break-inside:avoid}
+  .quadro{page-break-before:always;background:none;color:var(--tinta);border:2px solid var(--quadro)}
+  .quadro h2,.quadro .q-b .big,.quadro .q-l b,.quadro .q-fim{color:var(--quadro)}
+  .quadro .q-l span,.quadro .q-b p{color:var(--tinta)}
+  .quadro::after{display:none}
+  footer{page-break-inside:avoid}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="capa">
+  <div class="wrap">
+    <div class="rot">Guia prático · não precisa de software</div>
+    <h1>Alçada</h1>
+    <p class="sub-nome">manual do método</p>
+    <p class="sub">Como parar de reagir a cobrança e fazer chegar menos coisa até você.</p>
+    <svg class="risco" viewBox="0 0 190 9" aria-hidden="true"><path d="M2 6.2c22-3.4 44-4.1 66-2.6 24 1.7 47 3.1 71 1.1 16-1.3 32-2.9 49-1.8" fill="none" stroke="#EDF2EC" stroke-width="2.6" stroke-linecap="round"/></svg>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="sumario" aria-label="Conteúdo">
+  <ol>
+    <li><a href="#s1"><span class="n">01</span> O problema</a></li>
+    <li><a href="#s2"><span class="n">02</span> A ideia central</a></li>
+    <li><a href="#s3"><span class="n">03</span> O que entra na fila</a></li>
+    <li><a href="#s4"><span class="n">04</span> As quatro saídas</a></li>
+    <li><a href="#s5"><span class="n">05</span> Quando não dá para decidir</a></li>
+    <li><a href="#s6"><span class="n">06</span> Quanta corda você dá</a></li>
+    <li><a href="#s7"><span class="n">07</span> Os três tempos</a></li>
+    <li><a href="#s8"><span class="n">08</span> A rotina</a></li>
+    <li><a href="#s9"><span class="n">09</span> Começando na segunda</a></li>
+    <li><a href="#s10"><span class="n">10</span> O que costuma dar errado</a></li>
+    <li><a href="#s11"><span class="n">11</span> Perguntas frequentes</a></li>
+    <li><a href="#s12"><span class="n">12</span> Folha de bolso</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="n">01</span>O problema</h2>
+  <p class="lede">Você provavelmente já se sentiu carregando um armário fechado ladeira acima. O peso é real, mas o pior nem é o peso: é não saber o que tem lá dentro.</p>
+  <p>Isso acontece porque o que você chama de “meu backlog” não é uma lista de trabalho. <strong>É uma fila de pessoas esperando você decidir alguma coisa.</strong> Cada item ali é alguém parado — um vendedor que não fecha o pedido, um parceiro que não avança, alguém do RH que não consegue seguir.</p>
+  <p>E como essa fila está espalhada em cinco lugares ao mesmo tempo — grupo do WhatsApp, e-mail, conversa de corredor, papel na mesa e a sua cabeça — não existe como comparar as coisas entre si. Então ganha quem cobra mais alto. Não é falta de disciplina sua: qualquer pessoa no seu lugar reagiria igual.</p>
+  <blockquote><p><strong>A saída não é se organizar melhor. É fazer chegar menos coisa até você.</strong></p></blockquote>
+</section>
+
+<section id="s2">
+  <h2><span class="n">02</span>A ideia central</h2>
+  <p>O método tem uma única pergunta e um único objetivo.</p>
+  <p>A pergunta, para tudo que chega:</p>
+  <blockquote><p><strong>Isso precisa mesmo de mim?</strong></p></blockquote>
+  <p>O objetivo, ao longo dos meses:</p>
+  <blockquote><p><strong>Que cada vez menos coisas precisem.</strong></p></blockquote>
+  <p>Se ao fim de três meses a quantidade de coisas que dependem de você não diminuiu, o método não funcionou. Uma fila bonita e organizada que não encolhe é só uma forma mais elegante de continuar sobrecarregado.</p>
+</section>
+
+<section id="s3">
+  <h2><span class="n">03</span>O que entra na fila</h2>
+  <p>Só entra o que <strong>alguém está esperando</strong>.</p>
+  <table>
+    <thead><tr><th>Entra</th><th>Não entra</th></tr></thead>
+    <tbody>
+      <tr><td>Aprovar o desconto que o vendedor pediu</td><td>“Estudar o mercado de embalagem”</td></tr>
+      <tr><td>Validar a integração do parceiro novo</td><td>“Pensar em abrir um centro de distribuição”</td></tr>
+      <tr><td>Assinar o contrato que vence dia 25</td><td>“Melhorar o processo de compras”</td></tr>
+    </tbody>
+  </table>
+  <p>A diferença: na coluna da esquerda tem gente parada. Na direita, não tem ninguém esperando — são ideias suas, e elas vivem em outro lugar (seção 07).</p>
+  <p>De cada coisa que entra, interessam só três informações:</p>
+  <ul>
+    <li><strong>quem está esperando</strong></li>
+    <li><strong>o que trava</strong> enquanto isso não sai</li>
+    <li><strong>o que está em jogo</strong> — dinheiro parado, prazo, risco, ou nada</li>
+  </ul>
+  <p>Não interessa quanto tempo vai levar, nem que categoria tem, nem qual a prioridade. Se você soubesse a prioridade de cada coisa, não teria esse problema.</p>
+</section>
+
+<section id="s4">
+  <h2><span class="n">04</span>As quatro saídas</h2>
+  <p>Toda coisa que chega sai por uma destas quatro portas. São só quatro, de propósito.</p>
+
+  <div class="porta" style="--c:var(--resolver)">
+    <h3>Resolver</h3>
+    <p class="quando">Quando dá para decidir em menos de dois minutos.</p>
+    <p class="ex"><b>Exemplo</b>Assinar o aditivo que o jurídico já revisou. Mudar o horário de uma reunião. Morre agora e some da sua frente.</p>
+  </div>
+
+  <div class="porta" style="--c:var(--repassar)">
+    <h3>Repassar</h3>
+    <p class="quando">Quando existe alguém em melhor posição que você para resolver.</p>
+    <p class="ex"><b>Exemplo</b>O reembolso de viagem de R$ 1.240 que está dentro da política. Sai com três coisas definidas: quem faz, até quando, e quanta corda essa pessoa tem (seção 06).</p>
+  </div>
+
+  <div class="porta" style="--c:var(--reservar)">
+    <h3>Reservar</h3>
+    <p class="quando">Quando só você decide mesmo, e exige cabeça fresca.</p>
+    <p class="ex"><b>Exemplo</b>Escolher o fornecedor de embalagem do ano que vem. Vai para uma hora marcada na agenda, com o material reunido antes.</p>
+  </div>
+
+  <div class="alerta">
+    <b>Atenção a esta porta.</b> Ela é a mais cara, porque a coisa continua sendo sua. Se mais de uma em cada cinco está saindo por aqui, o problema não é organização — é que gente demais depende de você para coisas que não deveriam.
+  </div>
+
+  <div class="porta" style="--c:var(--repousar)">
+    <h3>Repousar</h3>
+    <p class="quando">Quando não é decisão: é espera, é ruído, ou é aquilo que ninguém nunca cobrou.</p>
+    <p class="ex"><b>Exemplo</b>“Ver se vale abrir um CD em Londrina”, mencionado duas vezes em quatro meses e nunca cobrado por ninguém. Some da frente com data para voltar — e se alguém cobrar antes, volta sozinho.</p>
+  </div>
+</section>
+
+<section id="s5">
+  <h2><span class="n">05</span>E quando você simplesmente não consegue decidir?</h2>
+  <p>Acontece com todo mundo, todo dia. O método não finge que não.</p>
+  <p>Você pode adiar. Mas adiar exige responder <strong>duas perguntas</strong>: quando isso volta — “depois” não vale, precisa de data — e o que falta para você decidir.</p>
+  <p>Para a segunda, só existem três respostas possíveis:</p>
+  <table>
+    <thead><tr><th>Resposta</th><th>O que isso significa de verdade</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Falta uma informação</strong></td><td>A pendência é de quem tem essa informação. Cobre ela, não o item.</td></tr>
+      <tr><td><strong>Espero outra pessoa</strong></td><td>A bola não é sua. Repasse com prazo.</td></tr>
+      <tr><td><strong>Nada, só não quero agora</strong></td><td>Não está travado. Está sendo <strong>evitado</strong>.</td></tr>
+    </tbody>
+  </table>
+  <p>A terceira é a mais comum e a mais honesta — e é a que resolve o problema. Quando uma coisa é adiada quatro vezes, quase nunca é falta de tempo. É que decidir aquilo dói: envolve dizer não para alguém, admitir um erro, perder dinheiro, ter uma conversa desagradável.</p>
+  <blockquote>
+    <p>E aqui está o detalhe que muda tudo: <strong>na maioria dos casos o caro não é decidir, é escrever o retorno.</strong></p>
+    <p>Reprovar a integração do parceiro é fácil. Difícil é redigir o e-mail explicando os três ajustes. Sabendo disso, dá para atacar a coisa certa: sente 40 minutos com o material pronto e escreva. O item parado há três meses sai em uma sessão.</p>
+  </blockquote>
+</section>
+
+<section id="s6">
+  <h2><span class="n">06</span>Quanta corda você dá</h2>
+  <p>Esta é a parte que faz a fila encolher de verdade. Todo repasse tem um nível combinado:</p>
+
+  <div class="nivel"><span class="tag">N1</span><div class="txt"><b>“Faz e me conta depois”</b><span>A pessoa decide sozinha. Você fica sabendo, não é consultado. Custa zero da sua atenção.</span></div></div>
+  <div class="nivel"><span class="tag">N2</span><div class="txt"><b>“Faz, a não ser que eu te pare”</b><span>A pessoa propõe, define um prazo e executa se você não intervir. Silêncio vale como “pode ir”.</span></div></div>
+  <div class="nivel"><span class="tag">N3</span><div class="txt"><b>“Me pergunta antes”</b><span>A pessoa prepara e espera sua decisão. Continua sendo sua.</span></div></div>
+
+  <blockquote><p><strong>O jogo do método é ir empurrando as coisas de N3 para N2, e de N2 para N1.</strong> É a única coisa que faz o volume cair de verdade. Organizar melhor não faz.</p></blockquote>
+
+  <h3>Como o N2 funciona sem ninguém se machucar</h3>
+  <p>O N2 é o coração do método e também o que dá mais medo. Ele só funciona com quatro combinados:</p>
+  <ol>
+    <li><strong>O prazo é claro e as duas pessoas veem.</strong> “Se você não falar nada até sexta às 18h, eu sigo.”</li>
+    <li><strong>Se você intervir, para.</strong> A qualquer momento antes do prazo.</li>
+    <li><strong>Se ninguém fizer nada, ninguém executa nada.</strong> Se a pessoa não propôs e você não respondeu, o item volta para você marcado como “ninguém agiu”. Nunca executa no vazio.</li>
+    <li><strong>Fica registrado.</strong> Quem propôs, o quê, qual era o prazo, que você não respondeu. Não para cobrar culpa — para ninguém precisar lembrar de nada seis meses depois.</li>
+  </ol>
+  <p>E existem coisas que <strong>não podem</strong> ser N2: demitir, rescindir contrato, gastos acima de um limite que você define. Isso se combina uma vez e vale para sempre.</p>
+
+  <h3>O ganho de virar regra</h3>
+  <p>Quando a mesma decisão se repete, ela deixa de ser decisão e vira regra:</p>
+  <blockquote><p>“Nos últimos 40 pedidos de desconto abaixo de 5%, você aprovou os 40. Isso pode virar regra?”</p></blockquote>
+  <p>Se virar, você não aprova mais nenhum desconto abaixo de 5% — nunca mais. Não é um item que saiu da sua mesa: é uma <strong>categoria inteira</strong>. É assim que a fila encolhe de verdade.</p>
+</section>
+
+<section id="s7">
+  <h2><span class="n">07</span>Os três tempos</h2>
+  <p>Coisa reativa e coisa importante não podem morar no mesmo lugar, senão a reativa come a importante todo dia.</p>
+  <table>
+    <thead><tr><th>Tempo</th><th>O que mora ali</th><th>Regra</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Hoje</strong></td><td>gente parada esperando você</td><td>responde rápido</td></tr>
+      <tr><td><strong>Esta semana</strong></td><td>o que você já se comprometeu</td><td>está cheio; para entrar, algo sai</td></tr>
+      <tr><td><strong>Este trimestre</strong></td><td>o que <em>você</em> decidiu fazer</td><td>protegido, ninguém invade</td></tr>
+    </tbody>
+  </table>
+  <p>O terceiro é onde mora tudo que é seu: rever a política comercial, estruturar um time, arrumar um processo. E é sempre o primeiro a ser comido. Por isso precisa de horário reservado na agenda e de alguém dizendo em voz alta quando foi invadido:</p>
+  <blockquote><p>“Esta semana você gastou 4h20 do seu tempo estratégico aprovando desconto e reembolso. Três desses casos podem virar regra.”</p></blockquote>
+  <p>Repare que os dois assuntos se encontram aqui: <strong>seu tempo estratégico só sobrevive se o operacional encolher por delegação.</strong> É o mesmo mecanismo visto de outro ângulo.</p>
+</section>
+
+<section id="s8">
+  <h2><span class="n">08</span>A rotina</h2>
+  <p>Não é um sistema para você cuidar. É uma rotina curta.</p>
+  <table>
+    <thead><tr><th>Quando</th><th>Tempo</th><th>O que você faz</th></tr></thead>
+    <tbody>
+      <tr><td>De manhã</td><td><strong>3 min</strong></td><td>olha as três coisas que importam hoje; confirma ou troca</td></tr>
+      <tr><td>Fim do dia</td><td><strong>2 min</strong></td><td>o que destravou, o que ficou, o que entrou</td></tr>
+      <tr><td>Sexta-feira</td><td><strong>20 min</strong></td><td>fila inteira, o que está adiado, o que pode virar regra</td></tr>
+      <tr><td>A cada 3 meses</td><td><strong>1 h</strong></td><td>o que você quer proteger nos próximos 90 dias</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Isso é o teto.</strong> Se o método começar a consumir mais que isso de organização, ele morre em três semanas — como morre todo sistema de gestão que exige alimentação.</p>
+  <p>Atenção: esse teto é de <em>organização</em>. O tempo que você gasta <em>decidindo</em> — aquela hora marcada para escolher o fornecedor — é outra coisa, e não tem teto.</p>
+</section>
+
+<section id="s9">
+  <h2><span class="n">09</span>Como começar na segunda-feira</h2>
+  <p>Não precisa de sistema. Precisa de duas semanas e de uma pessoa ajudando.</p>
+
+  <div class="passo"><div class="n">1</div><div class="c"><b>Escolha um ajudante</b><p>Alguém do seu time, ou seu sócio. Essa pessoa vai fazer o papel que o software faria depois.</p></div></div>
+  <div class="passo"><div class="n">2</div><div class="c"><b>Crie um grupo só de vocês dois</b><p>Pode ser no WhatsApp mesmo.</p></div></div>
+  <div class="passo"><div class="n">3</div><div class="c"><b>Tudo que chegar, joga ali</b><p>Encaminhe o e-mail, mande o print do grupo, mande um áudio no carro. Não organize, não classifique. Só jogue.</p></div></div>
+  <div class="passo"><div class="n">4</div><div class="c"><b>O ajudante devolve no formato do método</b><p><em>Desconto Vila Nova — Rafael espera há 2 dias — R$ 42 mil de pedido travado — cliente já cobrou 2×</em></p></div></div>
+  <div class="passo"><div class="n">5</div><div class="c"><b>Você responde com uma das cinco ações</b><p>Resolvi · Repassa para fulano, N2, até sexta · Reserva para quinta · Guarda 15 dias · Adio, volta terça, falta tal coisa.</p></div></div>
+  <div class="passo"><div class="n">6</div><div class="c"><b>Sexta-feira, 20 minutos</b><p>Vocês dois olham a fila inteira. O que está adiado três vezes? O que se repetiu e pode virar regra?</p></div></div>
+
+  <p>Ao fim de duas semanas você vai saber quatro coisas que nenhum software responderia antes: se você consegue conviver com o N2; se o que aparece no grupo e no e-mail é capturado ou escapa; se a rotina cabe na sua semana de verdade; e se aquilo que você aprova sempre igual dá para virar regra.</p>
+  <blockquote><p>Se funcionar no papel, vale automatizar. Se não funcionar no papel, nenhum sistema salva.</p></blockquote>
+</section>
+
+<section id="s10">
+  <h2><span class="n">10</span>O que costuma dar errado</h2>
+  <div class="erro"><b>Tentar organizar tudo antes de começar</b><p>É a armadilha clássica: o gestor sobrecarregado decide primeiro “se organizar”, passa três semanas montando um sistema, o sistema desatualiza, ele abandona. Comece com a fila suja mesmo.</p></div>
+  <div class="erro"><b>Usar a porta “Reservar” para tudo</b><p>É a saída confortável: parece que você decidiu, mas o item continua seu. Se mais de 20% está indo para lá, você está adiando com outro nome.</p></div>
+  <div class="erro"><b>Delegar sem definir a corda</b><p>“Fica com a Carolina” sem dizer o nível é a pior combinação: ela não sabe se pode agir e devolve para você dois dias depois — com atraso adicional.</p></div>
+  <div class="erro"><b>Cuidar da fila em vez de esvaziar</b><p>Reorganizar, reclassificar, ajustar. É trabalho que parece produtivo e não destrava ninguém. A pergunta ao fim de qualquer sessão é sempre a mesma: alguém saiu do lugar?</p></div>
+  <div class="erro"><b>Achar que o problema é a ferramenta</b><p>Boa parte disso é cultura de delegação. A ferramenta torna visível e reduz o atrito. Ela não decide por você abrir mão de controle.</p></div>
+</section>
+
+<section id="s11">
+  <h2><span class="n">11</span>Perguntas que sempre aparecem</h2>
+  <div class="faq"><b>“Isso não é perder o controle?”</b><p>É trocar de controle. Hoje você controla cada decisão e não controla nenhum prazo. Com o método você controla os limites — quem decide o quê, até que valor, em quanto tempo — e para de controlar caso a caso. Na prática você ganha controle sobre o que importa.</p></div>
+  <div class="faq"><b>“E se a pessoa errar?”</b><p>Vai errar em algum momento. A pergunta certa é: erra mais do que custa hoje ter tudo parado esperando você? Na maioria dos casos, não. E o N2 tem prazo, tem registro, e tem você podendo parar a qualquer momento antes.</p></div>
+  <div class="faq"><b>“Isso é para me vigiar?”</b><p>Não. Os números que o método produz — quantas vezes algo foi adiado, quanto tempo ficou parado — existem para te dar saída, não para virar boletim. A pergunta certa nunca é “por que você não fez”. É: resolver, soltar ou matar?</p></div>
+  <div class="faq"><b>“Meu time não vai querer assumir.”</b><p>Alguns não vão mesmo, no começo. Costuma ser porque nunca ficou claro até onde podiam ir — e errar sem limite definido é arriscado para eles. O nível combinado resolve boa parte disso: N1 e N2 dizem exatamente onde termina a autonomia.</p></div>
+  <div class="faq"><b>“Quanto tempo até sentir diferença?”</b><p>A primeira semana já dá alívio, porque você para de reagir a cobrança. A queda de volume aparece a partir do segundo mês, quando as primeiras regras começam a valer.</p></div>
+  <div class="faq"><b>“E as coisas que ninguém cobra, mas que eu preciso fazer?”</b><p>Essas não são pendências — são iniciativas suas, e vivem no tempo trimestral. O método serve justamente para proteger espaço para elas.</p></div>
+</section>
+
+<section id="s12">
+  <div class="quadro">
+    <h2><span class="n">12</span>Folha de bolso</h2>
+    <svg class="risco2" viewBox="0 0 150 8" aria-hidden="true"><path d="M2 5.4c18-2.8 36-3.4 54-2.2 20 1.4 39 2.6 58 .9 12-1 24-2.2 36-1.3" fill="none" stroke="#8FAFA0" stroke-width="2.2" stroke-linecap="round"/></svg>
+
+    <div class="q-b">
+      <div class="rot">A pergunta</div>
+      <div class="big">Isso precisa mesmo de mim?</div>
+    </div>
+
+    <div class="q-b">
+      <div class="rot">As quatro saídas</div>
+      <div class="q-l" style="--c:var(--resolver)"><i></i><span><b>Resolver</b> — menos de 2 minutos</span></div>
+      <div class="q-l" style="--c:var(--repassar)"><i></i><span><b>Repassar</b> — tem alguém melhor posicionado</span></div>
+      <div class="q-l" style="--c:var(--reservar)"><i></i><span><b>Reservar</b> — só eu decido <em>(continua sendo minha)</em></span></div>
+      <div class="q-l" style="--c:var(--repousar)"><i></i><span><b>Repousar</b> — não é decisão</span></div>
+    </div>
+
+    <div class="q-b">
+      <div class="rot">Se não der para decidir</div>
+      <p>Quando volta + o que falta. Se a resposta for “nada”, não está travado — está sendo evitado.</p>
+    </div>
+
+    <div class="q-b">
+      <div class="rot">Ao repassar, combine a corda</div>
+      <div class="q-l"><span><b>N1</b> — faz e me conta</span></div>
+      <div class="q-l"><span><b>N2</b> — faz, a não ser que eu te pare</span></div>
+      <div class="q-l"><span><b>N3</b> — me pergunta antes</span></div>
+    </div>
+
+    <div class="q-b">
+      <div class="rot">Os três tempos</div>
+      <p>hoje · esta semana · este trimestre <em>(protegido)</em></p>
+    </div>
+
+    <div class="q-b">
+      <div class="rot">A rotina</div>
+      <p>3 min de manhã · 2 min no fim do dia · 20 min na sexta</p>
+    </div>
+
+    <div class="q-fim">O placar que importa: menos coisas dependendo de mim neste mês do que no mês passado.</div>
+  </div>
+</section>
+
+<footer>
+  Alçada · manual do método · alcada.app Versão técnica e decisões de arquitetura em documento separado.
+</footer>
+
+</div>
+</body>
+</html>

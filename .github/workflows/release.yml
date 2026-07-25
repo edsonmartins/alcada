@@ -1,0 +1,58 @@
+name: Release (nativo)
+
+# Build nativo é lento — só em tag de release. CI de PR/push roda em JVM (ci.yml).
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+jobs:
+  nativo:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: alcada
+          POSTGRES_PASSWORD: alcada
+          POSTGRES_DB: alcada_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U alcada -d alcada_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 25 (GraalVM / Mandrel)
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: m2-
+
+      - name: Build nativo
+        run: mvn -B package -Dnative -DskipTests
+
+      - name: Imagem nativa mínima
+        run: docker build -f src/main/docker/Dockerfile.native-micro -t alcada:${{ github.ref_name }} .
+
+      # RSS ocioso do binário nativo — alvo ≤120 MB (ADR-0023)
+      - name: Medir RSS nativo
+        run: |
+          ./target/*-runner -Dquarkus.http.host=0.0.0.0 &
+          PID=$!
+          sleep 8
+          RSS_KB=$(ps -o rss= -p $PID | tr -d ' ')
+          echo "RSS nativo: $((RSS_KB / 1024)) MB"
+          kill $PID
+          test "$RSS_KB" -lt 122880 || (echo "RSS acima de 120 MB" && exit 1)

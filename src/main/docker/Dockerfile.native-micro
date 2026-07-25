@@ -1,0 +1,15 @@
+# Release: binário nativo em imagem final mínima (ubi9-micro, ~sem JVM).
+# É o alvo do SKU on-premise e do VPS pequeno (ADR-0023, orçamento ≤120 MB RSS).
+#
+#   mvn package -Dnative -Dquarkus.native.container-build=true
+#   docker build -f src/main/docker/Dockerfile.native-micro -t alcada:native .
+FROM quay.io/quarkus/quarkus-micro-image:2.0
+WORKDIR /work/
+RUN chown 1001 /work \
+    && chmod "g+rwX" /work \
+    && chown 1001:root /work
+COPY --chown=1001:root target/*-runner /work/application
+
+EXPOSE 8080
+USER 1001
+ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]

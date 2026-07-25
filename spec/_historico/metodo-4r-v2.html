@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Método 4R · v2 — a fila de decisões do gestor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --tinta:#131A2B; --tinta-2:#1E2740;
+  --papel:#EDEFF4; --papel-2:#F7F8FB; --branco:#FFFFFF;
+  --linha:#D8DDE7; --linha-forte:#BFC7D6;
+  --texto:#1B2233; --fraco:#64708A;
+  --resolver:#0F8A63; --repassar:#2B57D4; --reservar:#C2700F; --repousar:#7A879F;
+  --adiar:#6D4AC4; --quente:#D6246E;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--papel);color:var(--texto);font-family:'Instrument Sans',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Bricolage Grotesque',system-ui,sans-serif;margin:0;line-height:1.05;letter-spacing:-.02em}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2.5px solid var(--repassar);outline-offset:2px;border-radius:4px}
+.shell{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+
+/* cabeçalho */
+.topo{background:var(--tinta);color:#fff}
+.topo-in{max-width:1080px;margin:0 auto;padding:26px 20px 22px;display:flex;gap:28px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.marca-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#8C9AB8}
+.marca-nome{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:46px;letter-spacing:-.045em;line-height:.9;margin-top:6px}
+.marca-nome sup{font-size:15px;font-weight:600;letter-spacing:0;color:#8C9AB8;vertical-align:super}
+.marca-sub{color:#A8B4CC;font-size:14px;margin-top:8px;max-width:34ch}
+.pilha{display:flex;align-items:flex-end;gap:16px}
+.pilha-barras{display:flex;flex-direction:column-reverse;gap:3px;width:78px}
+.pilha-barras i{height:5px;border-radius:2px;background:#4E6AA8;display:block;transition:opacity .45s ease,transform .45s ease,background .3s}
+.pilha-barras i.foi{opacity:.13;transform:scaleX(.35);transform-origin:left;background:#8C9AB8}
+.pilha-num{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:44px;line-height:.85;letter-spacing:-.04em}
+.pilha-rot{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8C9AB8;margin-top:7px}
+.pilha-delta{color:#5FD3A8;font-size:12px;font-family:'IBM Plex Mono',monospace;margin-top:3px;min-height:16px}
+
+/* abas */
+.abas{background:var(--tinta-2);position:sticky;top:0;z-index:20}
+.abas-in{max-width:1080px;margin:0 auto;padding:0 20px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.abas-in::-webkit-scrollbar{display:none}
+.aba{padding:13px 15px;color:#98A5C0;font-size:13.5px;font-weight:500;white-space:nowrap;border-bottom:2.5px solid transparent;transition:color .18s}
+.aba:hover{color:#fff}
+.aba[aria-selected="true"]{color:#fff;border-bottom-color:#fff}
+.aba .cnt{font-family:'IBM Plex Mono',monospace;font-size:11px;background:#33406090;padding:1px 6px;border-radius:20px;margin-left:6px}
+.painel[hidden]{display:none}
+.painel{padding-top:32px;animation:sobe .3s ease both}
+@keyframes sobe{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.secao-rot{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--fraco);margin-bottom:10px}
+.dica{font-size:13.5px;color:var(--fraco);max-width:64ch}
+.cartao{background:var(--branco);border:1px solid var(--linha);border-radius:var(--r);overflow:hidden;box-shadow:0 1px 2px #131a2b0d,0 8px 24px -16px #131a2b40}
+.btn{background:var(--tinta);color:#fff;padding:11px 20px;border-radius:7px;font-weight:600;font-size:14px;transition:.15s}
+.btn:hover{background:var(--tinta-2)}
+.btn.fantasma{background:transparent;color:var(--fraco);padding:11px 4px}
+.btn.fantasma:hover{color:var(--texto)}
+.btn.linha{background:transparent;color:var(--texto);border:1px solid var(--linha-forte)}
+.btn.linha:hover{background:var(--branco);border-color:var(--tinta)}
+.acoes{display:flex;gap:10px;align-items:center;margin-top:20px;flex-wrap:wrap}
+
+/* ============ ENTRADAS ============ */
+.ent-placar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--linha);border:1px solid var(--linha);border-radius:8px;overflow:hidden;margin:20px 0 22px}
+.ent-placar div{background:var(--branco);padding:14px 14px}
+.ent-placar b{font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.04em;display:block}
+.ent-placar span{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--fraco)}
+.ent-legenda{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+.ent-leg{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--fraco)}
+.ent-leg i{width:9px;height:9px;border-radius:2px;display:block}
+.ent-feed{min-height:120px}
+.ent-ev{background:var(--branco);border:1px solid var(--linha);border-left:4px solid var(--c);border-radius:8px;padding:13px 16px;margin-bottom:8px;display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;animation:entra .35s ease both}
+@keyframes entra{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.ent-hora{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fraco);flex:none;width:42px;padding-top:2px}
+.ent-corpo{flex:1;min-width:200px}
+.ent-fonte{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--c)}
+.ent-txt{font-size:14.5px;margin-top:3px}
+.ent-rota{font-size:12.5px;margin-top:6px;color:var(--fraco)}
+.ent-rota b{color:var(--texto);font-weight:600}
+.ent-tag{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:5px;flex:none;white-space:nowrap}
+.t-passou{background:#0f8a6316;color:var(--resolver)}
+.t-triagem{background:#2b57d416;color:var(--repassar)}
+.t-dedup{background:#d6246e14;color:var(--quente)}
+.ent-vazio{border:1px dashed var(--linha-forte);border-radius:8px;padding:30px;text-align:center;color:var(--fraco);font-size:13.5px}
+
+/* ============ TRIAGEM ============ */
+.origem{display:flex;align-items:center;gap:9px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--fraco);text-transform:uppercase;letter-spacing:.1em;flex-wrap:wrap}
+.origem b{color:var(--texto);font-weight:600}
+.ponto{width:6px;height:6px;border-radius:50%;background:var(--repassar);flex:none}
+.selo-adiado{background:#6d4ac418;color:var(--adiar);border-radius:5px;padding:2px 8px;letter-spacing:.06em}
+.cartao-corpo{padding:26px 28px 22px}
+.titulo-p{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:27px;letter-spacing:-.025em;margin:12px 0 16px;max-width:26ch}
+.fatos{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.fato{background:var(--papel-2);border:1px solid var(--linha);border-radius:6px;padding:6px 11px;font-size:13px}
+.fato span{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fraco);display:block;margin-bottom:1px}
+.extraido{font-size:12.5px;color:var(--fraco);border-left:2px solid var(--linha-forte);padding-left:11px;margin-bottom:14px}
+.diag{font-size:12.5px;background:#6d4ac40d;border:1px solid #6d4ac433;color:#4e3390;border-radius:7px;padding:10px 13px}
+.pergunta{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:23px;letter-spacing:-.03em;padding:16px 28px 0;border-top:1px solid var(--linha)}
+.pergunta small{display:block;font-family:'Instrument Sans',sans-serif;font-weight:400;font-size:13px;letter-spacing:0;color:var(--fraco);margin-top:5px}
+.portoes{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--linha);margin-top:18px;border-top:1px solid var(--linha)}
+.portao{background:var(--branco);padding:18px 14px 16px;text-align:left;position:relative;transition:background .18s}
+.portao::before{content:"";position:absolute;left:0;top:0;height:3px;width:100%;background:var(--c);transform:scaleX(0);transform-origin:left;transition:transform .22s ease}
+.portao:hover,.portao:focus-visible{background:var(--papel-2)}
+.portao:hover::before,.portao:focus-visible::before{transform:scaleX(1)}
+.portao-nome{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:17px;color:var(--c);letter-spacing:-.02em}
+.portao-quando{font-size:12.5px;color:var(--fraco);margin-top:4px;line-height:1.35;display:block}
+.portao-custo{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-top:10px;display:inline-block;padding:2px 6px;border-radius:4px}
+.custo-sai{background:#0f8a6316;color:var(--resolver)}
+.custo-fica{background:#c2700f18;color:var(--reservar)}
+.sugerido{position:absolute;right:10px;top:10px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;color:var(--fraco);border:1px solid var(--linha-forte);border-radius:20px;padding:1px 7px}
+.escape{border-top:1px solid var(--linha);padding:14px 28px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:var(--papel-2)}
+.escape-txt{font-size:13px;color:var(--fraco)}
+.btn-adiar{border:1px solid var(--adiar);color:var(--adiar);border-radius:7px;padding:9px 16px;font-size:13.5px;font-weight:600;transition:.15s}
+.btn-adiar:hover{background:var(--adiar);color:#fff}
+
+.delegar{padding:22px 28px 26px;background:var(--papel-2);border-top:1px solid var(--linha)}
+.delegar h3{font-size:16px;font-weight:600;margin-bottom:4px}
+.linha-campo{margin-top:16px}
+.rot-campo{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--fraco);margin-bottom:7px}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{background:var(--branco);border:1px solid var(--linha-forte);border-radius:20px;padding:6px 13px;font-size:13.5px;transition:.15s;text-align:left}
+.chip:hover{border-color:var(--repassar)}
+.chip[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.niveis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nivel{background:var(--branco);border:1px solid var(--linha-forte);border-radius:8px;padding:12px 13px;text-align:left;transition:.15s}
+.nivel:hover{border-color:var(--repassar)}
+.nivel[aria-pressed="true"]{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.nivel-t{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px}
+.barras{display:flex;gap:2px;align-items:flex-end;height:12px}
+.barras i{width:4px;background:var(--linha-forte);border-radius:1px;display:block}
+.barras i:nth-child(1){height:5px}
+.barras i:nth-child(2){height:8.5px}
+.barras i:nth-child(3){height:12px}
+.barras.n1 i:nth-child(1),.barras.n2 i:nth-child(1),.barras.n2 i:nth-child(2),.barras.n3 i{background:var(--repassar)}
+.nivel-d{font-size:12.5px;color:var(--fraco);margin-top:6px;line-height:1.35;display:block}
+.nivel-custo{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.06em;margin-top:8px;color:var(--fraco);display:block}
+.cutuca{margin-top:16px;background:#6d4ac40f;border:1px solid #6d4ac438;border-radius:8px;padding:14px 16px;animation:sobe .25s ease both}
+.cutuca p{margin:0 0 12px;font-size:14px;color:#4e3390}
+.cutuca b{color:var(--adiar)}
+
+.trilha{margin-top:26px}
+.trilha ol{list-style:none;margin:0;padding:0}
+.trilha li{display:flex;gap:12px;align-items:baseline;padding:9px 0;border-bottom:1px dashed var(--linha);font-size:13.5px;animation:sobe .25s ease both}
+.trilha .hora{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fraco);flex:none;width:44px}
+.selo{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:4px;flex:none}
+.s-resolver{background:#0f8a6316;color:var(--resolver)}
+.s-repassar{background:#2b57d416;color:var(--repassar)}
+.s-reservar{background:#c2700f18;color:var(--reservar)}
+.s-repousar{background:#7a879f1f;color:var(--repousar)}
+.s-adiar{background:#6d4ac418;color:var(--adiar)}
+.vazio{background:var(--branco);border:1px solid var(--linha);border-radius:var(--r);padding:40px 32px;text-align:center}
+.vazio h2{font-size:30px;font-weight:800;letter-spacing:-.035em}
+.placar{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--linha);border:1px solid var(--linha);border-radius:8px;overflow:hidden;margin-top:26px}
+.placar div{background:var(--branco);padding:16px 10px}
+.placar b{font-family:'Bricolage Grotesque',sans-serif;font-size:28px;font-weight:800;letter-spacing:-.04em;display:block}
+.placar span{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco)}
+
+/* ============ HOJE ============ */
+.frase{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:26px;letter-spacing:-.03em;max-width:22ch;margin-bottom:6px}
+.tres{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+.item{background:var(--branco);border:1px solid var(--linha);border-left:4px solid var(--c,var(--linha-forte));border-radius:8px;padding:15px 18px;display:flex;gap:18px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.item-t{font-weight:600;font-size:16px}
+.item-p{font-size:13px;color:var(--fraco);margin-top:3px}
+.ordem{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:26px;color:var(--linha-forte);letter-spacing:-.05em;flex:none;width:26px}
+.motivo{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:5px;background:var(--papel-2);border:1px solid var(--linha);color:var(--fraco);flex:none}
+.ritmo{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--linha);border:1px solid var(--linha);border-radius:8px;overflow:hidden;margin-top:34px}
+.ritmo div{background:var(--branco);padding:15px 14px}
+.ritmo b{font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;display:block}
+.ritmo span{font-size:12.5px;color:var(--fraco);display:block;margin-top:2px}
+
+/* ============ FILA ============ */
+.horizontes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+.horiz{background:var(--branco);border:1px solid var(--linha);border-radius:var(--r);padding:16px}
+.horiz.blindado{border-color:var(--quente);box-shadow:inset 0 0 0 1px #d6246e22}
+.horiz-cab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.horiz-cab h3{font-size:17px;font-weight:600}
+.horiz-cab .n{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--fraco)}
+.horiz-reg{font-size:12.5px;color:var(--fraco);margin-bottom:14px;line-height:1.4}
+.horiz.blindado .horiz-reg{color:var(--quente)}
+.mini{border-top:1px solid var(--linha);padding:11px 0 9px;font-size:13.5px}
+.mini-meta{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap}
+.tag-n{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--fraco);border:1px solid var(--linha-forte);border-radius:4px;padding:1px 5px}
+.tag-q{font-family:'IBM Plex Mono',monospace;font-size:10px;background:#d6246e14;color:var(--quente);border-radius:4px;padding:1px 6px}
+.dono{font-size:12px;color:var(--fraco)}
+.aviso{margin-top:16px;background:#d6246e0d;border:1px solid #d6246e33;border-radius:8px;padding:13px 15px;font-size:13.5px;color:#9c1a51}
+.aviso b{color:var(--quente)}
+
+/* ============ ESTEIRA ============ */
+.est-fluxo{display:flex;gap:5px;margin:18px 0 24px;flex-wrap:wrap}
+.est-etapa{flex:1;min-width:118px;background:var(--branco);border:1px solid var(--linha);border-radius:8px;padding:13px 12px;position:relative}
+.est-etapa.dele{border-color:var(--quente);background:#d6246e08}
+.est-etapa .est-n{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:24px;letter-spacing:-.04em;display:block;line-height:1}
+.est-etapa.dele .est-n{color:var(--quente)}
+.est-etapa .est-nome{font-size:12.5px;color:var(--fraco);margin-top:5px;display:block;line-height:1.3}
+.est-etapa .est-dono{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--linha-forte);margin-top:7px;display:block}
+.est-etapa.dele .est-dono{color:var(--quente)}
+.est-parados{background:var(--branco);border:1px solid var(--linha);border-radius:var(--r);padding:20px 22px}
+.est-linha{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--linha);flex-wrap:wrap}
+.est-linha:last-of-type{border-bottom:none}
+.est-nomeint{font-weight:600;font-size:15px;flex:none;min-width:170px}
+.est-trilho{flex:1;min-width:140px;height:8px;background:var(--papel);border-radius:4px;overflow:hidden}
+.est-trilho i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#C2700F,#D6246E)}
+.est-dias{font-family:'IBM Plex Mono',monospace;font-size:13px;flex:none;width:74px;text-align:right}
+.est-check{background:var(--branco);border:1px solid var(--linha);border-radius:var(--r);padding:22px 24px;margin-top:20px}
+.est-check ul{list-style:none;margin:14px 0 0;padding:0}
+.est-check li{padding:9px 0 9px 26px;border-bottom:1px dashed var(--linha);font-size:14px;position:relative}
+.est-check li::before{content:"";position:absolute;left:2px;top:15px;width:11px;height:11px;border:1.5px solid var(--repassar);border-radius:3px}
+.est-check li b{font-weight:600}
+.est-check li span{color:var(--fraco);font-size:12.5px;display:block;margin-top:1px}
+.antes-depois{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--linha);border:1px solid var(--linha);border-radius:8px;overflow:hidden;margin-top:20px}
+.antes-depois div{background:var(--branco);padding:18px 20px}
+.antes-depois .rot{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--fraco)}
+.antes-depois b{font-family:'Bricolage Grotesque',sans-serif;font-size:30px;font-weight:800;letter-spacing:-.04em;display:block;margin:6px 0 2px}
+.antes-depois .dp b{color:var(--resolver)}
+.est-status{background:var(--tinta);color:#fff;border-radius:var(--r);padding:20px 24px;margin-top:20px;display:flex;gap:24px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.est-status p{margin:0;color:#B9C4DA;font-size:13.5px;max-width:44ch}
+.est-status .url{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8C9AB8;display:block;margin-bottom:6px}
+.est-status b{color:#fff}
+
+/* ============ RADAR ============ */
+.gargalo{background:var(--tinta);color:#fff;border-radius:var(--r);padding:28px 30px;display:flex;gap:32px;align-items:center;flex-wrap:wrap}
+.gargalo .big{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:66px;letter-spacing:-.05em;line-height:.85}
+.gargalo p{margin:0;color:#B9C4DA;max-width:38ch;font-size:14.5px}
+.gargalo p b{color:#fff;font-weight:600}
+.regra{background:var(--branco);border:1px solid var(--linha);border-radius:9px;padding:16px 18px;display:flex;gap:18px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:9px}
+.regra-t{font-weight:600;font-size:15.5px}
+.regra-e{font-size:13px;color:var(--fraco);margin-top:3px}
+.regra.ok{background:#0f8a630d;border-color:#0f8a6340}
+.btn-prom{border:1px solid var(--tinta);border-radius:7px;padding:9px 15px;font-size:13.5px;font-weight:600;transition:.15s;flex:none}
+.btn-prom:hover{background:var(--tinta);color:#fff}
+.btn-prom[disabled]{border-color:var(--resolver);color:var(--resolver);cursor:default;background:transparent}
+.grafico{background:var(--branco);border:1px solid var(--linha);border-radius:var(--r);padding:22px 24px;margin-top:22px}
+.barras-sem{display:flex;align-items:flex-end;gap:10px;height:150px;margin:20px 0 6px}
+.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+.col i{width:100%;background:linear-gradient(180deg,#2B57D4,#4E6AA8);border-radius:3px 3px 0 0;display:block;transform-origin:bottom;animation:cresce .6s cubic-bezier(.2,.8,.3,1) both}
+@keyframes cresce{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.col em{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-style:normal;color:var(--fraco)}
+.col b{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:500}
+.adi-caixa{background:var(--branco);border:1px solid #6d4ac433;border-radius:var(--r);padding:22px 24px;margin-top:22px}
+.adi-linhas{margin-top:14px}
+.adi-l{display:flex;gap:16px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--linha);flex-wrap:wrap}
+.adi-l:last-child{border-bottom:none}
+.adi-q{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:26px;letter-spacing:-.04em;color:var(--adiar);flex:none;width:34px;line-height:1}
+.adi-c{flex:1;min-width:220px}
+.adi-c b{font-weight:600;font-size:14.5px}
+.adi-c span{display:block;font-size:13px;color:var(--fraco);margin-top:2px}
+.adi-s{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fraco);border:1px solid var(--linha-forte);border-radius:5px;padding:4px 9px;flex:none}
+.adi-nota{margin-top:16px;font-size:13.5px;background:var(--papel-2);border-left:3px solid var(--adiar);padding:12px 15px;border-radius:0 7px 7px 0;color:var(--texto)}
+
+/* ============ WHATSAPP ============ */
+.chat{background:#E9E4DC;border:1px solid var(--linha);border-radius:var(--r);padding:18px;max-width:520px}
+.bolha{background:#fff;border-radius:9px;padding:10px 13px;font-size:14px;margin-bottom:9px;max-width:88%;box-shadow:0 1px 1px #0000001a;white-space:pre-line}
+.bolha.eu{background:#D6F2C8;margin-left:auto}
+.bolha.bot{background:#EEF3FF}
+.bolha .hr{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#00000059;display:block;text-align:right;margin-top:3px}
+.chat-rot{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fraco);margin:0 0 10px}
+.dois-chats{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.verbos{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:22px}
+.verbo{background:var(--branco);border:1px solid var(--linha);border-radius:8px;padding:13px 15px}
+.verbo code{font-family:'IBM Plex Mono',monospace;font-size:13px;background:var(--papel-2);padding:2px 6px;border-radius:4px;border:1px solid var(--linha)}
+.verbo p{margin:8px 0 0;font-size:13px;color:var(--fraco)}
+.rodape{margin-top:44px;padding-top:20px;border-top:1px solid var(--linha-forte);font-size:13px;color:var(--fraco);max-width:66ch}
+
+@media (max-width:860px){
+  .portoes{grid-template-columns:repeat(2,1fr)}
+  .horizontes,.dois-chats,.antes-depois{grid-template-columns:1fr}
+  .placar{grid-template-columns:repeat(3,1fr)}
+  .ent-placar,.ritmo{grid-template-columns:repeat(2,1fr)}
+  .niveis{grid-template-columns:1fr}
+  .marca-nome{font-size:38px}
+  .titulo-p{font-size:23px}
+  .pergunta{font-size:20px}
+  .verbos{grid-template-columns:1fr}
+  .gargalo .big{font-size:52px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-in">
+    <div>
+      <div class="marca-eyebrow">Método · protótipo</div>
+      <div class="marca-nome">4R <sup>v2</sup></div>
+      <p class="marca-sub">Seu backlog não é uma lista de trabalho. É uma fila de gente esperando você decidir.</p>
+    </div>
+    <div class="pilha">
+      <div class="pilha-barras" id="pilhaBarras" aria-hidden="true"></div>
+      <div>
+        <div class="pilha-num" id="pilhaNum">18</div>
+        <div class="pilha-rot">ainda com você</div>
+        <div class="pilha-delta" id="pilhaDelta"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav class="abas" role="tablist" aria-label="Telas do método">
+  <div class="abas-in">
+    <button class="aba" role="tab" aria-selected="true" data-alvo="p-entradas">Entradas</button>
+    <button class="aba" role="tab" aria-selected="false" data-alvo="p-triagem">Triagem <span class="cnt" id="cntTriagem">10</span></button>
+    <button class="aba" role="tab" aria-selected="false" data-alvo="p-hoje">Hoje</button>
+    <button class="aba" role="tab" aria-selected="false" data-alvo="p-fila">Fila</button>
+    <button class="aba" role="tab" aria-selected="false" data-alvo="p-esteira">Esteira</button>
+    <button class="aba" role="tab" aria-selected="false" data-alvo="p-radar">Radar</button>
+    <button class="aba" role="tab" aria-selected="false" data-alvo="p-zap">No WhatsApp</button>
+  </div>
+</nav>
+
+<main class="shell">
+
+<!-- ============ ENTRADAS ============ -->
+<section class="painel" id="p-entradas" role="tabpanel">
+  <div class="secao-rot">Três camadas de entrada · nada é digitado</div>
+  <p class="dica">A pendência nasce quando o fato acontece, não quando alguém cobra. Cobrança no grupo é indicador atrasado — quando ela chega, o processo já parou horas atrás.</p>
+
+  <div class="ent-legenda" style="margin-top:18px">
+    <span class="ent-leg"><i style="background:var(--repassar)"></i> Sistema — monitoramento, ERP, esteira, DLQ</span>
+    <span class="ent-leg"><i style="background:var(--resolver)"></i> Humano — grupo, e-mail, áudio</span>
+    <span class="ent-leg"><i style="background:var(--reservar)"></i> Compromisso — promessa dita em reunião</span>
+  </div>
+
+  <div class="ent-placar">
+    <div><b id="entTotal">0</b><span>eventos captados</span></div>
+    <div><b id="entPassou">0</b><span>resolvidos sem ele</span></div>
+    <div><b id="entTriagem">0</b><span>foram para triagem</span></div>
+    <div><b id="entDedup">0</b><span>recobranças fundidas</span></div>
+  </div>
+
+  <div class="acoes" style="margin-top:0;margin-bottom:18px">
+    <button class="btn" id="btnPlay">Reproduzir 40 minutos de entrada</button>
+    <span class="dica" id="entEstado"></span>
+  </div>
+
+  <div class="ent-feed" id="entFeed">
+    <div class="ent-vazio">O feed começa vazio. Toque em reproduzir para ver o que chega numa manhã comum — e quanto disso nunca deveria chegar nele.</div>
+  </div>
+
+  <p class="dica" style="margin-top:20px">Escutar grupo de WhatsApp mexe direto com LGPD: o grupo precisa ser declarado como fonte, com aviso visível, captura só do que casa com padrão ou menciona o bot — nunca varredura completa —, retenção curta do bruto e persistência apenas do extraído. Isso é ADR, não detalhe de implementação.</p>
+</section>
+
+<!-- ============ TRIAGEM ============ -->
+<section class="painel" id="p-triagem" role="tabpanel" hidden>
+  <div class="secao-rot">Caixa de entrada</div>
+  <p class="dica" style="margin-bottom:22px">Um item por vez, uma pergunta só. E uma saída de emergência honesta para quando ele não conseguir decidir — porque é isso que ele realmente faz, e método sem casa para o comportamento real vira contornado.</p>
+
+  <div id="areaCartao"></div>
+
+  <div class="trilha" id="trilha" hidden>
+    <div class="secao-rot">Trilha da sessão</div>
+    <ol id="trilhaLista"></ol>
+  </div>
+</section>
+
+<!-- ============ HOJE ============ -->
+<section class="painel" id="p-hoje" role="tabpanel" hidden>
+  <div class="secao-rot">7h30 · leva 3 minutos</div>
+  <p class="frase">Hoje três coisas importam.</p>
+  <p class="dica">Se você fizer só a primeira, o dia valeu. A ordem não vem de urgência declarada — vem de dinheiro parado, gente bloqueada e prazo duro.</p>
+  <div class="tres">
+    <div class="item" style="--c:var(--reservar)">
+      <div class="ordem">1</div>
+      <div style="flex:1;min-width:220px">
+        <div class="item-t">Validar a integração do Grupo Panorama</div>
+        <div class="item-p">Esteira · parado há 21 dias na sua etapa · comercial já reprometeu 2×</div>
+      </div>
+      <div class="motivo">custo de atraso crescente</div>
+    </div>
+    <div class="item" style="--c:var(--repassar)">
+      <div class="ordem">2</div>
+      <div style="flex:1;min-width:220px">
+        <div class="item-t">Liberar o desconto do Supermercado Vila Nova</div>
+        <div class="item-p">Comercial · Rafael espera há 2 dias · pedido travado</div>
+      </div>
+      <div class="motivo">R$ 42 mil parados</div>
+    </div>
+    <div class="item" style="--c:var(--resolver)">
+      <div class="ordem">3</div>
+      <div style="flex:1;min-width:220px">
+        <div class="item-t">Assinar o aditivo da locação da frota</div>
+        <div class="item-p">Jurídico · assinatura eletrônica pronta</div>
+      </div>
+      <div class="motivo">prazo duro · 25/07</div>
+    </div>
+  </div>
+  <div class="secao-rot" style="margin-top:38px">Orçamento de atenção — o teto real</div>
+  <div class="ritmo">
+    <div><b>3 min</b><span>Manhã: os três itens. Confirmar ou trocar.</span></div>
+    <div><b>2 min</b><span>Fim do dia: o que destravou e o que entrou.</span></div>
+    <div><b>20 min</b><span>Sexta: fila completa, adiados e promoções de alçada.</span></div>
+    <div><b>1 h</b><span>Trimestral: o que blindar nos próximos 90 dias.</span></div>
+  </div>
+  <p class="dica" style="margin-top:14px">Se o método exigir mais do que isso, ele morre em três semanas. Esse teto é requisito, não meta.</p>
+</section>
+
+<!-- ============ FILA ============ -->
+<section class="painel" id="p-fila" role="tabpanel" hidden>
+  <div class="secao-rot">Fila única · três horizontes que não se misturam</div>
+  <p class="dica" style="margin-bottom:20px">Enquanto existirem cinco filas invisíveis — grupo, e-mail, corredor, post-it e cabeça — quem grita mais alto ganha.</p>
+  <div class="horizontes">
+    <div class="horiz">
+      <div class="horiz-cab"><h3>Hoje</h3><span class="n">3 itens</span></div>
+      <p class="horiz-reg">Gente parada esperando você.</p>
+      <div class="mini">Validação — Grupo Panorama<div class="mini-meta"><span class="tag-n">N3</span><span class="tag-q">3 cobranças</span><span class="dono">21 dias</span></div></div>
+      <div class="mini">Desconto Vila Nova<div class="mini-meta"><span class="tag-n">N3</span><span class="dono">Rafael · 2 dias</span></div></div>
+      <div class="mini">Aditivo da frota<div class="mini-meta"><span class="tag-n">N3</span><span class="dono">vence 25/07</span></div></div>
+    </div>
+    <div class="horiz">
+      <div class="horiz-cab"><h3>Semana</h3><span class="n">5 itens</span></div>
+      <p class="horiz-reg">Compromisso assumido. Capacidade fechada.</p>
+      <div class="mini">Fornecedor de embalagem 2027<div class="mini-meta"><span class="tag-n">N3</span><span class="dono">bloco · qui 9h</span></div></div>
+      <div class="mini">Plano de saúde — renovação<div class="mini-meta"><span class="tag-n">N2</span><span class="dono">Natani · até qua</span></div></div>
+      <div class="mini">Validação — Distribuidora Andrade<div class="mini-meta"><span class="tag-n">N2</span><span class="dono">Alexandre pré-valida</span></div></div>
+      <div class="mini">Férias da Juliana<div class="mini-meta"><span class="tag-n">N1</span><span class="dono">regra de alçada</span></div></div>
+      <div class="mini">Reembolso — Rodrigo<div class="mini-meta"><span class="tag-n">N1</span><span class="dono">até R$ 2 mil</span></div></div>
+    </div>
+    <div class="horiz blindado">
+      <div class="horiz-cab"><h3>Trimestre</h3><span class="n">2 itens</span></div>
+      <p class="horiz-reg">Blindado. Nada do “hoje” invade esta faixa.</p>
+      <div class="mini">Checklist de validação de integrador<div class="mini-meta"><span class="tag-n">só você</span><span class="dono">4h/semana</span></div></div>
+      <div class="mini">Redesenhar a política comercial por canal<div class="mini-meta"><span class="tag-n">só você</span><span class="dono">2h/semana</span></div></div>
+      <div class="aviso">Esta semana <b>4h20 da faixa estratégica</b> foram consumidas com validação avulsa de integrador — exatamente o item que está aqui para acabar com a validação avulsa.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ESTEIRA ============ -->
+<section class="painel" id="p-esteira" role="tabpanel" hidden>
+  <div class="secao-rot">Esteira de integradores · o mesmo processo, dez vezes por ano</div>
+  <p class="dica">Com 10 integradores no ano ele triaga ~60 pendências. Só que não são 60 decisões — são 6 decisões repetidas 10 vezes. Chegam parecendo únicas porque cada uma tem nome de cliente diferente.</p>
+
+  <div class="est-fluxo" id="estFluxo"></div>
+
+  <div class="est-parados">
+    <div class="secao-rot">Parados na etapa dele</div>
+    <div id="estLista"></div>
+    <p class="dica" style="margin-top:14px">O integrador está esperando e <b>não tem como cobrar</b> — não está no grupo, não tem acesso a nada. Ele cobra o comercial, que cobra o time, que cobra o Marcello. Cada salto adiciona ruído sem adicionar informação.</p>
+  </div>
+
+  <div class="est-check" id="estCheck">
+    <div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <h3 style="font-size:19px;font-weight:600">O critério está na cabeça dele</h3>
+        <p class="dica" style="margin-top:6px">Observando as últimas 8 validações, o sistema recuperou o que ele sempre aponta. Enquanto isso for tácito, só ele pode validar — e não existe delegação possível.</p>
+      </div>
+      <button class="btn" id="btnEsteira">Transformar em esteira</button>
+    </div>
+    <ul>
+      <li><b>Payload bate com o contrato de dados</b><span>reprovado em 6 das 8 validações — sempre o mesmo motivo</span></li>
+      <li><b>Campos fiscais completos e coerentes</b><span>reprovado em 4 de 8 · CST, CFOP e NCM</span></li>
+      <li><b>Tratamento de erro e reprocesso definidos</b><span>apontado em 5 de 8</span></li>
+      <li><b>Volume projetado dentro do dimensionado</b><span>apontado em 2 de 8</span></li>
+      <li><b>Parceiro entendeu o modelo de sincronismo</b><span>julgamento — permanece com ele</span></li>
+      <li><b>Exceção comercial de escopo</b><span>julgamento — permanece com ele</span></li>
+    </ul>
+    <div class="antes-depois">
+      <div><span class="rot">Hoje</span><b>6</b><span class="dica">pendências dele por integrador, uma a uma, sem critério escrito</span></div>
+      <div class="dp"><span class="rot">Com esteira</span><b id="estDepois">1</b><span class="dica">só as duas linhas de julgamento — e só quando o checklist falha</span></div>
+    </div>
+  </div>
+
+  <div class="est-status">
+    <div>
+      <span class="url">status.integra.exemplo.com/panorama</span>
+      <b>Submetido 02/07 · em validação · retorno previsto 24/07</b>
+    </div>
+    <p>Uma página de status para o integrador corta o ruído na origem — e transforma o atraso em número visível em vez de cobrança pessoal.</p>
+  </div>
+</section>
+
+<!-- ============ RADAR ============ -->
+<section class="painel" id="p-radar" role="tabpanel" hidden>
+  <div class="gargalo">
+    <div class="big" id="pctGargalo">38%</div>
+    <p>dos fluxos ativos da empresa passam por <b>você</b> para andar. Em <b id="qtdDelegavel">12</b> deles, a alçada poderia ser de outra pessoa sem risco relevante.</p>
+  </div>
+
+  <div class="adi-caixa">
+    <div class="secao-rot">Itens adiados 3 vezes ou mais</div>
+    <p class="dica">Um item adiado quatro vezes não é problema de priorização — é diagnóstico. E existem só três causas.</p>
+    <div class="adi-linhas">
+      <div class="adi-l">
+        <div class="adi-q">1</div>
+        <div class="adi-c"><b>Não importa de verdade</b><span>Ninguém cobrou entre um adiamento e outro. “Abrir CD em Londrina” — mencionado 2× em 4 meses, nunca cobrado.</span></div>
+        <div class="adi-s">soltar</div>
+      </div>
+      <div class="adi-l">
+        <div class="adi-q">0</div>
+        <div class="adi-c"><b>Falta insumo</b><span>Sempre a mesma coisa faltando. Vira pendência de outra pessoa, não sua.</span></div>
+        <div class="adi-s">repassar</div>
+      </div>
+      <div class="adi-l">
+        <div class="adi-q">4</div>
+        <div class="adi-c"><b>É aversivo</b><span>Envolve dizer não, perder dinheiro, admitir erro ou conflito. Reprovar a integração do Panorama, renegociar com a corretora, devolver a proposta do Andrade, encerrar o piloto do Marra.</span></div>
+        <div class="adi-s">bloco de decisão</div>
+      </div>
+    </div>
+    <p class="adi-nota">Contar adiamentos é a linha entre ferramenta e vigilância. Se ele sentir um placar da procrastinação dele, o produto morre na segunda semana — e com razão. O enquadramento é sempre: <b>“esses itens estão te custando atenção toda semana sem sair do lugar — resolver, soltar ou matar?”</b> O sistema é advogado dele, não auditor.</p>
+  </div>
+
+  <div class="secao-rot" style="margin-top:32px">Regras que o sistema aprendeu observando ele</div>
+  <p class="dica" style="margin-bottom:16px">Cada regra aceita remove uma classe inteira do backlog — para sempre, não por um dia.</p>
+  <div id="regras"></div>
+
+  <div class="grafico">
+    <div class="secao-rot">Itens que dependem dele · últimas 8 semanas</div>
+    <div class="barras-sem" id="barrasSem"></div>
+    <p class="dica">Se esta linha não cair mês a mês, o método falhou. Organizar melhor uma fila que não encolhe é só uma forma mais bonita de estar sobrecarregado.</p>
+  </div>
+</section>
+
+<!-- ============ WHATSAPP ============ -->
+<section class="painel" id="p-zap" role="tabpanel" hidden>
+  <div class="secao-rot">Sem app, sem menu, sem login</div>
+  <p class="dica" style="margin-bottom:20px">Quatro verbos e um número. Áudio funciona igual. Do outro lado, o grupo deixa de ser buraco negro: toda cobrança recebe estado na hora.</p>
+
+  <div class="dois-chats">
+    <div>
+      <p class="chat-rot">Direto com ele</p>
+      <div class="chat">
+        <div class="bolha">Bom dia, Marcello. Hoje três coisas importam:
+
+1 · Validação Panorama — 21 dias parado, comercial reprometeu 2×
+2 · Desconto Vila Nova — Rafael parado há 2 dias
+3 · Aditivo da frota — vence 25/07<span class="hr">07:30</span></div>
+        <div class="bolha eu">passa 2 rafael n2 hoje<span class="hr">07:31</span></div>
+        <div class="bolha">Feito. Rafael decide e executa; te aviso às 17h. Você só entra se quiser parar.
+
+Nos últimos 40 descontos abaixo de 5% você aprovou 40. Viro regra automática?<span class="hr">07:31</span></div>
+        <div class="bolha eu">vira<span class="hr">07:32</span></div>
+        <div class="bolha">Regra criada. Sai da sua mesa: ~6 itens/semana.<span class="hr">07:32</span></div>
+        <div class="bolha eu">1 depois<span class="hr">07:33</span></div>
+        <div class="bolha">Quarta vez que este item é adiado. O que falta para decidir?
+
+a) nada, só não quero agora
+b) falta informação
+c) espero terceiro<span class="hr">07:33</span></div>
+        <div class="bolha eu">a<span class="hr">07:34</span></div>
+        <div class="bolha">Então não está bloqueado — está evitado, e reprovar custa caro. Marquei 40 min quinta 9h com o dossiê pronto. Avisei o comercial que a resposta sai quinta.<span class="hr">07:34</span></div>
+      </div>
+    </div>
+
+    <div>
+      <p class="chat-rot">No grupo do time</p>
+      <div class="chat">
+        <div class="bolha">Marcello, e a validação do Panorama? cliente cobrando de novo 😅<span class="hr">09:12</span></div>
+        <div class="bolha bot">📌 Já registrado · #47 · Validação Panorama
+Dono: Marcello · na fila desde 02/07
+Temperatura: 3ª cobrança
+Retorno: quinta 9h — decisão marcada
+
+Não precisa cobrar de novo, eu aviso aqui.<span class="hr">09:12</span></div>
+        <div class="bolha">show, valeu<span class="hr">09:13</span></div>
+        <div class="bolha bot">✅ #47 resolvido · quinta 09:40
+Reprovado com 3 ajustes no payload. Alexandre já mandou o retorno ao Panorama.<span class="hr">quinta</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="verbos">
+    <div class="verbo"><code>resolvi 3</code><p>Fecha o item. Quem pediu é avisado no canal de origem.</p></div>
+    <div class="verbo"><code>passa 3 carol n2 sex</code><p>Repassa com dono, autonomia e prazo.</p></div>
+    <div class="verbo"><code>guarda 3 15d</code><p>Adormece. Volta na data ou se alguém cobrar.</p></div>
+    <div class="verbo"><code>3 depois</code><p>Adia — e o bot pergunta o que falta. Conta como adiamento.</p></div>
+  </div>
+
+  <p class="rodape">Protótipo de método — dados fictícios. O objetivo não é discutir tela: é validar três coisas com o Marcello. Ele aceita o nível N2, onde silêncio vale como aprovação? A captura passiva pega o que hoje vive no grupo e no e-mail? O critério de validação de integrador é objetivo o bastante para virar checklist — e o gargalo é validar, ou é entender o que o integrador mandou? Se o método funcionar no braço por duas semanas, o software vira execução.</p>
+</section>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+
+  /* ---------- abas ---------- */
+  var abas = document.querySelectorAll(".aba");
+  abas.forEach(function(a){
+    a.addEventListener("click", function(){
+      abas.forEach(function(x){ x.setAttribute("aria-selected","false"); document.getElementById(x.dataset.alvo).hidden = true; });
+      a.setAttribute("aria-selected","true");
+      document.getElementById(a.dataset.alvo).hidden = false;
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* ---------- pilha ---------- */
+  var INICIAL = 18;
+  var st = {i:0,pilha:INICIAL,sairam:0,ficaram:0,adiados:0,regraCand:0,dono:"Carolina",nivel:"n2",prazo:"sexta",volta:"3 dias",falta:null,trilha:[]};
+  var barras = document.getElementById("pilhaBarras");
+  for(var b=0;b<INICIAL;b++) barras.appendChild(document.createElement("i"));
+  function pintaPilha(caiu){
+    var bs = barras.children;
+    for(var k=0;k<bs.length;k++) bs[k].classList.toggle("foi", k >= st.pilha);
+    document.getElementById("pilhaNum").textContent = st.pilha;
+    document.getElementById("pilhaDelta").textContent = caiu ? "−1 saiu da sua mesa" : (st.pilha < INICIAL ? (INICIAL - st.pilha)+" saíram no total" : "");
+  }
+  pintaPilha(false);
+
+  /* ============ ENTRADAS ============ */
+  var CAM = {sistema:{cor:"var(--repassar)"},humano:{cor:"var(--resolver)"},compromisso:{cor:"var(--reservar)"}};
+  var EVENTOS = [
+    {c:"sistema",h:"08:02",f:"Esteira de integradores",t:"Grupo Panorama submeteu o payload de teste — entrou na sua etapa de validação.",r:"Vai para <b>triagem</b>. Ninguém precisou avisar ninguém.",tag:"triagem"},
+    {c:"humano",h:"08:14",f:"E-mail · Corretora",t:"Renovação do plano de saúde com três cenários, na 9ª mensagem de uma thread com 6 em cópia.",r:"A IA extraiu a pendência do 4º parágrafo. Vai para <b>triagem</b>.",tag:"triagem"},
+    {c:"sistema",h:"08:31",f:"Monitoramento · rota Consinco",t:"Rota parada há 30 min, 412 mensagens represadas, erro de certificado expirado.",r:"Bloqueio operacional → roteado <b>N1 para Alexandre</b>. Nunca chegou nele.",tag:"passou"},
+    {c:"humano",h:"09:12",f:"WhatsApp · grupo Comercial",t:"“Marcello, e a validação do Panorama? cliente cobrando de novo”",r:"Já existe #47 → <b>fundido</b>. Temperatura sobe para 3. Fila não cresce.",tag:"dedup"},
+    {c:"compromisso",h:"09:40",f:"Transcrição · reunião de segunda",t:"“Deixa que eu vejo isso do fornecedor de embalagem e te retorno até quarta.”",r:"Promessa dita e nunca registrada. Vira pendência com prazo. <b>Triagem</b>.",tag:"triagem"},
+    {c:"sistema",h:"09:55",f:"ERP · ruptura de estoque",t:"3 SKUs abaixo do ponto de pedido há 2 dias.",r:"Regra de alçada ativa → <b>N1 para Mayker</b>, faz e avisa.",tag:"passou"},
+    {c:"humano",h:"10:07",f:"WhatsApp · direto do cliente",t:"Rede Bom Preço pergunta se consegue entrega no sábado.",r:"Logística já confirmou janela → <b>N1 para Carolina</b> responder.",tag:"passou"},
+    {c:"humano",h:"10:21",f:"E-mail · Comercial",t:"“Alguma novidade do Panorama? prometi retorno pro cliente hoje”",r:"Mesma pendência, outro canal → <b>fundido</b> em #47. Temperatura 4.",tag:"dedup"},
+    {c:"sistema",h:"10:38",f:"Esteira de integradores",t:"Distribuidora Andrade entrou em homologação — etapa do Alexandre.",r:"Segue a esteira sozinho. <b>Não é pendência dele.</b>",tag:"passou"},
+    {c:"compromisso",h:"10:44",f:"Áudio · você mesmo, no carro",t:"“Lembrar de fechar as metas do trimestre do comercial antes de setembro.”",r:"Ninguém bloqueado → horizonte <b>trimestre</b>, não entra no hoje.",tag:"triagem"}
+  ];
+  var TAGN = {passou:"resolvido sem ele",triagem:"para triagem",dedup:"recobrança fundida"};
+  var feed = document.getElementById("entFeed"), tocando = false, idx = 0, timer = null;
+  var cT = document.getElementById("entTotal"), cP = document.getElementById("entPassou"), cG = document.getElementById("entTriagem"), cD = document.getElementById("entDedup");
+  var contas = {passou:0,triagem:0,dedup:0};
+
+  document.getElementById("btnPlay").addEventListener("click", function(){
+    if(tocando) return;
+    tocando = true; idx = 0; contas = {passou:0,triagem:0,dedup:0};
+    feed.innerHTML = ""; cT.textContent="0"; cP.textContent="0"; cG.textContent="0"; cD.textContent="0";
+    this.textContent = "Reproduzindo…";
+    document.getElementById("entEstado").textContent = "";
+    proximo();
+  });
+
+  function proximo(){
+    if(idx >= EVENTOS.length){
+      tocando = false;
+      document.getElementById("btnPlay").textContent = "Reproduzir de novo";
+      document.getElementById("entEstado").textContent = "Dez eventos, quatro nunca chegaram nele, dois eram a mesma coisa.";
+      return;
+    }
+    var e = EVENTOS[idx];
+    var el = document.createElement("div");
+    el.className = "ent-ev";
+    el.style.setProperty("--c", CAM[e.c].cor);
+    el.innerHTML = '<span class="ent-hora">'+e.h+'</span>'
+      + '<div class="ent-corpo"><div class="ent-fonte">'+esc(e.f)+'</div>'
+      + '<div class="ent-txt">'+esc(e.t)+'</div>'
+      + '<div class="ent-rota">'+e.r+'</div></div>'
+      + '<span class="ent-tag t-'+e.tag+'">'+TAGN[e.tag]+'</span>';
+    feed.appendChild(el);
+    contas[e.tag]++; idx++;
+    cT.textContent = idx; cP.textContent = contas.passou; cG.textContent = contas.triagem; cD.textContent = contas.dedup;
+    timer = setTimeout(proximo, 900);
+  }
+
+  /* ============ TRIAGEM ============ */
+  var PENDENCIAS = [
+    {t:"Validar a integração do Grupo Panorama",origem:"Esteira · payload submetido 02/07",quem:"Grupo Panorama",trava:"Integrador parado há 21 dias",prazo:"Comercial reprometeu 2×",valor:"Contrato de R$ 240 mil/ano",ia:"7ª validação de integrador em 90 dias, mesmo formato. Duas cobranças no grupo e uma por e-mail, todas fundidas neste item.",adiado:3,diag:"Adiado 3 vezes. Nas três, nada foi feito entre um adiamento e outro — e a decisão provável é reprovar com ajustes. Padrão de item aversivo, não de item bloqueado.",sug:"reservar"},
+    {t:"Aprovar desconto de 7% para o Supermercado Vila Nova",origem:"WhatsApp · grupo Comercial",quem:"Rafael",trava:"Pedido de R$ 42 mil parado",prazo:"Cliente cobrou 2×",valor:"R$ 42.000",ia:"Rafael pediu ontem às 18h04. Descontos acima de 5% sempre passam por você. É o 3º do mês do mesmo cliente.",sug:"repassar"},
+    {t:"Renovação do plano de saúde — 3 cenários",origem:"E-mail · thread com 6 em cópia",quem:"Natani",trava:"RH aguarda direção",prazo:"Decidir até 15/08",valor:"R$ 31.000/mês",ia:"A pendência estava no 4º parágrafo da 9ª mensagem. Natani pode montar a recomendação e executar se você não parar.",adiado:2,diag:"Adiado 2 vezes, sempre com “semana que vem”. Nenhuma informação nova chegou entre um adiamento e outro.",sug:"repassar"},
+    {t:"Assinar o aditivo da locação da frota",origem:"E-mail · Jurídico",quem:"Escritório Menezes",trava:"Contrato vence sem renovação",prazo:"25/07 — prazo duro",valor:"R$ 18.400/mês",ia:"Minuta revisada pelo jurídico, sem ressalvas. Falta só a assinatura eletrônica.",sug:"resolver"},
+    {t:"Escolher o fornecedor de embalagem para 2027",origem:"Transcrição · reunião de segunda",quem:"Compras",trava:"3 propostas aguardando",prazo:"Janela fecha sexta",valor:"R$ 380.000/ano",ia:"Você prometeu retorno até quarta na reunião — a promessa virou pendência sozinha. Decisão irreversível por 12 meses.",sug:"reservar"},
+    {t:"Reembolso de viagem do Rodrigo — R$ 1.240",origem:"E-mail · Financeiro",quem:"Rodrigo",trava:"Na fila há 6 dias",prazo:"Sem prazo formal",valor:"R$ 1.240",ia:"Dentro da política. Nos últimos 22 reembolsos abaixo de R$ 2 mil, você aprovou 22.",sug:"repassar"},
+    {t:"Mudar o horário da reunião de segunda",origem:"WhatsApp · Neimar",quem:"Neimar",trava:"Ninguém bloqueado",prazo:"Até sexta",valor:"—",ia:"Decisão de 30 segundos. A agenda mostra o novo horário livre para todos.",sug:"resolver"},
+    {t:"Encerrar o piloto do Grupo Marra",origem:"Você mesmo · anotação",quem:"—",trava:"Time continua alocado",prazo:"Sem prazo",valor:"2 pessoas alocadas",ia:"Piloto sem avanço há 4 meses. Encerrar exige uma conversa difícil com o parceiro.",adiado:4,diag:"Adiado 4 vezes em 3 meses. Envolve dizer não a alguém. Enquanto adia, duas pessoas seguem alocadas — o adiamento tem preço semanal.",sug:"reservar"},
+    {t:"Ver se vale abrir um CD em Londrina",origem:"Conversa de corredor",quem:"—",trava:"Nada travado",prazo:"Sem prazo",valor:"Indefinido",ia:"Sem dono, sem prazo, ninguém esperando. Mencionado 2× em 4 meses e nunca cobrado por ninguém.",adiado:3,diag:"Adiado 3 vezes e nunca cobrado entre os adiamentos. Sinal clássico de item que não importa de verdade.",sug:"repousar"},
+    {t:"Aprovar as férias da Juliana em setembro",origem:"E-mail · RH",quem:"Juliana",trava:"Juliana não consegue comprar passagem",prazo:"Escala fecha 30/07",valor:"—",ia:"Sem conflito de escala. Nos últimos 15 pedidos sem conflito, você aprovou 15.",sug:"repassar"}
+  ];
+  var SAIDAS = {
+    resolver:{nome:"Resolver",cor:"var(--resolver)",quando:"Decisão trivial, menos de 2 minutos.",sai:true},
+    repassar:{nome:"Repassar",cor:"var(--repassar)",quando:"Existe alguém melhor posicionado que você.",sai:true},
+    reservar:{nome:"Reservar",cor:"var(--reservar)",quando:"Só você decide, e exige cabeça fresca.",sai:false},
+    repousar:{nome:"Repousar",cor:"var(--repousar)",quando:"Não é decisão: é espera, ruído ou zumbi.",sai:true}
+  };
+  var PESSOAS = ["Carolina","Natani","Mayker","Alexandre","Rafael"];
+  var PRAZOS = ["hoje","amanhã","sexta","15 dias"];
+  var VOLTAS = ["amanhã","3 dias","semana que vem","15 dias"];
+  var FALTAS = [
+    {v:"nada",r:"Nada. Só não quero decidir agora."},
+    {v:"info",r:"Falta uma informação específica."},
+    {v:"terceiro",r:"Espero resposta de outra pessoa."}
+  ];
+  var area = document.getElementById("areaCartao");
+
+  function render(){
+    document.getElementById("cntTriagem").textContent = PENDENCIAS.length - st.i;
+    if(st.i >= PENDENCIAS.length){ renderFim(); return; }
+    var p = PENDENCIAS[st.i];
+    var portoes = Object.keys(SAIDAS).map(function(ch){
+      var s = SAIDAS[ch];
+      return '<button class="portao" data-saida="'+ch+'" style="--c:'+s.cor+'">'
+        + (p.sug===ch ? '<span class="sugerido">IA sugere</span>' : '')
+        + '<span class="portao-nome">'+s.nome+'</span>'
+        + '<span class="portao-quando">'+s.quando+'</span>'
+        + '<span class="portao-custo '+(s.sai?"custo-sai":"custo-fica")+'">'+(s.sai?"sai da sua mesa":"continua com você")+'</span></button>';
+    }).join("");
+
+    area.innerHTML = '<div class="cartao"><div class="cartao-corpo">'
+      + '<div class="origem"><span class="ponto"></span>'+esc(p.origem)+' · <b>'+esc(p.quem)+'</b>'
+      + (p.adiado ? '<span class="selo-adiado">adiado '+p.adiado+'×</span>' : '') + '</div>'
+      + '<h2 class="titulo-p">'+esc(p.t)+'</h2>'
+      + '<div class="fatos">'
+      +   '<div class="fato"><span>o que trava</span>'+esc(p.trava)+'</div>'
+      +   '<div class="fato"><span>prazo</span>'+esc(p.prazo)+'</div>'
+      +   '<div class="fato"><span>valor em jogo</span>'+esc(p.valor)+'</div></div>'
+      + '<p class="extraido">'+esc(p.ia)+'</p>'
+      + (p.diag ? '<div class="diag">'+esc(p.diag)+'</div>' : '')
+      + '</div>'
+      + '<div class="pergunta">Isso precisa mesmo de você?<small>Uma pergunta, quatro saídas. Sem estimar esforço, sem escolher etiqueta.</small></div>'
+      + '<div class="portoes">'+portoes+'</div>'
+      + '<div class="escape"><span class="escape-txt">Não consegue decidir agora? Tudo bem — mas o adiamento tem nome e data.</span>'
+      + '<button class="btn-adiar" id="btnAdiar">Deixar para depois</button></div>'
+      + '<div id="passo"></div></div>';
+
+    area.querySelectorAll(".portao").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var ch = btn.dataset.saida;
+        if(ch === "repassar") abreDelegar(); else decide(ch, null);
+      });
+    });
+    document.getElementById("btnAdiar").addEventListener("click", abreAdiar);
+  }
+
+  function grupo(id, prop){
+    var c = document.getElementById(id); if(!c) return;
+    c.addEventListener("click", function(e){
+      var b = e.target.closest("[data-v]"); if(!b) return;
+      c.querySelectorAll("[data-v]").forEach(function(x){ x.setAttribute("aria-pressed","false"); });
+      b.setAttribute("aria-pressed","true");
+      st[prop] = b.dataset.v;
+      if(prop === "falta") avaliaFalta();
+    });
+  }
+
+  function abreDelegar(){
+    var alvo = document.getElementById("passo");
+    alvo.innerHTML = '<div class="delegar"><h3>Para quem, e com quanta autonomia?</h3>'
+      + '<p class="dica">Autonomia é o motor do método. O objetivo é migrar itens de N3 para N2, e de N2 para N1 — é a única coisa que faz o backlog encolher de verdade.</p>'
+      + '<div class="linha-campo"><div class="rot-campo">Dono</div><div class="chips" id="chipsDono">'
+      + PESSOAS.map(function(n){return '<button class="chip" data-v="'+n+'" aria-pressed="'+(n===st.dono)+'">'+n+'</button>';}).join("")+'</div></div>'
+      + '<div class="linha-campo"><div class="rot-campo">Nível de autonomia</div><div class="niveis" id="niveis">'
+      + '<button class="nivel" data-v="n1" aria-pressed="'+(st.nivel==="n1")+'"><span class="nivel-t"><span class="barras n1"><i></i><i></i><i></i></span> N1</span><span class="nivel-d">Faz e me conta depois.</span><span class="nivel-custo">custo: zero atenção</span></button>'
+      + '<button class="nivel" data-v="n2" aria-pressed="'+(st.nivel==="n2")+'"><span class="nivel-t"><span class="barras n2"><i></i><i></i><i></i></span> N2</span><span class="nivel-d">Propõe e executa se eu não parar.</span><span class="nivel-custo">custo: só se você discordar</span></button>'
+      + '<button class="nivel" data-v="n3" aria-pressed="'+(st.nivel==="n3")+'"><span class="nivel-t"><span class="barras n3"><i></i><i></i><i></i></span> N3</span><span class="nivel-d">Propõe e espera minha decisão.</span><span class="nivel-custo">custo: continua com você</span></button>'
+      + '</div></div>'
+      + '<div class="linha-campo"><div class="rot-campo">Prazo</div><div class="chips" id="chipsPrazo">'
+      + PRAZOS.map(function(n){return '<button class="chip" data-v="'+n+'" aria-pressed="'+(n===st.prazo)+'">'+n+'</button>';}).join("")+'</div></div>'
+      + '<div class="acoes"><button class="btn" id="btnConfirma">Repassar</button><button class="btn fantasma" id="btnCancela">Voltar</button></div></div>';
+    grupo("chipsDono","dono"); grupo("niveis","nivel"); grupo("chipsPrazo","prazo");
+    document.getElementById("btnConfirma").addEventListener("click", function(){ decide("repassar", st.nivel); });
+    document.getElementById("btnCancela").addEventListener("click", function(){ alvo.innerHTML=""; });
+    alvo.scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+
+  function abreAdiar(){
+    st.falta = null;
+    var alvo = document.getElementById("passo");
+    alvo.innerHTML = '<div class="delegar"><h3>Adiar exige duas respostas</h3>'
+      + '<p class="dica">“Depois” não é data e “vou ver” não é bloqueio. Sem essas duas, o item volta amanhã igualzinho.</p>'
+      + '<div class="linha-campo"><div class="rot-campo">Quando volta</div><div class="chips" id="chipsVolta">'
+      + VOLTAS.map(function(n){return '<button class="chip" data-v="'+n+'" aria-pressed="'+(n===st.volta)+'">'+n+'</button>';}).join("")+'</div></div>'
+      + '<div class="linha-campo"><div class="rot-campo">O que falta para decidir</div><div class="chips" id="chipsFalta" style="flex-direction:column;align-items:flex-start">'
+      + FALTAS.map(function(f){return '<button class="chip" data-v="'+f.v+'" aria-pressed="false">'+f.r+'</button>';}).join("")+'</div></div>'
+      + '<div id="cutuca"></div>'
+      + '<div class="acoes"><button class="btn" id="btnConfirmaAdiar">Adiar</button><button class="btn fantasma" id="btnCancela2">Voltar</button></div></div>';
+    grupo("chipsVolta","volta"); grupo("chipsFalta","falta");
+    document.getElementById("btnConfirmaAdiar").addEventListener("click", function(){ decide("adiar", null); });
+    document.getElementById("btnCancela2").addEventListener("click", function(){ alvo.innerHTML=""; });
+    alvo.scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+
+  function avaliaFalta(){
+    var c = document.getElementById("cutuca"); if(!c) return;
+    var p = PENDENCIAS[st.i];
+    if(st.falta === "nada"){
+      c.innerHTML = '<div class="cutuca"><p>Então isso não está bloqueado — está <b>evitado</b>. '
+        + (p.adiado ? 'É a '+(p.adiado+1)+'ª vez, e o custo já é semanal. ' : '')
+        + 'O caro aqui é entrar, não decidir. Um bloco de 40 minutos com o dossiê pronto costuma resolver o que quatro adiamentos não resolveram.</p>'
+        + '<div style="display:flex;gap:9px;flex-wrap:wrap"><button class="btn" id="btnBloco">Marcar bloco de decisão</button>'
+        + '<button class="btn linha" id="btnMesmoAssim">Adiar mesmo assim</button></div></div>';
+      document.getElementById("btnBloco").addEventListener("click", function(){ decide("reservar", null); });
+      document.getElementById("btnMesmoAssim").addEventListener("click", function(){ decide("adiar", null); });
+    } else if(st.falta === "terceiro"){
+      c.innerHTML = '<div class="cutuca"><p>Se você espera terceiro, a pendência não é sua — é <b>dele</b>. Melhor repassar com prazo do que carregar a espera na sua fila.</p>'
+        + '<div style="display:flex;gap:9px;flex-wrap:wrap"><button class="btn" id="btnVirarRep">Repassar para quem tem a bola</button>'
+        + '<button class="btn linha" id="btnMesmoAssim2">Adiar mesmo assim</button></div></div>';
+      document.getElementById("btnVirarRep").addEventListener("click", abreDelegar);
+      document.getElementById("btnMesmoAssim2").addEventListener("click", function(){ decide("adiar", null); });
+    } else {
+      c.innerHTML = '<div class="cutuca"><p>Falta insumo. O sistema vai <b>cobrar a informação</b> em vez de te lembrar do item — e só te devolve quando ela chegar.</p></div>';
+    }
+  }
+
+  function decide(chave, nivel){
+    var p = PENDENCIAS[st.i];
+    var sai = chave !== "adiar" && SAIDAS[chave] && SAIDAS[chave].sai && !(chave==="repassar" && nivel==="n3");
+    if(sai){ st.pilha = Math.max(0, st.pilha-1); st.sairam++; }
+    else if(chave === "adiar"){ st.adiados++; }
+    else { st.ficaram++; }
+    if(chave === "repassar" && nivel !== "n1") st.regraCand++;
+
+    var detalhe;
+    if(chave === "repassar") detalhe = st.dono+" · "+st.nivel.toUpperCase()+" · "+st.prazo;
+    else if(chave === "resolver") detalhe = "fechado agora · quem pediu foi avisado";
+    else if(chave === "reservar") detalhe = "bloco de decisão · quinta 9h · dossiê na quarta";
+    else if(chave === "repousar") detalhe = "volta em 15 dias, ou antes se cobrarem";
+    else detalhe = "volta em "+st.volta+" · "+(p.adiado?(p.adiado+1):1)+"º adiamento";
+
+    var nome = chave === "adiar" ? "Adiado" : SAIDAS[chave].nome;
+    st.trilha.unshift({selo:nome, chave:chave, t:p.t, d:detalhe});
+    pintaPilha(sai); renderTrilha(); st.i++; render();
+  }
+
+  function renderTrilha(){
+    var box = document.getElementById("trilha");
+    if(!st.trilha.length){ box.hidden = true; return; }
+    box.hidden = false;
+    document.getElementById("trilhaLista").innerHTML = st.trilha.map(function(x,i){
+      var m = 30 + (st.trilha.length - i);
+      var hh = 7 + Math.floor(m/60), mm = m % 60;
+      return '<li><span class="hora">'+String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+'</span>'
+        + '<span class="selo s-'+x.chave+'">'+x.selo+'</span>'
+        + '<span style="flex:1">'+esc(x.t)+' <span style="color:var(--fraco)">— '+esc(x.d)+'</span></span></li>';
+    }).join("");
+  }
+
+  function renderFim(){
+    document.getElementById("cntTriagem").textContent = "0";
+    area.innerHTML = '<div class="vazio"><h2>Caixa vazia.</h2>'
+      + '<p class="dica" style="margin:12px auto 0">Dez itens, três minutos, nenhum cadastro. O armário está aberto — e mais leve do que entrou.</p>'
+      + '<div class="placar">'
+      + '<div><b>10</b><span>triados</span></div>'
+      + '<div><b>'+st.sairam+'</b><span>saíram da mesa</span></div>'
+      + '<div><b>'+st.ficaram+'</b><span>ficaram com ele</span></div>'
+      + '<div><b>'+st.adiados+'</b><span>adiados</span></div>'
+      + '<div><b>'+st.regraCand+'</b><span>viram regra</span></div></div>'
+      + '<p class="dica" style="margin:22px auto 0">Regra de ouro: <b>Reservar é a saída cara</b>. Se mais de 20% do que entra vai para lá, o problema é alçada — não organização. E se os adiados passarem de 2, o problema não é a fila: é o que tem dentro dela.</p>'
+      + '<div class="acoes" style="justify-content:center"><button class="btn" id="btnReinicia">Rodar a triagem de novo</button></div></div>';
+    document.getElementById("btnReinicia").addEventListener("click", function(){
+      st.i=0; st.pilha=INICIAL; st.sairam=0; st.ficaram=0; st.adiados=0; st.regraCand=0; st.trilha=[];
+      pintaPilha(false); renderTrilha(); render(); window.scrollTo({top:0,behavior:"smooth"});
+    });
+  }
+  render();
+
+  /* ============ ESTEIRA ============ */
+  var ETAPAS = [
+    {n:"Contrato assinado",dono:"Comercial",q:2},
+    {n:"Ambiente e credenciais",dono:"Alexandre",q:1},
+    {n:"Payload de teste",dono:"Integrador",q:2},
+    {n:"Validação técnica",dono:"Marcello",q:3,dele:true},
+    {n:"Homologação",dono:"Alexandre",q:1},
+    {n:"Produção",dono:"—",q:4}
+  ];
+  var PARADOS = [
+    {n:"Grupo Panorama",d:21},{n:"Distribuidora Andrade",d:9},{n:"Rede Bom Preço",d:4}
+  ];
+  function pintaEsteira(){
+    document.getElementById("estFluxo").innerHTML = ETAPAS.map(function(e){
+      return '<div class="est-etapa'+(e.dele?" dele":"")+'"><span class="est-n">'+e.q+'</span>'
+        + '<span class="est-nome">'+e.n+'</span><span class="est-dono">'+e.dono+'</span></div>';
+    }).join("");
+    document.getElementById("estLista").innerHTML = PARADOS.map(function(p){
+      return '<div class="est-linha"><span class="est-nomeint">'+p.n+'</span>'
+        + '<span class="est-trilho"><i style="width:'+Math.min(100,p.d/21*100)+'%"></i></span>'
+        + '<span class="est-dias">'+p.d+' dias</span></div>';
+    }).join("") || '<p class="dica">Ninguém parado na etapa dele.</p>';
+  }
+  pintaEsteira();
+
+  document.getElementById("btnEsteira").addEventListener("click", function(){
+    this.disabled = true; this.textContent = "Esteira ativa"; this.style.opacity = ".55"; this.style.cursor = "default";
+    ETAPAS[3].q = 1; ETAPAS[4].q = 3;
+    PARADOS = [{n:"Grupo Panorama",d:21}];
+    pintaEsteira();
+    document.getElementById("estDepois").textContent = "1";
+    var aviso = document.createElement("p");
+    aviso.className = "dica";
+    aviso.style.marginTop = "14px";
+    aviso.innerHTML = "<b>Andrade e Bom Preço</b> passaram no checklist e seguiram para homologação sem tocar nele. Sobrou o Panorama — que falhou em contrato de dados e campos fiscais, e é exatamente o caso que merece a atenção dele.";
+    document.getElementById("estLista").appendChild(aviso);
+  });
+
+  /* ============ RADAR ============ */
+  var REGRAS = [
+    {t:"Desconto comercial de até 5%",e:"40 casos em 90 dias · 40 aprovados · nenhum revertido",ganho:6,nivel:"N1"},
+    {t:"Reembolso de viagem até R$ 2 mil",e:"22 casos · 22 aprovados · dentro da política",ganho:3,nivel:"N1"},
+    {t:"Férias sem conflito de escala",e:"15 casos · 15 aprovados · RH valida o conflito antes",ganho:2,nivel:"N1"},
+    {t:"Validação de integrador com checklist limpo",e:"8 casos · 6 seriam aprovados direto · 2 exceções reais",ganho:5,nivel:"N2"}
+  ];
+  var boxRegras = document.getElementById("regras"), pct = 38, delegaveis = 12;
+  boxRegras.innerHTML = REGRAS.map(function(r,i){
+    return '<div class="regra" id="regra'+i+'"><div style="flex:1;min-width:240px">'
+      + '<div class="regra-t">'+r.t+' → '+r.nivel+'</div><div class="regra-e">'+r.e+'</div></div>'
+      + '<button class="btn-prom" data-i="'+i+'">Promover para '+r.nivel+'</button></div>';
+  }).join("");
+  boxRegras.addEventListener("click", function(e){
+    var b = e.target.closest(".btn-prom"); if(!b || b.disabled) return;
+    var r = REGRAS[b.dataset.i];
+    b.disabled = true; b.textContent = "Ativa · −"+r.ganho+" itens/semana";
+    document.getElementById("regra"+b.dataset.i).classList.add("ok");
+    pct = Math.max(9, pct - Math.round(r.ganho*1.6));
+    delegaveis = Math.max(0, delegaveis - Math.round(r.ganho/2));
+    document.getElementById("pctGargalo").textContent = pct+"%";
+    document.getElementById("qtdDelegavel").textContent = delegaveis;
+  });
+
+  var SEMANAS = [34,31,29,24,21,17,15,13];
+  document.getElementById("barrasSem").innerHTML = SEMANAS.map(function(v,i){
+    return '<div class="col"><b>'+v+'</b><i style="height:'+Math.round(v/34*100)+'%;animation-delay:'+(i*60)+'ms"></i><em>S'+(i+1)+'</em></div>';
+  }).join("");
+})();
+</script>
+</body>
+</html>

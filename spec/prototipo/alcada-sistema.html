@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alçada — controle de decisões do gestor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --tinta:#131A2B; --tinta-2:#1B2439; --tinta-3:#26314C;
+  --papel:#EEF0F4; --branco:#fff; --papel-2:#F7F8FB;
+  --linha:#DCE0E9; --linha-2:#C6CDDA;
+  --texto:#1B2233; --fraco:#6A7590; --fraco-2:#98A2B8;
+  --resolver:#0F8A63; --repassar:#2B57D4; --reservar:#C2700F; --repousar:#7A879F;
+  --adiar:#6D4AC4; --quente:#D6246E;
+  --sb:236px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--papel);color:var(--texto);font-family:'Instrument Sans',system-ui,sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif;margin:0;letter-spacing:-.022em;line-height:1.1}
+.mono{font-family:'IBM Plex Mono',monospace}
+:focus-visible{outline:2px solid var(--repassar);outline-offset:1px;border-radius:4px}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#c3cad8;border-radius:6px}
+
+.app{display:flex;height:100vh}
+
+/* ---------- sidebar ---------- */
+.sb{width:var(--sb);background:var(--tinta);color:#fff;display:flex;flex-direction:column;flex:none}
+.sb-topo{padding:16px 16px 14px;border-bottom:1px solid #ffffff14}
+.logo{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.03em;display:flex;align-items:center;gap:8px}
+.logo i{width:9px;height:9px;background:var(--quente);border-radius:2px;display:block}
+.logo-sub{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#7C89A8;margin-top:5px}
+.sb-nav{padding:10px 8px;flex:1;overflow-y:auto}
+.sb-grp{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:#5F6C8A;padding:12px 10px 6px}
+.nav{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:7px;color:#B4BFD6;font-size:13.5px;text-align:left;transition:.13s}
+.nav:hover{background:#ffffff0e;color:#fff}
+.nav.on{background:var(--tinta-3);color:#fff;font-weight:500}
+.nav .ic{width:16px;text-align:center;font-size:13px;opacity:.85;flex:none}
+.nav .n{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8391AF}
+.nav.on .n{color:#fff}
+.nav .n.alerta{background:var(--quente);color:#fff;padding:1px 6px;border-radius:20px}
+.sb-pe{padding:12px 14px;border-top:1px solid #ffffff14}
+.eu{display:flex;align-items:center;gap:9px}
+.av{width:28px;height:28px;border-radius:50%;background:var(--tinta-3);display:grid;place-items:center;font-size:11.5px;font-weight:600;flex:none}
+.eu b{font-size:12.5px;font-weight:600;display:block}
+.eu span{font-size:11px;color:#7C89A8}
+
+/* ---------- topo ---------- */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.top{height:54px;background:var(--branco);border-bottom:1px solid var(--linha);display:flex;align-items:center;gap:12px;padding:0 18px;flex:none}
+.hamb{display:none}
+.busca{flex:1;max-width:380px;position:relative}
+.busca input{width:100%;padding:7px 11px 7px 30px;border:1px solid var(--linha);border-radius:7px;background:var(--papel-2);font-size:13.5px}
+.busca input:focus{background:#fff;border-color:var(--linha-2);outline:none}
+.busca .lupa{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--fraco-2);font-size:12px}
+.top-dir{margin-left:auto;display:flex;align-items:center;gap:8px}
+.bt{padding:7px 13px;border-radius:7px;font-size:13px;font-weight:500;border:1px solid var(--linha-2);background:#fff;transition:.13s;white-space:nowrap}
+.bt:hover{border-color:var(--tinta);background:var(--papel-2)}
+.bt.pri{background:var(--tinta);color:#fff;border-color:var(--tinta)}
+.bt.pri:hover{background:var(--tinta-2)}
+.bt.mini{padding:5px 10px;font-size:12.5px}
+.sino{position:relative;padding:7px 9px;border-radius:7px;border:1px solid transparent}
+.sino:hover{background:var(--papel-2)}
+.sino b{position:absolute;top:2px;right:2px;background:var(--quente);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 4px;border-radius:20px}
+
+/* ---------- conteúdo ---------- */
+.corpo{flex:1;overflow-y:auto;padding:20px 22px 60px}
+.cab{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.cab h1{font-size:23px;font-weight:800}
+.cab .sub{color:var(--fraco);font-size:13px;margin-top:3px}
+.filtros{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.fchip{padding:5px 11px;border:1px solid var(--linha-2);border-radius:20px;font-size:12.5px;background:#fff;color:var(--fraco);transition:.13s}
+.fchip:hover{border-color:var(--tinta)}
+.fchip.on{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.fsep{width:1px;height:18px;background:var(--linha-2);margin:0 4px}
+
+/* lista */
+.lista{background:var(--branco);border:1px solid var(--linha);border-radius:9px;overflow:hidden}
+.lr{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--linha);cursor:pointer;transition:background .1s}
+.lr:last-child{border-bottom:none}
+.lr:hover{background:var(--papel-2)}
+.lr.sel{background:#2b57d40a}
+.lr-bar{width:3px;height:30px;border-radius:2px;background:var(--c,var(--linha-2));flex:none}
+.lr-mid{flex:1;min-width:0}
+.lr-t{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lr-m{display:flex;gap:9px;align-items:center;margin-top:3px;font-size:12px;color:var(--fraco);flex-wrap:wrap}
+.lr-dir{display:flex;align-items:center;gap:8px;flex:none}
+.pill{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.05em;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.p-entrada{background:#2b57d414;color:var(--repassar)}
+.p-delegado{background:#0f8a6314;color:var(--resolver)}
+.p-agendado{background:#c2700f18;color:var(--reservar)}
+.p-dormindo{background:#7a879f1c;color:var(--repousar)}
+.p-adiado{background:#6d4ac418;color:var(--adiar)}
+.p-fechado{background:#e8ebf1;color:var(--fraco)}
+.p-quente{background:#d6246e14;color:var(--quente)}
+.p-n{border:1px solid var(--linha-2);color:var(--fraco)}
+.rel{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--fraco);white-space:nowrap}
+.rel.urg{color:var(--quente);font-weight:500}
+.vazio-l{padding:38px;text-align:center;color:var(--fraco);font-size:13.5px}
+
+/* cards / métricas */
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.mcard{background:var(--branco);border:1px solid var(--linha);border-radius:9px;padding:14px 16px}
+.mcard b{font-family:'Bricolage Grotesque',sans-serif;font-size:27px;font-weight:800;letter-spacing:-.04em;display:block;line-height:1}
+.mcard span{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fraco);display:block;margin-top:6px}
+.mcard em{font-style:normal;font-size:12px;color:var(--fraco);display:block;margin-top:4px}
+.painel-b{background:var(--branco);border:1px solid var(--linha);border-radius:9px;padding:18px 20px;margin-bottom:14px}
+.painel-b h2{font-size:16px;font-weight:600;margin-bottom:3px}
+.painel-b .h-sub{font-size:12.5px;color:var(--fraco);margin-bottom:14px}
+
+/* drawer */
+.dr-bg{position:fixed;inset:0;background:#131a2b40;opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+.dr-bg.on{opacity:1;pointer-events:auto}
+.dr{position:fixed;top:0;right:0;height:100%;width:min(460px,100%);background:var(--branco);border-left:1px solid var(--linha);transform:translateX(100%);transition:transform .24s cubic-bezier(.3,.8,.3,1);z-index:41;display:flex;flex-direction:column}
+.dr.on{transform:none}
+.dr-top{padding:14px 18px;border-bottom:1px solid var(--linha);display:flex;align-items:center;gap:10px}
+.dr-top .id{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--fraco)}
+.dr-x{margin-left:auto;padding:5px 9px;border-radius:6px;color:var(--fraco);font-size:16px;line-height:1}
+.dr-x:hover{background:var(--papel-2);color:var(--texto)}
+.dr-corpo{flex:1;overflow-y:auto;padding:18px}
+.dr h2{font-size:19px;font-weight:600;margin-bottom:10px}
+.kv{display:grid;grid-template-columns:96px 1fr;gap:7px 12px;font-size:13px;margin:14px 0}
+.kv dt{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--fraco);padding-top:2px}
+.kv dd{margin:0}
+.bloco{background:var(--papel-2);border:1px solid var(--linha);border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:12px}
+.bloco .rot{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fraco);margin-bottom:5px}
+.bloco.diag{background:#6d4ac40b;border-color:#6d4ac433;color:#4b3190}
+.hist{list-style:none;margin:10px 0 0;padding:0}
+.hist li{display:flex;gap:10px;font-size:12.5px;padding:7px 0;border-bottom:1px dashed var(--linha)}
+.hist li:last-child{border:none}
+.hist .q{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--fraco);flex:none;width:64px}
+.dr-pe{border-top:1px solid var(--linha);padding:14px 18px;background:var(--papel-2)}
+.acoes4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ac{padding:10px 6px;border:1px solid var(--linha-2);border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;color:var(--c);transition:.13s;text-align:center}
+.ac:hover{border-color:var(--c);background:color-mix(in srgb,var(--c) 7%,#fff)}
+.ac small{display:block;font-weight:400;font-size:10px;color:var(--fraco);margin-top:2px;letter-spacing:.02em}
+.ac-adiar{width:100%;margin-top:6px;padding:9px;border:1px dashed var(--adiar);border-radius:8px;color:var(--adiar);font-size:12.5px;font-weight:500;background:#fff}
+.ac-adiar:hover{background:#6d4ac40d}
+.form{margin-top:12px;background:#fff;border:1px solid var(--linha);border-radius:8px;padding:14px}
+.form .rot{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fraco);margin-bottom:6px}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.ch{padding:5px 11px;border:1px solid var(--linha-2);border-radius:20px;font-size:12.5px;background:#fff;transition:.13s}
+.ch:hover{border-color:var(--repassar)}
+.ch.on{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.ch.wide{border-radius:7px;text-align:left;width:100%}
+.nudge{background:#6d4ac40d;border:1px solid #6d4ac438;border-radius:8px;padding:12px;font-size:12.5px;color:#4b3190;margin-bottom:10px}
+
+/* esteira */
+.board{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:9px;overflow-x:auto;padding-bottom:6px}
+.bcol{background:#fff;border:1px solid var(--linha);border-radius:9px;padding:10px;min-width:150px}
+.bcol.dele{border-color:var(--quente);background:#d6246e06}
+.bcol-t{font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.bcol-d{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fraco-2);margin-bottom:9px}
+.bcol.dele .bcol-d{color:var(--quente)}
+.bcard{background:var(--papel-2);border:1px solid var(--linha);border-radius:7px;padding:9px 10px;margin-bottom:6px;font-size:12.5px;cursor:pointer;transition:.13s}
+.bcard:hover{border-color:var(--linha-2);background:#fff}
+.bcard b{font-weight:600;display:block}
+.bcard span{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--fraco);display:block;margin-top:3px}
+.bcard.velho span{color:var(--quente)}
+
+/* regras */
+.rr{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--linha);flex-wrap:wrap}
+.rr:last-child{border:none}
+.rr-c{flex:1;min-width:230px}
+.rr-c b{font-weight:600;font-size:13.5px}
+.rr-c span{display:block;font-size:12.5px;color:var(--fraco);margin-top:2px}
+.sw{width:38px;height:21px;border-radius:20px;background:var(--linha-2);position:relative;transition:.16s;flex:none}
+.sw::after{content:"";position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.16s}
+.sw.on{background:var(--resolver)}
+.sw.on::after{transform:translateX(17px)}
+
+/* barras */
+.bars{display:flex;align-items:flex-end;gap:8px;height:110px;margin:14px 0 4px}
+.bars .c{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%}
+.bars .c i{width:100%;background:linear-gradient(180deg,#2B57D4,#5C77C9);border-radius:3px 3px 0 0;display:block}
+.bars .c em{font-style:normal;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--fraco)}
+.bars .c b{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500}
+
+/* toast */
+.toasts{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:var(--tinta);color:#fff;border-radius:9px;padding:11px 14px;font-size:13px;display:flex;align-items:center;gap:14px;box-shadow:0 10px 30px -10px #131a2b80;pointer-events:auto;animation:tin .22s ease both;max-width:min(92vw,520px)}
+@keyframes tin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.toast button{color:#8ED8BC;font-weight:600;font-size:12.5px;white-space:nowrap}
+.toast.alerta{background:var(--quente)}
+.toast.alerta button{color:#fff;text-decoration:underline}
+
+/* cursor de teclado */
+.lr.cur{box-shadow:inset 3px 0 0 var(--tinta);background:var(--papel-2)}
+.atalhos{position:fixed;bottom:12px;right:14px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--fraco-2);background:#ffffffd9;border:1px solid var(--linha);border-radius:7px;padding:5px 9px;z-index:30}
+.atalhos b{color:var(--fraco);font-weight:500}
+kbd{font-family:'IBM Plex Mono',monospace;font-size:10px;background:var(--papel);border:1px solid var(--linha-2);border-bottom-width:2px;border-radius:4px;padding:1px 4px;color:var(--fraco)}
+
+/* paleta */
+.pal-bg{position:fixed;inset:0;background:#131a2b4d;z-index:70;display:none}
+.pal-bg.on{display:block}
+.pal{position:fixed;top:14vh;left:50%;transform:translateX(-50%);width:min(560px,92vw);background:#fff;border-radius:12px;box-shadow:0 24px 70px -20px #131a2b99;z-index:71;overflow:hidden;display:none}
+.pal.on{display:block}
+.pal input{width:100%;border:none;border-bottom:1px solid var(--linha);padding:14px 16px;font-size:15px;outline:none}
+.pal-l{max-height:340px;overflow-y:auto;padding:6px}
+.pal-i{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:7px;font-size:13.5px;cursor:pointer}
+.pal-i.on{background:var(--papel-2)}
+.pal-i .k{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--fraco-2);border:1px solid var(--linha);border-radius:4px;padding:1px 5px;flex:none}
+.pal-i .d{margin-left:auto;font-size:11.5px;color:var(--fraco-2)}
+
+/* aprendizado */
+.aprend{background:#fff;border:1px solid #6d4ac440;border-left:3px solid var(--adiar);border-radius:8px;padding:13px 15px;margin-bottom:14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.aprend .txt{flex:1;min-width:240px;font-size:13.5px}
+.aprend .txt b{font-weight:600;display:block;margin-bottom:2px}
+.aprend .txt span{color:var(--fraco);font-size:12.5px}
+
+/* workspace do bloco */
+.ws-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.ws-top h1{font-size:20px;font-weight:800;flex:1;min-width:220px}
+.ws{display:grid;grid-template-columns:290px minmax(0,1fr) 330px;gap:12px;align-items:start}
+.ws-col{background:#fff;border:1px solid var(--linha);border-radius:9px;display:flex;flex-direction:column;max-height:calc(100vh - 150px)}
+.ws-h{padding:11px 14px;border-bottom:1px solid var(--linha);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex:none}
+.ws-h span{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--fraco-2);font-weight:400}
+.ws-b{padding:13px 14px;overflow-y:auto}
+.dsr{font-size:12.5px;padding:9px 0;border-bottom:1px dashed var(--linha)}
+.dsr:last-child{border:none}
+.dsr b{display:block;font-weight:600;font-size:12.5px}
+.dsr span{color:var(--fraco)}
+.perg{display:block;width:100%;text-align:left;border:1px solid var(--linha-2);border-radius:7px;padding:8px 10px;font-size:12.5px;margin-bottom:6px;background:#fff;transition:.13s}
+.perg:hover{border-color:var(--repassar);background:var(--papel-2)}
+.resp{background:var(--papel-2);border:1px solid var(--linha);border-left:2px solid var(--repassar);border-radius:0 7px 7px 0;padding:10px 12px;font-size:12.5px;margin:0 0 8px}
+.resp .fonte{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--fraco-2);margin-top:6px;display:block}
+.opt{border:1px solid var(--linha);border-radius:8px;padding:12px 13px;margin-bottom:9px;cursor:pointer;transition:.13s}
+.opt:hover{border-color:var(--linha-2)}
+.opt.on{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.opt.rec{background:#0f8a6306}
+.opt-t{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+.opt-t .rec-tag{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:#0f8a6318;color:var(--resolver);padding:2px 7px;border-radius:5px}
+.opt-d{font-size:12.5px;color:var(--fraco);margin-top:3px}
+.opt-c{font-size:12px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--linha)}
+.opt-c b{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fraco);display:block;margin-bottom:2px}
+.ckl{list-style:none;margin:0 0 14px;padding:0}
+.ckl li{display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--linha);font-size:12.5px}
+.ckl li:last-child{border:none}
+.ckl .mk{width:15px;height:15px;border-radius:4px;flex:none;display:grid;place-items:center;font-size:9px;color:#fff;margin-top:1px}
+.ckl .ok{background:var(--resolver)}
+.ckl .no{background:var(--quente)}
+.ckl .jd{background:var(--reservar)}
+.ckl b{font-weight:600}
+.ckl span{display:block;color:var(--fraco);font-size:11.5px}
+.ta{width:100%;min-height:190px;border:1px solid var(--linha);border-radius:8px;padding:11px;font-size:13px;line-height:1.55;resize:vertical;font-family:inherit;background:var(--papel-2)}
+.ta:focus{background:#fff;outline:none;border-color:var(--linha-2)}
+@media (max-width:1100px){ .ws{grid-template-columns:1fr} .ws-col{max-height:none} }
+@media (max-width:900px){ .atalhos{display:none} }
+
+@media (max-width:900px){
+  :root{--sb:0px}
+  .sb{position:fixed;left:0;top:0;bottom:0;width:236px;transform:translateX(-100%);transition:transform .22s;z-index:50}
+  .sb.on{transform:none}
+  .hamb{display:block;padding:6px 9px;border-radius:7px;font-size:16px}
+  .grid4{grid-template-columns:repeat(2,1fr)}
+  .board{grid-template-columns:repeat(6,minmax(140px,1fr))}
+  .corpo{padding:16px 14px 60px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sb" id="sb">
+    <div class="sb-topo">
+      <div class="logo"><i></i>Alçada</div>
+      <div class="logo-sub">controle de decisões</div>
+    </div>
+    <nav class="sb-nav" id="nav"></nav>
+    <div class="sb-pe">
+      <div class="eu"><div class="av">MM</div><div><b>Marcello M.</b><span>Gestor · Distribuidora</span></div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <button class="hamb bt" id="btHamb" aria-label="Menu">☰</button>
+      <div class="busca"><span class="lupa">⌕</span><input id="busca" type="search" placeholder="Buscar  ( / )" autocomplete="off"></div>
+      <div class="top-dir">
+        <button class="bt mini" id="btSim">+ Simular entrada</button>
+        <button class="sino" id="btSino" aria-label="Notificações">🔔<b id="sinoN">0</b></button>
+      </div>
+    </header>
+    <div class="corpo" id="corpo"></div>
+  </div>
+</div>
+
+<div class="dr-bg" id="drBg"></div>
+<aside class="dr" id="dr" aria-label="Detalhe do item"></aside>
+<div class="toasts" id="toasts"></div>
+<div class="pal-bg" id="palBg"></div>
+<div class="pal" id="pal" role="dialog" aria-label="Paleta de comandos">
+  <input id="palIn" type="text" placeholder="Ir para, buscar item ou executar ação…" autocomplete="off">
+  <div class="pal-l" id="palL"></div>
+</div>
+<div class="atalhos" id="atalhos"><b>j k</b> navegar · <b>1–4</b> decidir · <b>a</b> adiar · <b>⌘K</b> comandos</div>
+
+<script>
+(function(){
+"use strict";
+var $ = function(s){ return document.querySelector(s); };
+var esc = function(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); };
+var agora = function(){ return Date.now(); };
+var MIN=60000, H=3600000, D=86400000;
+
+/* ================= dados ================= */
+var seq = 100;
+function mk(o){
+  o.id = "#" + (++seq);
+  o.trilha = o.trilha || [];
+  o.adiado = o.adiado || 0;
+  o.temp = o.temp || 1;
+  return o;
+}
+var DB = { itens: [], regras: [], notifs: [] };
+
+DB.itens = [
+  mk({t:"Validar a integração do Grupo Panorama",canal:"Esteira",quem:"Grupo Panorama",st:"entrada",hz:"hoje",tipo:"esteira",
+     trava:"Integrador parado há 21 dias",prazo:"comercial reprometeu 2×",valor:"contrato R$ 240 mil/ano",espera:21*D,
+     ia:"7ª validação de integrador em 90 dias, mesmo formato. Duas cobranças no grupo e uma por e-mail foram fundidas neste item.",
+     diag:"Adiado 3×. Nas três, nada mudou entre um adiamento e outro — e a decisão provável é reprovar com ajustes. Padrão de item aversivo, não bloqueado.",
+     adiado:3,temp:4,sug:"reservar"}),
+  mk({t:"Aprovar desconto de 7% — Supermercado Vila Nova",canal:"WhatsApp",quem:"Rafael",st:"entrada",hz:"hoje",tipo:"decisao",
+     trava:"pedido de R$ 42 mil travado",prazo:"cliente cobrou 2×",valor:"R$ 42.000",espera:2*D,
+     ia:"Descontos acima de 5% sempre passam por você. É o 3º do mês do mesmo cliente.",temp:2,sug:"repassar"}),
+  mk({t:"Assinar o aditivo da locação da frota",canal:"E-mail",quem:"Escr. Menezes",st:"entrada",hz:"hoje",tipo:"decisao",
+     trava:"contrato vence sem renovação",prazo:"25/07 — prazo duro",valor:"R$ 18.400/mês",espera:3*D,
+     ia:"Minuta revisada pelo jurídico, sem ressalvas. Falta só a assinatura eletrônica.",sug:"resolver"}),
+  mk({t:"Renovação do plano de saúde — 3 cenários",canal:"E-mail",quem:"Natani",st:"entrada",hz:"semana",tipo:"decisao",
+     trava:"RH aguarda direção",prazo:"decidir até 15/08",valor:"R$ 31.000/mês",espera:6*D,
+     ia:"A pendência estava no 4º parágrafo da 9ª mensagem de uma thread com 6 em cópia.",
+     diag:"Adiado 2×, sempre com “semana que vem”. Nenhuma informação nova chegou entre os adiamentos.",adiado:2,sug:"repassar"}),
+  mk({t:"Escolher o fornecedor de embalagem 2027",canal:"Reunião",quem:"Compras",st:"entrada",hz:"semana",tipo:"decisao",
+     trava:"3 propostas aguardando",prazo:"janela fecha sexta",valor:"R$ 380.000/ano",espera:4*D,
+     ia:"Você prometeu retorno até quarta na reunião de segunda — a promessa virou pendência sozinha.",sug:"reservar"}),
+  mk({t:"Reembolso de viagem — Rodrigo",canal:"E-mail",quem:"Rodrigo",st:"entrada",hz:"semana",tipo:"decisao",
+     trava:"na fila há 6 dias",prazo:"sem prazo formal",valor:"R$ 1.240",espera:6*D,
+     ia:"Dentro da política. Nos últimos 22 reembolsos abaixo de R$ 2 mil, você aprovou 22.",sug:"repassar"}),
+  mk({t:"Encerrar o piloto do Grupo Marra",canal:"Anotação",quem:"—",st:"entrada",hz:"trimestre",tipo:"decisao",
+     trava:"2 pessoas seguem alocadas",prazo:"sem prazo",valor:"~R$ 26 mil/mês",espera:112*D,
+     ia:"Piloto sem avanço há 4 meses. Encerrar exige conversa difícil com o parceiro.",
+     diag:"Adiado 4× em 3 meses. Envolve dizer não. Enquanto adia, duas pessoas seguem alocadas — o adiamento tem preço semanal.",adiado:4,sug:"reservar"}),
+  mk({t:"Mudar o horário da reunião de segunda",canal:"WhatsApp",quem:"Neimar",st:"entrada",hz:"semana",tipo:"decisao",
+     trava:"ninguém bloqueado",prazo:"até sexta",valor:"—",espera:1*D,
+     ia:"Decisão de 30 segundos. A agenda mostra o novo horário livre para todos.",sug:"resolver"}),
+  mk({t:"Ver se vale abrir um CD em Londrina",canal:"Corredor",quem:"—",st:"entrada",hz:"trimestre",tipo:"decisao",
+     trava:"nada travado",prazo:"sem prazo",valor:"indefinido",espera:124*D,
+     ia:"Sem dono, sem prazo, ninguém esperando. Mencionado 2× em 4 meses e nunca cobrado.",
+     diag:"Adiado 3× e nunca cobrado entre os adiamentos. Sinal clássico de item que não importa de verdade.",adiado:3,sug:"repousar"}),
+  mk({t:"Aprovar as férias da Juliana — setembro",canal:"E-mail",quem:"Juliana",st:"entrada",hz:"semana",tipo:"decisao",
+     trava:"não consegue comprar passagem",prazo:"escala fecha 30/07",valor:"—",espera:4*D,
+     ia:"Sem conflito de escala. Nos últimos 15 pedidos sem conflito, você aprovou 15.",sug:"repassar"}),
+
+  /* já delegados — cronômetros N2 */
+  mk({t:"Proposta de reajuste — Rede Bom Preço",canal:"E-mail",quem:"Comercial",st:"delegado",hz:"hoje",tipo:"decisao",dono:"Carolina",nivel:"n2",
+     venc:agora()+45000,valor:"R$ 78.000/mês",trava:"cliente aguarda retorno",prazo:"hoje",espera:1*D,
+     ia:"Carolina propôs 4,2% de reajuste com base no índice contratual.",
+     trilha:[{q:"ontem 16:40",x:"Repassado para Carolina · N2 · vence hoje"}]}),
+  mk({t:"Ajuste de rota — entregas zona norte",canal:"Sistema",quem:"Logística",st:"delegado",hz:"hoje",tipo:"bloqueio",dono:"Mayker",nivel:"n2",
+     venc:agora()+3*MIN,valor:"—",trava:"3 entregas remarcadas",prazo:"hoje 18h",espera:4*H,
+     ia:"Mayker propôs remanejar para o turno da tarde e avisar os 3 clientes.",
+     trilha:[{q:"hoje 08:10",x:"Bloqueio operacional → N2 Mayker"}]}),
+  mk({t:"Substituir SKU em ruptura — nuggets 1kg",canal:"Sistema",quem:"ERP",st:"delegado",hz:"hoje",tipo:"bloqueio",dono:"Mayker",nivel:"n1",
+     valor:"—",trava:"—",prazo:"—",espera:2*H,ia:"Regra de alçada ativa. Executado sem passar por você.",
+     trilha:[{q:"hoje 09:55",x:"Regra “ruptura de SKU” → N1 automático"}]}),
+  mk({t:"Homologação — Distribuidora Andrade",canal:"Esteira",quem:"Alexandre",st:"delegado",hz:"semana",tipo:"esteira",dono:"Alexandre",nivel:"n2",
+     venc:agora()+2*H,valor:"contrato R$ 90 mil/ano",trava:"—",prazo:"quarta",espera:9*D,
+     ia:"Passou no checklist técnico. Alexandre conduz a homologação.",
+     trilha:[{q:"seg 11:20",x:"Checklist aprovado · N2 Alexandre"}]}),
+  mk({t:"Resposta ao Panorama sobre campos fiscais",canal:"E-mail",quem:"Alexandre",st:"delegado",hz:"semana",tipo:"esteira",dono:"Alexandre",nivel:"n3",
+     valor:"—",trava:"depende da sua validação",prazo:"—",espera:5*D,
+     ia:"Aguardando a sua decisão no item #101 antes de responder.",
+     trilha:[{q:"sex 14:02",x:"Repassado N3 — continua dependendo de você"}]}),
+
+  /* agendados / dormindo / fechados */
+  mk({t:"Definir política comercial por canal",canal:"Anotação",quem:"—",st:"agendado",hz:"trimestre",tipo:"decisao",
+     quando:"qui 09:00",valor:"estrutural",trava:"—",prazo:"trimestre",espera:30*D,
+     ia:"Bloco de 4h/semana reservado na agenda. Faixa blindada.",
+     trilha:[{q:"01/07",x:"Reservado · faixa trimestral"}]}),
+  mk({t:"Estruturar o time de trade marketing",canal:"Anotação",quem:"—",st:"agendado",hz:"trimestre",tipo:"decisao",
+     quando:"sex 14:00",valor:"estrutural",trava:"—",prazo:"trimestre",espera:22*D,
+     ia:"Bloco de 2h/semana reservado.",trilha:[{q:"08/07",x:"Reservado · faixa trimestral"}]}),
+  mk({t:"Revisar contrato do plano odontológico",canal:"E-mail",quem:"RH",st:"dormindo",hz:"semana",tipo:"decisao",
+     volta:"12/08",valor:"R$ 4.100/mês",trava:"—",prazo:"—",espera:18*D,
+     ia:"Sem cobrança desde 04/07. Volta sozinho na data ou se alguém cobrar.",
+     trilha:[{q:"04/07",x:"Repousado até 12/08"}]}),
+  mk({t:"Trocar operadora de telefonia",canal:"Corredor",quem:"—",st:"dormindo",hz:"trimestre",tipo:"decisao",
+     volta:"01/09",valor:"R$ 2.800/mês",trava:"—",prazo:"—",espera:60*D,
+     ia:"Zumbi identificado: mencionado 3× em 6 meses, nunca cobrado.",
+     trilha:[{q:"20/06",x:"Repousado até 01/09"}]}),
+  mk({t:"Aprovar horas extras do fechamento de junho",canal:"E-mail",quem:"RH",st:"fechado",hz:"semana",tipo:"decisao",
+     valor:"R$ 9.300",trava:"—",prazo:"—",espera:14*D,ia:"Resolvido.",
+     trilha:[{q:"09/07",x:"Resolvido · RH avisado no canal de origem"}]}),
+  mk({t:"Liberar acesso do novo vendedor ao CRM",canal:"WhatsApp",quem:"Comercial",st:"fechado",hz:"hoje",tipo:"bloqueio",dono:"Alexandre",nivel:"n1",
+     valor:"—",trava:"—",prazo:"—",espera:9*D,ia:"Regra de alçada. Nunca chegou em você.",
+     trilha:[{q:"14/07",x:"Regra “acesso a sistema” → N1 automático"}]})
+];
+
+DB.regras = [
+  {t:"Desconto comercial até 5%",e:"40 casos em 90 dias · 40 aprovados · nenhum revertido",n:"N1",ganho:6,on:true},
+  {t:"Reembolso de viagem até R$ 2 mil",e:"22 casos · 22 aprovados · dentro da política",n:"N1",ganho:3,on:true},
+  {t:"Ruptura de SKU acima do ponto de pedido",e:"31 casos · 29 aprovados · 2 ajustes de quantidade",n:"N1",ganho:4,on:true},
+  {t:"Férias sem conflito de escala",e:"15 casos · 15 aprovados · RH valida o conflito antes",n:"N1",ganho:2,on:false},
+  {t:"Validação de integrador com checklist limpo",e:"8 casos · 6 seriam aprovados direto · 2 exceções reais",n:"N2",ganho:5,on:false},
+  {t:"Acesso a sistema para colaborador ativo",e:"27 casos · 27 aprovados",n:"N1",ganho:3,on:true}
+];
+
+/* ---- blocos de decisão: dossiê, opções e rascunho ---- */
+var BLOCOS = {
+"#101":{
+  titulo:"Validação — Grupo Panorama",
+  dossie:[
+    {b:"Contrato",s:"R$ 240 mil/ano · assinado 12/06 · 24 meses"},
+    {b:"Na esteira desde",s:"02/07 · 21 dias parado na sua etapa"},
+    {b:"Cobranças",s:"4 · duas no grupo, uma por e-mail, uma do comercial"},
+    {b:"Submissões",s:"2 payloads · 2ª versão em 14/07, sem correção fiscal"},
+    {b:"Contato técnico",s:"Eduardo Simas · responde em ~2 dias"},
+    {b:"Integradores similares",s:"Andrade e Bom Preço passaram no checklist na 1ª"}
+  ],
+  perguntas:[
+    {q:"Por que o Alexandre reprovou o payload em maio?",
+     a:"Não foi maio — foi 08/07, na 1ª submissão. Reprovou por CFOP fixo em 5102 para todas as operações, ignorando transferência e devolução. A 2ª versão manteve o mesmo comportamento.",f:"trilha #101 · e-mail Alexandre 08/07"},
+    {q:"Quanto já faturamos com o Panorama?",
+     a:"Nada ainda. O contrato prevê início de faturamento na entrada em produção — hoje projetada para 30 dias após a homologação. Cada semana parada empurra R$ 20 mil de receita.",f:"contrato 12/06 · cláusula 4.2"},
+    {q:"O que os outros integradores fizeram nesse ponto?",
+     a:"Andrade e Bom Preço usaram o template de mapeamento fiscal que o Alexandre mantém. O Panorama não recebeu esse template — foi omitido no kit de onboarding.",f:"esteira · 8 validações"},
+    {q:"O que acontece se eu aprovar com ressalva?",
+     a:"Nota fiscal rejeitada em produção nas operações de transferência. Em 2024 isso ocorreu com o Uirapuru: 11 dias de retrabalho e crédito de R$ 8 mil ao cliente.",f:"histórico Uirapuru · mar/2024"}
+  ],
+  checklist:[
+    {k:"no",t:"Payload bate com o contrato de dados",s:"CFOP fixo em 5102 · não trata transferência nem devolução"},
+    {k:"no",t:"Campos fiscais completos e coerentes",s:"NCM ausente em 40% dos itens · CST divergente"},
+    {k:"no",t:"Tratamento de erro e reprocesso",s:"sem retry, sem fila de erro"},
+    {k:"ok",t:"Volume dentro do dimensionado",s:"projeção de 3,2 mil docs/dia · dentro"},
+    {k:"jd",t:"Parceiro entendeu o sincronismo",s:"julgamento seu — respostas indicam que não"},
+    {k:"ok",t:"Sem exceção comercial de escopo",s:"escopo igual ao contratado"}
+  ],
+  opcoes:[
+    {k:"reprovar",t:"Reprovar com 3 ajustes objetivos",rec:true,
+     d:"Devolver com o template fiscal e prazo de reenvio",
+     c:"+10 a 15 dias no cronograma. Corrige a causa e evita rejeição em produção.",
+     msg:"Eduardo, boa tarde.\n\nRevisei a 2ª submissão do payload e ela ainda não está apta para homologação. São três ajustes objetivos:\n\n1. CFOP — hoje está fixo em 5102. Precisa variar conforme a natureza da operação (venda, transferência e devolução). Segue em anexo o template de mapeamento que usamos com os demais integradores; ele não foi enviado no kit inicial e isso é falha nossa.\n\n2. Campos fiscais — NCM ausente em cerca de 40% dos itens e CST divergente do cadastro. Ambos são obrigatórios para emissão.\n\n3. Tratamento de erro — não há retry nem fila de erro. Sem isso, qualquer indisponibilidade gera perda de documento.\n\nCom o template em mãos, o retrabalho estimado é de uma semana. Proponho reenvio até 04/08 e nova validação em até 2 dias úteis a partir do recebimento.\n\nQualquer dúvida sobre o mapeamento, o Alexandre fica à disposição para uma call de 40 minutos ainda esta semana.\n\nAbraço,\nMarcello"},
+    {k:"ressalva",t:"Aprovar com ressalva",
+     d:"Entra em homologação com pendência fiscal registrada",
+     c:"Risco alto: rejeição de nota em produção. Precedente Uirapuru custou 11 dias e R$ 8 mil.",
+     msg:"Eduardo, boa tarde.\n\nVamos avançar para homologação com ressalva formal nos campos fiscais. Fica registrado que CFOP, NCM e CST precisam ser corrigidos antes da entrada em produção, sob risco de rejeição de documentos.\n\nPeço o plano de correção com data até 04/08.\n\nAbraço,\nMarcello"},
+    {k:"call",t:"Chamar reunião técnica antes de decidir",
+     d:"40 minutos com o time do parceiro",
+     c:"+3 dias, mas resolve a dúvida sobre entendimento do modelo de sincronismo.",
+     msg:"Eduardo, boa tarde.\n\nAntes de fechar a validação, prefiro uma call de 40 minutos com o time técnico para alinharmos o modelo de sincronismo — as respostas da última rodada indicam que há divergência de entendimento, e isso tende a gerar retrabalho maior lá na frente.\n\nProponho quinta ou sexta, no período da tarde. Consegue?\n\nAbraço,\nMarcello"}
+  ],
+  para:"Eduardo Simas · Grupo Panorama",
+  aprend:{p:"Reprovação por campos fiscais foi o motivo em 5 das 8 últimas validações. Virar item obrigatório do kit de onboarding?",
+          r:{t:"Template fiscal obrigatório no kit de onboarding",e:"5 de 8 reprovações tinham a mesma causa raiz",n:"N1",ganho:4}}
+},
+"#105":{
+  titulo:"Fornecedor de embalagem 2027",
+  dossie:[
+    {b:"Volume anual",s:"R$ 380 mil · 1,2 milhão de unidades"},
+    {b:"Fornecedor atual",s:"Embalar · contrato vence 31/12 · sem reajuste desde 2024"},
+    {b:"Janela",s:"propostas válidas até sexta"},
+    {b:"Impacto",s:"custo unitário entra na formação de preço de 2027"},
+    {b:"Histórico",s:"2 atrasos relevantes da Embalar em 2026 (mar e set)"}
+  ],
+  perguntas:[
+    {q:"Qual o custo real de trocar de fornecedor?",
+     a:"Homologação de novo material leva ~45 dias e exige 2 lotes-piloto. Na última troca (2023) houve 3 semanas de estoque duplicado, cerca de R$ 34 mil de capital parado.",f:"histórico compras 2023"},
+    {q:"Os atrasos da Embalar custaram quanto?",
+     a:"Em março, 2 dias de ruptura em buns; em setembro, 4 dias. Perda estimada em R$ 61 mil de faturamento e dois clientes reclamando formalmente.",f:"ocorrências 2026"},
+    {q:"A proposta mais barata cobre reajuste?",
+     a:"Não. A Pack Sul trava preço por 6 meses; as outras duas travam por 12. Na prática a diferença de 4% desaparece se houver reajuste no meio do ano.",f:"propostas · cláusula de reajuste"}
+  ],
+  opcoes:[
+    {k:"embalar",t:"Renovar com a Embalar",
+     d:"R$ 380 mil/ano · preço travado 12 meses · sem custo de troca",
+     c:"Mantém o risco de atraso — dois eventos relevantes em 2026, sem SLA contratual."},
+    {k:"packsul",t:"Trocar para Pack Sul",
+     d:"R$ 364 mil/ano (−4%) · preço travado só 6 meses",
+     c:"Economia some se houver reajuste no 2º semestre. Soma ~45 dias de homologação e R$ 34 mil de estoque duplicado."},
+    {k:"embalar-sla",t:"Renovar com a Embalar exigindo SLA",rec:true,
+     d:"R$ 380 mil/ano + multa por atraso e estoque de segurança",
+     c:"Ataca o problema real (atraso, não preço) sem custo de troca. Exige negociação de 1 semana."}
+  ],
+  para:"Compras · cópia para Diretoria",
+  aprend:{p:"Em 3 das últimas 4 decisões de fornecedor você priorizou confiabilidade sobre preço. Registrar como critério padrão de compras?",
+          r:{t:"Compras: confiabilidade acima de preço em insumo crítico",e:"3 de 4 decisões seguiram esse critério",n:"N2",ganho:2}}
+},
+"#107":{
+  titulo:"Encerrar o piloto do Grupo Marra",
+  dossie:[
+    {b:"Início do piloto",s:"há 4 meses · sem marco entregue desde o 2º mês"},
+    {b:"Custo",s:"2 pessoas alocadas · ~R$ 26 mil/mês"},
+    {b:"Bloqueio",s:"ERP J-Control sem API documentada · depende do fornecedor deles"},
+    {b:"Última interação",s:"há 5 semanas · sem retorno do contato técnico"},
+    {b:"Adiamentos",s:"4 em 3 meses"}
+  ],
+  perguntas:[
+    {q:"Quanto já custou o piloto?",
+     a:"Cerca de R$ 104 mil em 4 meses de alocação, sem receita associada. O custo continua correndo enquanto a decisão não sai.",f:"alocação · fev a jul"},
+    {q:"O bloqueio é nosso ou deles?",
+     a:"Deles. O J-Control não expõe API e a Control Informática não deu previsão. Nenhuma das 3 alternativas técnicas testadas contornou isso sem acesso ao banco.",f:"trilha técnica · abr–jun"},
+    {q:"O que perdemos encerrando?",
+     a:"O relacionamento comercial com o Grupo Marra, que é referência no segmento de bebidas em MG. Não há receita contratada em risco — o piloto não foi faturado.",f:"contrato piloto"}
+  ],
+  opcoes:[
+    {k:"encerrar",t:"Encerrar o piloto",rec:true,
+     d:"Devolver as 2 pessoas ao roadmap e formalizar o encerramento",
+     c:"Conversa difícil hoje, R$ 26 mil/mês de volta a partir de agosto.",
+     msg:"Prezado Ricardo,\n\nDepois de quatro meses de piloto, avaliamos que não é possível avançar com a integração no formato atual. A causa é objetiva: o J-Control não expõe uma API documentada, e as três alternativas técnicas que testamos exigiriam acesso direto ao banco de dados — o que não é sustentável nem seguro para nenhum dos lados.\n\nPor isso vamos encerrar o piloto neste mês, sem custo para vocês, já que ele não foi faturado.\n\nQuero deixar claro que a porta segue aberta: se a Control Informática disponibilizar uma interface documentada, retomamos a conversa com o que já foi mapeado — o trabalho de levantamento fica registrado e à disposição de vocês.\n\nAgradeço a confiança e a disposição do time durante esse período.\n\nAbraço,\nMarcello"},
+    {k:"prorrogar",t:"Prorrogar 30 dias",
+     d:"Última janela, condicionada a resposta da Control Informática",
+     c:"Mais R$ 26 mil de custo. Sem sinal novo, é provável repetir a mesma decisão em 30 dias.",
+     msg:"Prezado Ricardo,\n\nVamos manter o piloto por mais 30 dias, condicionado a uma definição da Control Informática sobre a disponibilização de uma interface documentada.\n\nSem esse retorno até 25/08, encerraremos o piloto — sigo à disposição para tratar diretamente com eles se ajudar a destravar.\n\nAbraço,\nMarcello"},
+    {k:"reduzir",t:"Reduzir para 1 pessoa e manter em banho-maria",
+     d:"Custo cai pela metade, projeto segue vivo",
+     c:"Metade do custo, mas mantém a decisão em aberto — quinto adiamento com outro nome.",
+     msg:"Prezado Ricardo,\n\nVamos reduzir a alocação do piloto para uma pessoa, mantendo o acompanhamento enquanto a questão da interface não se resolve do lado da Control Informática.\n\nAssim que houver definição, retomamos o ritmo anterior.\n\nAbraço,\nMarcello"}
+  ],
+  para:"Ricardo Marra · Grupo Marra",
+  aprend:{p:"Este item foi adiado 4× antes de sair. Quer que eu marque bloco automaticamente no 2º adiamento, em vez do 4º?",
+          r:{t:"Bloco automático no 2º adiamento",e:"itens adiados 3× ou mais levam em média 47 dias para sair",n:"N2",ganho:3}}
+}
+};
+
+var ETAPAS = [  {n:"Contrato",dono:"Comercial"},{n:"Ambiente",dono:"Alexandre"},{n:"Payload",dono:"Integrador"},
+  {n:"Validação",dono:"Marcello",dele:true},{n:"Homologação",dono:"Alexandre"},{n:"Produção",dono:"—"}
+];
+var INTEGRADORES = [
+  {n:"Grupo Panorama",e:3,d:21},{n:"Distribuidora Andrade",e:4,d:9},{n:"Rede Bom Preço",e:3,d:4},
+  {n:"Atacado Ferrari",e:3,d:2},{n:"Comercial Uirapuru",e:1,d:6},{n:"Rede Sabor & Cia",e:0,d:11},
+  {n:"Frigo Sul",e:5,d:0},{n:"Casa do Pão",e:5,d:0},{n:"Mercado Ipê",e:5,d:0},{n:"Rede Vitória",e:5,d:0},
+  {n:"Distribuidora Alfa",e:2,d:3}
+];
+
+/* ================= estado de UI ================= */
+var UI = { view:"entrada", busca:"", fHz:"todos", fSt:"todos", sel:null, form:null, tmp:{}, cursor:-1, blocoId:null, aprend:null, palSel:0 };
+
+var VIEWS = [
+  {id:"entrada",  ic:"◈", nome:"Entrada",     grp:"Fluxo"},
+  {id:"hoje",     ic:"◎", nome:"Hoje",        grp:"Fluxo"},
+  {id:"delegados",ic:"→", nome:"Delegados",   grp:"Fluxo"},
+  {id:"agenda",   ic:"◷", nome:"Blocos",      grp:"Fluxo"},
+  {id:"tudo",     ic:"≡", nome:"Todos os itens", grp:"Consulta"},
+  {id:"esteira",  ic:"⇥", nome:"Esteira",     grp:"Consulta"},
+  {id:"regras",   ic:"⚙", nome:"Regras",      grp:"Controle"},
+  {id:"radar",    ic:"◱", nome:"Radar",       grp:"Controle"}
+];
+
+function contaView(v){
+  var i = DB.itens;
+  if(v==="entrada") return i.filter(function(x){return x.st==="entrada";}).length;
+  if(v==="hoje") return i.filter(function(x){return x.st==="entrada" && x.hz==="hoje";}).length;
+  if(v==="delegados") return i.filter(function(x){return x.st==="delegado" && x.nivel!=="n1";}).length;
+  if(v==="agenda") return i.filter(function(x){return x.st==="agendado";}).length;
+  if(v==="tudo") return i.length;
+  if(v==="esteira") return INTEGRADORES.filter(function(x){return x.e===3;}).length;
+  return 0;
+}
+
+function renderNav(){
+  var grps = [], out = "";
+  VIEWS.forEach(function(v){
+    if(grps.indexOf(v.grp)<0){ grps.push(v.grp); out += '<div class="sb-grp">'+v.grp+'</div>'; }
+    var n = contaView(v.id);
+    var cls = (v.id==="entrada" && n>0) ? "n alerta" : "n";
+    out += '<button class="nav'+(UI.view===v.id?" on":"")+'" data-view="'+v.id+'">'
+      + '<span class="ic">'+v.ic+'</span>'+v.nome
+      + (n ? '<span class="'+cls+'">'+n+'</span>' : '') + '</button>';
+  });
+  $("#nav").innerHTML = out;
+}
+
+/* ================= helpers ================= */
+function fmtEspera(ms){
+  var d = Math.floor(ms/D); if(d>=1) return d+"d";
+  var h = Math.floor(ms/H); if(h>=1) return h+"h";
+  return Math.max(1,Math.floor(ms/MIN))+"min";
+}
+function fmtRestante(ms){
+  if(ms<=0) return "vencido";
+  var h = Math.floor(ms/H), m = Math.floor(ms%H/MIN), s = Math.floor(ms%MIN/1000);
+  if(h>0) return h+"h "+String(m).padStart(2,"0")+"m";
+  return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+}
+var COR = {entrada:"var(--repassar)",delegado:"var(--resolver)",agendado:"var(--reservar)",dormindo:"var(--repousar)",fechado:"var(--linha-2)"};
+var STN = {entrada:"entrada",delegado:"delegado",agendado:"bloco",dormindo:"dormindo",fechado:"fechado"};
+
+function toast(txt, undo, alerta){
+  var el = document.createElement("div");
+  el.className = "toast" + (alerta?" alerta":"");
+  el.innerHTML = '<span>'+esc(txt)+'</span>';
+  if(undo){
+    var b = document.createElement("button");
+    b.textContent = "desfazer";
+    b.onclick = function(){ undo(); el.remove(); };
+    el.appendChild(b);
+  }
+  $("#toasts").appendChild(el);
+  setTimeout(function(){ el.style.transition="opacity .3s"; el.style.opacity=0; setTimeout(function(){el.remove();},320); }, undo?6000:3600);
+}
+function notif(txt){
+  DB.notifs.push(txt);
+  $("#sinoN").textContent = DB.notifs.length;
+  $("#sinoN").style.display = DB.notifs.length ? "" : "none";
+}
+
+/* ================= listas ================= */
+function filtra(base){
+  var q = UI.busca.trim().toLowerCase();
+  return base.filter(function(x){
+    if(UI.fHz!=="todos" && x.hz!==UI.fHz) return false;
+    if(UI.fSt!=="todos" && x.st!==UI.fSt) return false;
+    if(q && (x.t+" "+x.quem+" "+x.canal+" "+(x.dono||"")).toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+}
+function linha(x){
+  var meta = [];
+  meta.push('<span>'+esc(x.canal)+' · '+esc(x.quem)+'</span>');
+  if(x.dono) meta.push('<span class="pill p-n">'+esc(x.dono)+' · '+(x.nivel||"").toUpperCase()+'</span>');
+  if(x.temp>2) meta.push('<span class="pill p-quente">'+x.temp+' cobranças</span>');
+  if(x.adiado) meta.push('<span class="pill p-adiado">adiado '+x.adiado+'×</span>');
+  if(x.st==="agendado" && x.quando) meta.push('<span>'+esc(x.quando)+'</span>');
+  if(x.st==="dormindo" && x.volta) meta.push('<span>volta '+esc(x.volta)+'</span>');
+
+  var dir = "";
+  if(x.st==="delegado" && x.venc){
+    var r = x.venc - agora();
+    dir += '<span class="rel'+(r<10*MIN?" urg":"")+'" data-timer="'+x.id+'">'+fmtRestante(r)+'</span>';
+  } else {
+    dir += '<span class="rel">'+fmtEspera(x.espera||0)+'</span>';
+  }
+  dir += '<span class="pill p-'+x.st+'">'+STN[x.st]+'</span>';
+
+  return '<div class="lr'+(UI.sel===x.id?" sel":"")+'" data-id="'+x.id+'" style="--c:'+COR[x.st]+'">'
+    + '<span class="lr-bar"></span>'
+    + '<div class="lr-mid"><div class="lr-t">'+esc(x.t)+'</div><div class="lr-m">'+meta.join("")+'</div></div>'
+    + '<div class="lr-dir">'+dir+'</div></div>';
+}
+function listaHTML(arr, vazio){
+  if(!arr.length) return '<div class="lista"><div class="vazio-l">'+esc(vazio)+'</div></div>';
+  return '<div class="lista">'+arr.map(linha).join("")+'</div>';
+}
+function filtrosHTML(comSt){
+  var hz = [["todos","Todos"],["hoje","Hoje"],["semana","Semana"],["trimestre","Trimestre"]];
+  var stt = [["todos","Todos"],["entrada","Entrada"],["delegado","Delegado"],["agendado","Bloco"],["dormindo","Dormindo"],["fechado","Fechado"]];
+  var o = '<div class="filtros">';
+  o += hz.map(function(p){ return '<button class="fchip'+(UI.fHz===p[0]?" on":"")+'" data-fhz="'+p[0]+'">'+p[1]+'</button>'; }).join("");
+  if(comSt){
+    o += '<span class="fsep"></span>';
+    o += stt.map(function(p){ return '<button class="fchip'+(UI.fSt===p[0]?" on":"")+'" data-fst="'+p[0]+'">'+p[1]+'</button>'; }).join("");
+  }
+  return o + '</div>';
+}
+
+/* ================= views ================= */
+function vEntrada(){
+  var arr = filtra(DB.itens.filter(function(x){return x.st==="entrada";}));
+  var n = arr.length;
+  return '<div class="cab"><div><h1>Entrada</h1><div class="sub">'+n+' item(ns) aguardando triagem · nada foi digitado por você</div></div></div>'
+    + filtrosHTML(false)
+    + listaHTML(arr, "Caixa vazia. A entrada volta a encher sozinha — você não precisa alimentar nada.");
+}
+
+function vHoje(){
+  var pri = DB.itens.filter(function(x){return x.st==="entrada" && x.hz==="hoje";})
+    .sort(function(a,b){ return (b.temp*2 + b.espera/D) - (a.temp*2 + a.espera/D); }).slice(0,3);
+  var resto = filtra(DB.itens.filter(function(x){return (x.st==="entrada"||x.st==="delegado") && pri.indexOf(x)<0;}));
+  var frase = pri.length ? "Hoje "+(pri.length===1?"uma coisa importa":pri.length+" coisas importam")+"." : "Nada crítico hoje.";
+  return '<div class="cab"><div><h1>'+frase+'</h1><div class="sub">Se você fizer só a primeira, o dia valeu. Ordenado por dinheiro parado, gente bloqueada e prazo duro.</div></div></div>'
+    + listaHTML(pri, "Nenhum item crítico na sua fila hoje.")
+    + '<div class="painel-b" style="margin-top:16px"><h2>Em andamento</h2><div class="h-sub">Não exige nada seu agora — só acompanhar.</div>'
+    + listaHTML(resto, "Nada em andamento.") + '</div>';
+}
+
+function vDelegados(){
+  var arr = filtra(DB.itens.filter(function(x){return x.st==="delegado";}));
+  var n2 = arr.filter(function(x){return x.nivel==="n2";}).length;
+  return '<div class="cab"><div><h1>Delegados</h1><div class="sub">'+n2+' em N2 — executam sozinhos se você não intervier até o prazo</div></div></div>'
+    + filtrosHTML(false)
+    + listaHTML(arr, "Nada delegado no filtro atual.");
+}
+
+function vAgenda(){
+  var arr = DB.itens.filter(function(x){return x.st==="agendado";});
+  return '<div class="cab"><div><h1>Blocos de decisão</h1><div class="sub">O que só você decide, com hora marcada e dossiê pronto antes</div></div></div>'
+    + '<div class="painel-b"><h2>Faixa trimestral blindada</h2><div class="h-sub">6h por semana reservadas. Esta semana, 4h20 foram consumidas por validação avulsa de integrador.</div>'
+    + listaHTML(arr, "Nenhum bloco agendado.") + '</div>';
+}
+
+function vTudo(){
+  var arr = filtra(DB.itens);
+  return '<div class="cab"><div><h1>Todos os itens</h1><div class="sub">'+arr.length+' de '+DB.itens.length+' itens</div></div></div>'
+    + filtrosHTML(true) + listaHTML(arr, "Nenhum item corresponde aos filtros.");
+}
+
+function vEsteira(){
+  var cols = ETAPAS.map(function(e,i){
+    var cards = INTEGRADORES.filter(function(x){return x.e===i;}).map(function(x){
+      return '<div class="bcard'+(x.d>14?" velho":"")+'" data-int="'+esc(x.n)+'"><b>'+esc(x.n)+'</b>'
+        + '<span>'+(x.d? x.d+" dias nesta etapa":"concluído")+'</span></div>';
+    }).join("") || '<div style="font-size:12px;color:var(--fraco-2);padding:6px 2px">—</div>';
+    return '<div class="bcol'+(e.dele?" dele":"")+'"><div class="bcol-t">'+e.n+'<span class="mono" style="font-size:11px;color:var(--fraco)">'
+      + INTEGRADORES.filter(function(x){return x.e===i;}).length+'</span></div>'
+      + '<div class="bcol-d">'+e.dono+'</div>'+cards+'</div>';
+  }).join("");
+  var parados = INTEGRADORES.filter(function(x){return x.e===3;});
+  var media = parados.length ? Math.round(parados.reduce(function(s,x){return s+x.d;},0)/parados.length) : 0;
+  return '<div class="cab"><div><h1>Esteira de integradores</h1><div class="sub">'+parados.length+' parados na sua etapa · média de '+media+' dias · pior caso 21 dias</div></div>'
+    + '<button class="bt pri" data-act="esteira-check">Aplicar checklist de validação</button></div>'
+    + '<div class="board">'+cols+'</div>'
+    + '<div class="painel-b" style="margin-top:14px"><h2>Critério extraído das últimas 8 validações</h2>'
+    + '<div class="h-sub">Enquanto o critério for tácito, só você pode validar — e não existe delegação possível.</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">'
+    + [["Payload bate com o contrato de dados","reprovado em 6 de 8"],["Campos fiscais completos","reprovado em 4 de 8 · CST, CFOP, NCM"],
+       ["Tratamento de erro e reprocesso","apontado em 5 de 8"],["Volume dentro do dimensionado","apontado em 2 de 8"],
+       ["Parceiro entendeu o sincronismo","julgamento — fica com você"],["Exceção comercial de escopo","julgamento — fica com você"]]
+      .map(function(p){ return '<div class="bloco" style="margin:0"><div class="rot">critério</div><b style="font-weight:600">'+p[0]+'</b><div style="color:var(--fraco);font-size:12px;margin-top:3px">'+p[1]+'</div></div>'; }).join("")
+    + '</div></div>';
+}
+
+function vRegras(){
+  var ativas = DB.regras.filter(function(r){return r.on;});
+  var ganho = ativas.reduce(function(s,r){return s+r.ganho;},0);
+  return '<div class="cab"><div><h1>Regras de autonomia</h1><div class="sub">'+ativas.length+' ativas · removendo ~'+ganho+' itens por semana da sua mesa</div></div></div>'
+    + '<div class="painel-b"><h2>Regras aprendidas por observação</h2>'
+    + '<div class="h-sub">O sistema minera o seu padrão decisório e propõe. Cada regra ativada remove uma classe inteira do backlog — não um item.</div>'
+    + DB.regras.map(function(r,i){
+        return '<div class="rr"><div class="rr-c"><b>'+r.t+' → '+r.n+'</b><span>'+r.e+'</span></div>'
+          + '<span class="mono" style="font-size:11.5px;color:'+(r.on?"var(--resolver)":"var(--fraco)")+'">'+(r.on?"−"+r.ganho+" itens/sem":"inativa")+'</span>'
+          + '<button class="sw'+(r.on?" on":"")+'" data-regra="'+i+'" aria-label="Ativar regra"></button></div>';
+      }).join("") + '</div>';
+}
+
+function vRadar(){
+  var abertos = DB.itens.filter(function(x){return x.st!=="fechado";});
+  var comEle = abertos.filter(function(x){return x.st==="entrada"||x.st==="agendado"||(x.st==="delegado"&&x.nivel==="n3");}).length;
+  var adiados = DB.itens.filter(function(x){return x.adiado>=3;});
+  var pct = Math.max(8, Math.round(comEle/abertos.length*100));
+  var sem = [34,31,29,24,21,17,15,comEle+6];
+  return '<div class="cab"><div><h1>Radar de gargalo</h1><div class="sub">Diagnóstico organizacional — não placar pessoal</div></div></div>'
+    + '<div class="grid4">'
+    + '<div class="mcard"><b>'+pct+'%</b><span>fluxos travam em você</span><em>'+comEle+' de '+abertos.length+' itens abertos</em></div>'
+    + '<div class="mcard"><b>'+DB.itens.filter(function(x){return x.st==="delegado"&&x.nivel!=="n3";}).length+'</b><span>rodando sem você</span><em>N1 e N2 ativos</em></div>'
+    + '<div class="mcard"><b>'+adiados.length+'</b><span>adiados 3× ou mais</span><em>4 envolvem dizer não a alguém</em></div>'
+    + '<div class="mcard"><b>21d</b><span>pior espera</span><em>Grupo Panorama, na sua etapa</em></div>'
+    + '</div>'
+    + '<div class="painel-b"><h2>Itens adiados 3 vezes ou mais</h2>'
+    + '<div class="h-sub">Adiamento repetido não é problema de priorização — é diagnóstico. Três causas possíveis.</div>'
+    + listaHTML(adiados, "Nenhum item adiado três vezes ou mais.")
+    + '<div class="bloco diag" style="margin-top:12px">Esses itens estão custando atenção toda semana sem sair do lugar. A pergunta certa não é “por que você não fez” — é <b>resolver, soltar ou matar?</b></div></div>'
+    + '<div class="painel-b"><h2>Itens que dependem de você</h2><div class="h-sub">Últimas 8 semanas. Se a linha não cair, o método falhou.</div>'
+    + '<div class="bars">'+sem.map(function(v,i){
+        return '<div class="c"><b>'+v+'</b><i style="height:'+Math.round(v/34*100)+'%"></i><em>S'+(i+1)+'</em></div>';
+      }).join("")+'</div></div>';
+}
+
+function vBloco(){
+  var x = item(UI.blocoId), B = BLOCOS[UI.blocoId];
+  if(!x || !B) return '<div class="cab"><h1>Bloco não encontrado</h1></div>';
+  var sel = UI.tmp.opt || (B.opcoes.filter(function(o){return o.rec;})[0]||B.opcoes[0]).k;
+  var op = B.opcoes.filter(function(o){return o.k===sel;})[0];
+
+  var dossie = B.dossie.map(function(d){ return '<div class="dsr"><b>'+esc(d.b)+'</b><span>'+esc(d.s)+'</span></div>'; }).join("");
+  var perg = B.perguntas.map(function(p,i){
+    var aberta = UI.tmp["p"+i];
+    return '<button class="perg" data-perg="'+i+'">'+(aberta?"▾ ":"› ")+esc(p.q)+'</button>'
+      + (aberta ? '<p class="resp">'+esc(p.a)+'<span class="fonte">fonte: '+esc(p.f)+'</span></p>' : "");
+  }).join("");
+
+  var ckl = B.checklist ? '<ul class="ckl">'+B.checklist.map(function(c){
+      var m = c.k==="ok"?'<span class="mk ok">✓</span>':c.k==="no"?'<span class="mk no">✕</span>':'<span class="mk jd">?</span>';
+      return '<li>'+m+'<div><b>'+esc(c.t)+'</b><span>'+esc(c.s)+'</span></div></li>';
+    }).join("")+'</ul>' : "";
+
+  var opts = B.opcoes.map(function(o){
+    return '<div class="opt'+(o.k===sel?" on":"")+(o.rec?" rec":"")+'" data-opt="'+o.k+'">'
+      + '<div class="opt-t">'+esc(o.t)+(o.rec?'<span class="rec-tag">sugerido</span>':"")+'</div>'
+      + '<div class="opt-d">'+esc(o.d)+'</div>'
+      + '<div class="opt-c"><b>consequência</b>'+esc(o.c)+'</div></div>';
+  }).join("");
+
+  var texto = UI.tmp.msgEdit != null ? UI.tmp.msgEdit : (op.msg || "Rascunho não disponível para esta opção — escreva aqui.");
+
+  return '<div class="ws-top"><button class="bt" data-act="sair-bloco">← Blocos</button>'
+    + '<h1>'+esc(B.titulo)+'</h1>'
+    + '<span class="pill p-agendado">bloco em andamento</span>'
+    + '<span class="rel">'+esc(x.id)+' · na fila há '+fmtEspera(x.espera||0)+'</span></div>'
+
+    + '<div class="ws">'
+    + '<div class="ws-col"><div class="ws-h">Dossiê<span>montado pela IA</span></div><div class="ws-b">'
+    +   dossie
+    +   '<div style="margin-top:14px"><div class="rot" style="font-family:\'IBM Plex Mono\',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fraco);margin-bottom:7px">Perguntar ao dossiê</div>'
+    +   perg + '</div></div></div>'
+
+    + '<div class="ws-col"><div class="ws-h">Opções e consequências<span>escolha uma</span></div><div class="ws-b">'
+    +   ckl + opts + '</div></div>'
+
+    + '<div class="ws-col"><div class="ws-h">Comunicar a decisão<span>para '+esc(B.para)+'</span></div><div class="ws-b">'
+    +   '<textarea class="ta" id="msgTa">'+esc(texto)+'</textarea>'
+    +   '<div class="chips" style="margin-top:10px">'
+    +     '<button class="ch'+(UI.tmp.tom!=="diplomatico"?" on":"")+'" data-tom="direto">Direto</button>'
+    +     '<button class="ch'+(UI.tmp.tom==="diplomatico"?" on":"")+'" data-tom="diplomatico">Mais diplomático</button>'
+    +   '</div>'
+    +   '<button class="bt pri" style="width:100%;margin-top:4px" data-act="decidir-bloco">Decidir e comunicar</button>'
+    +   '<div style="font-size:11.5px;color:var(--fraco);margin-top:9px;line-height:1.4">O texto sai no canal de origem, a decisão vai para a trilha e quem estava esperando é avisado.</div>'
+    + '</div></div></div>';
+}
+
+
+
+var RENDER = {entrada:vEntrada,hoje:vHoje,delegados:vDelegados,agenda:vAgenda,tudo:vTudo,esteira:vEsteira,regras:vRegras,radar:vRadar,bloco:vBloco};
+
+function barraAprendizado(){
+  if(!UI.aprend) return "";
+  return '<div class="aprend"><div class="txt"><b>Uma pergunta só</b><span>'+esc(UI.aprend.p)+'</span></div>'
+    + '<button class="bt pri mini" data-act="aprend-sim">Sim, criar regra</button>'
+    + '<button class="bt mini" data-act="aprend-nao">Agora não</button>'
+    + '<button class="bt mini" data-act="aprend-nunca">Não perguntar isso</button></div>';
+}
+
+function render(){
+  renderNav();
+  $("#corpo").innerHTML = barraAprendizado() + RENDER[UI.view]();
+  marcaCursor();
+  if(UI.sel) renderDrawer();
+}
+
+function linhasVisiveis(){ return Array.prototype.slice.call(document.querySelectorAll("#corpo .lr")); }
+function marcaCursor(){
+  var ls = linhasVisiveis();
+  if(!ls.length){ UI.cursor = -1; return; }
+  if(UI.cursor < 0 || UI.cursor >= ls.length) UI.cursor = 0;
+  ls.forEach(function(el,i){ el.classList.toggle("cur", i===UI.cursor); });
+}
+function moveCursor(d){
+  var ls = linhasVisiveis(); if(!ls.length) return;
+  UI.cursor = Math.max(0, Math.min(ls.length-1, (UI.cursor<0?0:UI.cursor) + d));
+  marcaCursor();
+  ls[UI.cursor].scrollIntoView({block:"nearest"});
+}
+function idNoCursor(){
+  var ls = linhasVisiveis();
+  return (UI.cursor>=0 && ls[UI.cursor]) ? ls[UI.cursor].dataset.id : null;
+}
+
+/* ================= drawer ================= */
+function item(id){ return DB.itens.filter(function(x){return x.id===id;})[0]; }
+
+var SAIDAS = [
+  {k:"resolver",n:"Resolver",c:"var(--resolver)",s:"< 2 min"},
+  {k:"repassar",n:"Repassar",c:"var(--repassar)",s:"tem dono melhor"},
+  {k:"reservar",n:"Reservar",c:"var(--reservar)",s:"só você"},
+  {k:"repousar",n:"Repousar",c:"var(--repousar)",s:"não é decisão"}
+];
+var PESSOAS = ["Carolina","Natani","Mayker","Alexandre","Rafael"];
+var PRAZOS = ["4 horas","hoje","amanhã","sexta"];
+var VOLTAS = ["amanhã","3 dias","semana que vem","15 dias"];
+var FALTAS = [["nada","Nada. Só não quero decidir agora."],["info","Falta uma informação específica."],["terceiro","Espero resposta de outra pessoa."]];
+
+function renderDrawer(){
+  var x = item(UI.sel);
+  if(!x){ fecharDrawer(); return; }
+  var pe = "";
+
+  if(x.st === "entrada"){
+    if(UI.form === "repassar"){
+      pe = '<div class="form"><div class="rot">Dono</div><div class="chips">'
+        + PESSOAS.map(function(p){return '<button class="ch'+(UI.tmp.dono===p?" on":"")+'" data-tmp="dono" data-v="'+p+'">'+p+'</button>';}).join("")+'</div>'
+        + '<div class="rot">Autonomia</div><div class="chips">'
+        + [["n1","N1 · faz e me conta"],["n2","N2 · executa se eu não parar"],["n3","N3 · espera minha decisão"]]
+          .map(function(p){return '<button class="ch wide'+(UI.tmp.nivel===p[0]?" on":"")+'" data-tmp="nivel" data-v="'+p[0]+'">'+p[1]+'</button>';}).join("")+'</div>'
+        + '<div class="rot">Prazo</div><div class="chips">'
+        + PRAZOS.map(function(p){return '<button class="ch'+(UI.tmp.prazo===p?" on":"")+'" data-tmp="prazo" data-v="'+p+'">'+p+'</button>';}).join("")+'</div>'
+        + '<div style="display:flex;gap:8px"><button class="bt pri" data-act="conf-repassar">Repassar</button>'
+        + '<button class="bt" data-act="cancelar">Cancelar</button></div></div>';
+    } else if(UI.form === "adiar"){
+      var nud = "";
+      if(UI.tmp.falta==="nada"){
+        nud = '<div class="nudge">Então não está bloqueado — está <b>evitado</b>'+(x.adiado?", pela "+(x.adiado+1)+"ª vez":"")+'. O caro aqui é entrar, não decidir.'
+          + '<div style="display:flex;gap:7px;margin-top:9px"><button class="bt pri mini" data-act="conf-reservar">Marcar bloco</button>'
+          + '<button class="bt mini" data-act="conf-adiar">Adiar mesmo assim</button></div></div>';
+      } else if(UI.tmp.falta==="terceiro"){
+        nud = '<div class="nudge">Se você espera terceiro, a pendência é <b>dele</b>. Melhor repassar com prazo do que carregar a espera na sua fila.'
+          + '<div style="display:flex;gap:7px;margin-top:9px"><button class="bt pri mini" data-act="form-repassar">Repassar</button>'
+          + '<button class="bt mini" data-act="conf-adiar">Adiar mesmo assim</button></div></div>';
+      } else if(UI.tmp.falta==="info"){
+        nud = '<div class="nudge">O sistema vai <b>cobrar a informação</b> em vez de te lembrar do item — e só devolve quando ela chegar.</div>';
+      }
+      pe = '<div class="form"><div class="rot">Quando volta</div><div class="chips">'
+        + VOLTAS.map(function(p){return '<button class="ch'+(UI.tmp.volta===p?" on":"")+'" data-tmp="volta" data-v="'+p+'">'+p+'</button>';}).join("")+'</div>'
+        + '<div class="rot">O que falta para decidir</div><div class="chips">'
+        + FALTAS.map(function(p){return '<button class="ch wide'+(UI.tmp.falta===p[0]?" on":"")+'" data-tmp="falta" data-v="'+p[0]+'">'+p[1]+'</button>';}).join("")+'</div>'
+        + nud
+        + '<div style="display:flex;gap:8px"><button class="bt pri" data-act="conf-adiar">Adiar</button>'
+        + '<button class="bt" data-act="cancelar">Cancelar</button></div></div>';
+    } else {
+      pe = '<div class="acoes4">'+SAIDAS.map(function(s){
+          return '<button class="ac" style="--c:'+s.c+'" data-act="saida-'+s.k+'">'+s.n+'<small>'+s.s+'</small></button>';
+        }).join("")+'</div>'
+        + '<button class="ac-adiar" data-act="form-adiar">Deixar para depois'+(x.adiado?" · já adiado "+x.adiado+"×":"")+'</button>';
+    }
+  } else if(x.st === "delegado" && x.nivel === "n2" && x.venc){
+    pe = '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+      + '<button class="bt pri" data-act="parar">Parar e decidir eu mesmo</button>'
+      + '<button class="bt" data-act="promover">Promover para N1</button>'
+      + '<span class="rel" data-timer="'+x.id+'">'+fmtRestante(x.venc-agora())+'</span></div>';
+  } else if(x.st === "delegado"){
+    pe = '<button class="bt" data-act="reabrir">Trazer de volta para a entrada</button>';
+  } else if(x.st === "dormindo" || x.st === "agendado"){
+    pe = '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      + (x.st==="agendado" && BLOCOS[x.id] ? '<button class="bt pri" data-act="abrir-bloco">Abrir bloco de decisão</button>' : '<button class="bt pri" data-act="conf-resolver">Resolver agora</button>')
+      + '<button class="bt" data-act="reabrir">Voltar para a entrada</button></div>';
+  } else {
+    pe = '<div style="font-size:12.5px;color:var(--fraco)">Item fechado. Quem pediu foi avisado no canal de origem.</div>';
+  }
+
+  $("#dr").innerHTML =
+    '<div class="dr-top"><span class="id mono">'+x.id+'</span>'
+    + '<span class="pill p-'+x.st+'">'+STN[x.st]+'</span>'
+    + (x.temp>2?'<span class="pill p-quente">'+x.temp+' cobranças</span>':'')
+    + '<button class="dr-x" data-act="fechar-dr" aria-label="Fechar">×</button></div>'
+    + '<div class="dr-corpo"><h2>'+esc(x.t)+'</h2>'
+    + '<dl class="kv">'
+    + '<dt>Origem</dt><dd>'+esc(x.canal)+' · '+esc(x.quem)+'</dd>'
+    + '<dt>O que trava</dt><dd>'+esc(x.trava||"—")+'</dd>'
+    + '<dt>Prazo</dt><dd>'+esc(x.prazo||"—")+'</dd>'
+    + '<dt>Valor</dt><dd>'+esc(x.valor||"—")+'</dd>'
+    + '<dt>Na fila há</dt><dd>'+fmtEspera(x.espera||0)+'</dd>'
+    + (x.dono?'<dt>Dono</dt><dd>'+esc(x.dono)+' · '+(x.nivel||"").toUpperCase()+'</dd>':"")
+    + '</dl>'
+    + '<div class="bloco"><div class="rot">Leitura da IA</div>'+esc(x.ia||"—")+'</div>'
+    + (x.diag?'<div class="bloco diag"><div class="rot">Padrão detectado</div>'+esc(x.diag)+'</div>':"")
+    + '<div class="bloco" style="background:#fff"><div class="rot">Histórico</div>'
+    + '<ul class="hist">'+(x.trilha.length?x.trilha.map(function(h){return '<li><span class="q">'+esc(h.q)+'</span><span>'+esc(h.x)+'</span></li>';}).join(""):'<li><span class="q">—</span><span>Captado automaticamente, ainda sem ação.</span></li>')+'</ul></div>'
+    + '</div><div class="dr-pe">'+pe+'</div>';
+}
+
+function abrirDrawer(id){ UI.sel = id; UI.form = null; UI.tmp = {dono:"Carolina",nivel:"n2",prazo:"hoje",volta:"3 dias",falta:null};
+  $("#dr").classList.add("on"); $("#drBg").classList.add("on"); renderDrawer(); render(); }
+function fecharDrawer(){ UI.sel = null; UI.form = null; $("#dr").classList.remove("on"); $("#drBg").classList.remove("on"); render(); }
+
+/* ================= ações ================= */
+function reg(x, txt){ x.trilha.unshift({q:"agora", x:txt}); }
+function snapshot(x){ return JSON.parse(JSON.stringify(x)); }
+function restaura(snap){
+  var x = item(snap.id);
+  Object.keys(snap).forEach(function(k){ x[k] = snap[k]; });
+  render(); if(UI.sel===x.id) renderDrawer();
+}
+
+function aplicar(id, saida){
+  var x = item(id), snap = snapshot(x);
+  if(saida === "resolver"){ x.st="fechado"; reg(x,"Resolvido · "+esc(x.quem)+" avisado no canal de origem"); toast("Resolvido — "+x.t, function(){restaura(snap);}); }
+  if(saida === "reservar"){ x.st="agendado"; x.quando="qui 09:00"; reg(x,"Reservado · bloco quinta 9h · dossiê na quarta"); toast("Bloco marcado para quinta 9h", function(){restaura(snap);}); }
+  if(saida === "repousar"){ x.st="dormindo"; x.volta="em 15 dias"; reg(x,"Repousado · volta em 15 dias ou se alguém cobrar"); toast("Adormecido por 15 dias", function(){restaura(snap);}); }
+  if(saida === "repassar"){
+    x.st="delegado"; x.dono=UI.tmp.dono; x.nivel=UI.tmp.nivel;
+    if(x.nivel==="n2"){ x.venc = agora() + (UI.tmp.prazo==="4 horas"?4*H:UI.tmp.prazo==="hoje"?6*H:UI.tmp.prazo==="amanhã"?28*H:3*D); }
+    else x.venc = null;
+    reg(x,"Repassado · "+x.dono+" · "+x.nivel.toUpperCase()+" · "+UI.tmp.prazo);
+    toast("Repassado para "+x.dono+" ("+x.nivel.toUpperCase()+")", function(){restaura(snap);});
+  }
+  if(saida === "adiar"){
+    x.adiado = (x.adiado||0)+1;
+    reg(x,"Adiado · volta em "+UI.tmp.volta+" · falta: "+(UI.tmp.falta||"não informado"));
+    toast("Adiado — "+(x.adiado)+"º adiamento deste item", function(){restaura(snap);});
+  }
+  UI.form = null;
+  if(saida !== "adiar") fecharDrawer(); else renderDrawer();
+  render();
+}
+
+document.addEventListener("click", function(e){
+  var t = e.target;
+  var nav = t.closest("[data-view]");
+  if(nav){ UI.view = nav.dataset.view; UI.sel=null; $("#sb").classList.remove("on"); render(); return; }
+
+  var fh = t.closest("[data-fhz]"); if(fh){ UI.fHz = fh.dataset.fhz; render(); return; }
+  var fs = t.closest("[data-fst]"); if(fs){ UI.fSt = fs.dataset.fst; render(); return; }
+
+  var lr = t.closest(".lr"); if(lr){ abrirDrawer(lr.dataset.id); return; }
+
+  var tmp = t.closest("[data-tmp]");
+  if(tmp){ UI.tmp[tmp.dataset.tmp] = tmp.dataset.v; renderDrawer(); return; }
+
+  var sw = t.closest("[data-regra]");
+  if(sw){ var r = DB.regras[sw.dataset.regra]; r.on = !r.on;
+    toast(r.on ? "Regra ativa — sai da sua mesa ~"+r.ganho+" itens/semana" : "Regra desativada"); render(); return; }
+
+  var bc = t.closest("[data-int]"); if(bc){ toast("Integrador: "+bc.dataset.int+" — abriria a ficha da esteira"); return; }
+
+  var opt = t.closest("[data-opt]");
+  if(opt){ UI.tmp.opt = opt.dataset.opt; UI.tmp.msgEdit = null; render(); return; }
+  var pg = t.closest("[data-perg]");
+  if(pg){ var taP = $("#msgTa"); if(taP) UI.tmp.msgEdit = taP.value;
+    UI.tmp["p"+pg.dataset.perg] = !UI.tmp["p"+pg.dataset.perg]; render(); return; }
+  var tom = t.closest("[data-tom]");
+  if(tom){
+    UI.tmp.tom = tom.dataset.tom;
+    var ta0 = $("#msgTa");
+    if(ta0){
+      var base = ta0.value;
+      UI.tmp.msgEdit = (tom.dataset.tom==="diplomatico")
+        ? base.replace(/^([A-ZÀ-Ú][^\n,]*),/, "$1, tudo bem?\n\nEspero que sim.").replace(/\bnão é possível avançar\b/, "não conseguimos avançar como gostaríamos")
+        : base.replace(/, tudo bem\?\n\nEspero que sim\./, ",");
+    }
+    render(); return;
+  }
+
+  var act0 = t.closest("[data-act]");
+  if(act0 && act0.dataset.act.indexOf("aprend-")===0){
+    var a0 = act0.dataset.act.slice(7);
+    if(a0==="sim" && UI.aprend && UI.aprend.r){
+      var nr = UI.aprend.r; nr.on = true; DB.regras.unshift(nr);
+      toast("Regra criada: "+nr.t+" — sai da sua mesa ~"+nr.ganho+" itens/semana");
+    } else if(a0==="nunca"){ toast("Certo, não pergunto mais sobre isso."); }
+    UI.aprend = null; render(); return;
+  }
+
+  var act = t.closest("[data-act]"); if(!act) return;
+  var a = act.dataset.act;
+
+  if(a === "abrir-bloco"){ UI.blocoId = UI.sel; UI.view="bloco"; UI.tmp={}; fecharDrawer(); return; }
+  if(a === "sair-bloco"){ UI.view="agenda"; UI.blocoId=null; UI.tmp={}; render(); return; }
+  if(a === "decidir-bloco"){
+    var xb = item(UI.blocoId), Bb = BLOCOS[UI.blocoId];
+    var selK = UI.tmp.opt || (Bb.opcoes.filter(function(o){return o.rec;})[0]||Bb.opcoes[0]).k;
+    var opb = Bb.opcoes.filter(function(o){return o.k===selK;})[0];
+    xb.st = "fechado";
+    reg(xb, "Decidido no bloco: "+opb.t+" · comunicado a "+Bb.para);
+    toast("Decidido e comunicado — "+opb.t);
+    if(Bb.aprend) UI.aprend = Bb.aprend;
+    UI.view = "agenda"; UI.blocoId = null; UI.tmp = {}; render(); return;
+  }
+
+  if(a === "fechar-dr" || a === "cancelar"){ if(a==="cancelar"){ UI.form=null; renderDrawer(); } else fecharDrawer(); return; }
+  if(a.indexOf("saida-") === 0){
+    var k = a.slice(6);
+    if(k === "repassar"){ UI.form="repassar"; renderDrawer(); } else aplicar(UI.sel, k);
+    return;
+  }
+  if(a === "form-adiar"){ UI.form="adiar"; renderDrawer(); return; }
+  if(a === "form-repassar"){ UI.form="repassar"; renderDrawer(); return; }
+  if(a === "conf-repassar"){ aplicar(UI.sel,"repassar"); return; }
+  if(a === "conf-adiar"){ aplicar(UI.sel,"adiar"); return; }
+  if(a === "conf-reservar"){ aplicar(UI.sel,"reservar"); return; }
+  if(a === "conf-resolver"){ aplicar(UI.sel,"resolver"); return; }
+  if(a === "parar"){
+    var x = item(UI.sel), s = snapshot(x);
+    x.st="entrada"; x.venc=null; reg(x,"Você interrompeu o N2 — voltou para a sua mesa");
+    toast("N2 interrompido. Item de volta na entrada.", function(){restaura(s);}); fecharDrawer(); return;
+  }
+  if(a === "promover"){
+    var y = item(UI.sel), s2 = snapshot(y);
+    y.nivel="n1"; y.venc=null; reg(y,"Promovido para N1 — "+y.dono+" decide sozinho a partir de agora");
+    toast("Promovido para N1. Essa classe não volta mais para você.", function(){restaura(s2);}); renderDrawer(); render(); return;
+  }
+  if(a === "reabrir"){
+    var z = item(UI.sel), s3 = snapshot(z);
+    z.st="entrada"; z.venc=null; reg(z,"Trazido de volta para a entrada");
+    toast("De volta na entrada", function(){restaura(s3);}); fecharDrawer(); return;
+  }
+  if(a === "esteira-check"){
+    INTEGRADORES.forEach(function(i){ if(i.e===3 && i.n!=="Grupo Panorama"){ i.e=4; i.d=0; } });
+    toast("Checklist aplicado: 3 integradores seguiram sozinhos. Só o Panorama exige você.");
+    render(); return;
+  }
+});
+
+$("#drBg").addEventListener("click", fecharDrawer);
+$("#btHamb").addEventListener("click", function(){ $("#sb").classList.toggle("on"); });
+$("#busca").addEventListener("input", function(){ UI.busca = this.value; render(); });
+$("#btSino").addEventListener("click", function(){
+  if(!DB.notifs.length){ toast("Nenhuma notificação nova."); return; }
+  toast(DB.notifs[DB.notifs.length-1]);
+  DB.notifs = []; $("#sinoN").textContent = "0"; $("#sinoN").style.display="none";
+});
+
+/* simular entrada */
+var FILA_SIM = [
+  {t:"Cobrança do Panorama no grupo Comercial",dedup:"#101"},
+  {t:"Rota Consinco parada — certificado expirado",canal:"Sistema",quem:"Monitoramento",hz:"hoje",tipo:"bloqueio",
+   trava:"412 mensagens represadas",prazo:"agora",valor:"—",ia:"Bloqueio operacional. Regra ativa roteia direto para N1.",auto:"Alexandre"},
+  {t:"Solicitação de crédito — Atacado Ferrari",canal:"E-mail",quem:"Financeiro",hz:"semana",tipo:"decisao",
+   trava:"limite de crédito insuficiente",prazo:"até quinta",valor:"R$ 65.000",ia:"Cliente novo, sem histórico. Análise de crédito anexada."},
+  {t:"“Fico devendo o retorno do Marra até sexta”",canal:"Reunião",quem:"você mesmo",hz:"trimestre",tipo:"decisao",
+   trava:"promessa dita e não registrada",prazo:"sexta",valor:"—",ia:"Compromisso capturado da transcrição da reunião de hoje."}
+];
+var simI = 0;
+$("#btSim").addEventListener("click", function(){
+  var s = FILA_SIM[simI % FILA_SIM.length]; simI++;
+  if(s.dedup){
+    var alvo = item(s.dedup);
+    alvo.temp++; reg(alvo,"Nova cobrança fundida · temperatura "+alvo.temp);
+    toast("Recobrança fundida em "+s.dedup+" — a fila não cresceu. Temperatura "+alvo.temp+".");
+    render(); return;
+  }
+  var novo = mk({t:s.t,canal:s.canal,quem:s.quem,st:"entrada",hz:s.hz,tipo:s.tipo,trava:s.trava,prazo:s.prazo,valor:s.valor,espera:1*MIN,ia:s.ia});
+  if(s.auto){
+    novo.st="delegado"; novo.dono=s.auto; novo.nivel="n1";
+    reg(novo,"Regra de alçada → N1 "+s.auto+" · nunca chegou em você");
+    DB.itens.unshift(novo);
+    toast("Captado e roteado sozinho: N1 "+s.auto+". Não entrou na sua fila.");
+  } else {
+    DB.itens.unshift(novo);
+    toast("Nova entrada captada — "+s.canal+" · "+s.quem);
+  }
+  render();
+});
+
+/* ================= paleta de comandos ================= */
+function palItens(){
+  var q = $("#palIn").value.trim().toLowerCase();
+  var out = [];
+  VIEWS.forEach(function(v){
+    if(!q || v.nome.toLowerCase().indexOf(q)>=0) out.push({k:"ir",n:"Ir para "+v.nome,d:"navegação",f:function(){ UI.view=v.id; UI.cursor=-1; render(); }});
+  });
+  DB.itens.forEach(function(x){
+    if(q && (x.t+" "+x.quem).toLowerCase().indexOf(q)<0) return;
+    if(!q) return;
+    out.push({k:x.id,n:x.t,d:STN[x.st],f:function(){ if(x.st!=="fechado"||true) abrirDrawer(x.id); }});
+  });
+  var extras = [
+    {k:"⌥",n:"Simular nova entrada",d:"ação",f:function(){ $("#btSim").click(); }},
+    {k:"⌥",n:"Aplicar checklist da esteira",d:"ação",f:function(){ INTEGRADORES.forEach(function(i){ if(i.e===3 && i.n!=="Grupo Panorama"){ i.e=4; i.d=0; } }); UI.view="esteira"; toast("Checklist aplicado."); render(); }}
+  ];
+  extras.forEach(function(e){ if(!q || e.n.toLowerCase().indexOf(q)>=0) out.push(e); });
+  return out.slice(0,9);
+}
+function renderPal(){
+  var its = palItens();
+  UI.palSel = Math.max(0, Math.min(its.length-1, UI.palSel));
+  $("#palL").innerHTML = its.map(function(i,ix){
+    return '<div class="pal-i'+(ix===UI.palSel?" on":"")+'" data-pal="'+ix+'"><span class="k">'+i.k+'</span>'+esc(i.n)+'<span class="d">'+i.d+'</span></div>';
+  }).join("") || '<div class="pal-i">Nada encontrado</div>';
+}
+function abrePal(){ UI.palSel=0; $("#pal").classList.add("on"); $("#palBg").classList.add("on"); $("#palIn").value=""; renderPal(); $("#palIn").focus(); }
+function fechaPal(){ $("#pal").classList.remove("on"); $("#palBg").classList.remove("on"); }
+$("#palBg").addEventListener("click", fechaPal);
+$("#palIn").addEventListener("input", function(){ UI.palSel=0; renderPal(); });
+$("#palL").addEventListener("click", function(e){
+  var el = e.target.closest("[data-pal]"); if(!el) return;
+  var it = palItens()[el.dataset.pal]; fechaPal(); if(it) it.f();
+});
+
+/* ================= teclado ================= */
+document.addEventListener("keydown", function(e){
+  var emCampo = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="k"){ e.preventDefault(); abrePal(); return; }
+
+  if($("#pal").classList.contains("on")){
+    if(e.key==="Escape"){ fechaPal(); return; }
+    if(e.key==="ArrowDown"){ e.preventDefault(); UI.palSel++; renderPal(); return; }
+    if(e.key==="ArrowUp"){ e.preventDefault(); UI.palSel--; renderPal(); return; }
+    if(e.key==="Enter"){ e.preventDefault(); var it = palItens()[UI.palSel]; fechaPal(); if(it) it.f(); return; }
+    return;
+  }
+
+  if(e.key === "Escape"){ if(UI.sel) fecharDrawer(); return; }
+  if(e.key === "/" && !emCampo){ e.preventDefault(); $("#busca").focus(); return; }
+  if(emCampo) return;
+
+  if(e.key === "j" || e.key === "ArrowDown"){ e.preventDefault(); moveCursor(1); return; }
+  if(e.key === "k" || e.key === "ArrowUp"){ e.preventDefault(); moveCursor(-1); return; }
+  if(e.key === "Enter"){ var id = idNoCursor(); if(id){ e.preventDefault(); abrirDrawer(id); } return; }
+
+  var alvo = UI.sel || idNoCursor();
+  if(!alvo) return;
+  var x = item(alvo);
+  if(!x || x.st !== "entrada") return;
+
+  var mapa = {"1":"resolver","2":"repassar","3":"reservar","4":"repousar"};
+  if(mapa[e.key]){
+    e.preventDefault();
+    if(mapa[e.key] === "repassar"){ if(!UI.sel) abrirDrawer(alvo); UI.form="repassar"; renderDrawer(); }
+    else { UI.sel = alvo; aplicar(alvo, mapa[e.key]); UI.cursor = Math.max(0, UI.cursor); }
+    return;
+  }
+  if(e.key === "a"){ e.preventDefault(); if(!UI.sel) abrirDrawer(alvo); UI.form="adiar"; renderDrawer(); return; }
+});
+
+/* ================= relógio ================= */
+setInterval(function(){
+  var mudou = false;
+  DB.itens.forEach(function(x){
+    if(x.st==="delegado" && x.venc){
+      var r = x.venc - agora();
+      if(r <= 0){
+        x.st = "fechado"; x.venc = null;
+        reg(x, "Executado por ausência de intervenção · N2 · trilha registrada");
+        notif("N2 executado por ausência: "+x.t+" — "+x.dono+" seguiu com a proposta.");
+        toast("N2 executado por ausência: "+x.dono+" seguiu com “"+x.t+"”. Trilha registrada.", null, true);
+        mudou = true;
+      } else {
+        var el = document.querySelectorAll('[data-timer="'+x.id+'"]');
+        for(var i=0;i<el.length;i++){
+          el[i].textContent = fmtRestante(r);
+          el[i].classList.toggle("urg", r < 10*MIN);
+        }
+      }
+    }
+  });
+  if(mudou){ render(); if(UI.sel) renderDrawer(); }
+}, 1000);
+
+$("#sinoN").style.display = "none";
+render();
+})();
+</script>
+</body>
+</html>

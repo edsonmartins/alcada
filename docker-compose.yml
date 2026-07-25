@@ -1,0 +1,32 @@
+# Desenvolvimento local — Postgres é a ÚNICA dependência de infraestrutura (ADR-0023).
+# Sem Redis, sem Kafka, sem qualquer outro serviço. Fila/outbox/scheduler vivem
+# no Postgres (SKIP LOCKED, tabela de jobs). Reintroduzir outra dependência exige
+# número medido, não antecipação.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: alcada-postgres
+    environment:
+      POSTGRES_USER: alcada
+      POSTGRES_PASSWORD: alcada
+      POSTGRES_DB: alcada
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - alcada_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alcada -d alcada"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # Tuning modesto para VPS pequeno (ADR-0023: Postgres em 400–500 MB)
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "max_connections=50"
+
+volumes:
+  alcada_pgdata:
