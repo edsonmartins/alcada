@@ -27,5 +27,5 @@
 
 ## Verificação
 - [x] JVM suite verde (112) + 29 Vitest
-- [ ] build nativo + RSS ≤120 MB
-- [ ] Deploy no piloto (GHCR pull) e conferência do card em /hoje
+- [x] build nativo (endpoint responde) — RSS 70 MB
+- [x] Deploy no piloto (GHCR pull); laço verificado ao vivo (pergunta → sim → regra, card some)
