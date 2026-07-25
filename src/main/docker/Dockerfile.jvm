@@ -1,20 +1,28 @@
-# Build de desenvolvimento/CI: JVM (ciclo rápido, live reload).
-# O nativo (release) fica em Dockerfile.native-micro.
+# Imagem JVM (Java 25) — usada no piloto (build `demo`) e no CI.
+# O nativo (release, ADR-0023) fica em Dockerfile.native-micro.
 #
-#   mvn package
+#   pnpm --dir web build                       # gera web/dist (embutido pelo profile `spa`)
+#   mvn package -Dquarkus.profile=demo -DskipTests
 #   docker build -f src/main/docker/Dockerfile.jvm -t alcada:jvm .
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:latest
+#
+# O app é Java 25 (maven.compiler.release=25) — a base PRECISA ser 25+.
+FROM eclipse-temurin:25-jre
 
-ENV LANGUAGE='en_US:en'
+ENV LANG=C.UTF-8 \
+    LANGUAGE=en_US:en \
+    JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseG1GC"
 
-COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
-COPY --chown=185 target/quarkus-app/*.jar /deployments/
-COPY --chown=185 target/quarkus-app/app/ /deployments/app/
-COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
+WORKDIR /deployments
+
+# Layout fast-jar do Quarkus (lib/ primeiro para aproveitar cache de camadas)
+COPY --chown=1001:0 target/quarkus-app/lib/ /deployments/lib/
+COPY --chown=1001:0 target/quarkus-app/*.jar /deployments/
+COPY --chown=1001:0 target/quarkus-app/app/ /deployments/app/
+COPY --chown=1001:0 target/quarkus-app/quarkus/ /deployments/quarkus/
 
 EXPOSE 8080
-USER 185
-ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
-ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+USER 1001
 
-ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]
+# host 0.0.0.0 para ser alcançável pelo Caddy; logmanager exigido pelo Quarkus.
+ENTRYPOINT [ "sh", "-c", \
+  "exec java $JAVA_OPTS -Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -jar /deployments/quarkus-run.jar" ]
