@@ -1,5 +1,6 @@
 import { Badge, Button, Collapse, Group, Paper, Stack, Text } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { getPerguntas, responder, type PerguntaAprendizado, type Resposta } from "../api/aprendizado";
 import { getHoje } from "../api/pendencias";
@@ -10,17 +11,40 @@ import { TrilhaTimeline } from "./TrilhaTimeline";
 export function HojePage() {
   const { data } = useQuery({ queryKey: ["hoje"], queryFn: getHoje });
   const itens = (data ?? []).slice(0, 3);
+  const navigate = useNavigate();
 
   return (
     <Stack>
       <PerguntaAprendizadoCard />
       <PageHeader titulo="Hoje" sub="No máximo três. Nada contemplativo — o que precisa de você agora." />
       {itens.map((h) => (
-        <Paper key={h.id} withBorder p="sm" data-testid="item-hoje">
-          <Text fw={500}>{h.titulo}</Text>
-          <Text size="xs" c="dimmed">
-            por quê: {h.justificativa}
-          </Text>
+        <Paper
+          key={h.id}
+          withBorder
+          p="sm"
+          data-testid="item-hoje"
+          onClick={() => navigate({ to: "/bloco/$id", params: { id: h.id } })}
+          style={{ cursor: "pointer" }}
+        >
+          <Group justify="space-between" wrap="nowrap" align="flex-start">
+            <div style={{ minWidth: 0 }}>
+              <Text fw={500}>{h.titulo}</Text>
+              <Text size="xs" c="dimmed">
+                por quê: {h.justificativa}
+              </Text>
+            </div>
+            <Button
+              size="xs"
+              variant="light"
+              style={{ flexShrink: 0 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate({ to: "/bloco/$id", params: { id: h.id } });
+              }}
+            >
+              Abrir bloco
+            </Button>
+          </Group>
         </Paper>
       ))}
       {itens.length === 0 && (
