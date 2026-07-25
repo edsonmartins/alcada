@@ -23,9 +23,21 @@ export function temSessao(): boolean {
   return orgId().trim() !== "" && pessoaId().trim() !== "";
 }
 
+/** UUID canônico (8-4-4-4-12), case-insensitive. */
+export const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Remove espaços e aspas que costumam vir coladas ao copiar de um `.env`
+ * (o padrão da casa guarda valores entre aspas: ALCADA_ORG_ID="…"). Sem isto o
+ * header vira um UUID inválido e a API responde 500 ("UUID string too large").
+ */
+export function limparId(v: string): string {
+  return (v ?? "").trim().replace(/^["']+|["']+$/g, "").trim();
+}
+
 export function definirSessao(org: string, pessoa: string, rotulo?: string): void {
-  localStorage.setItem(CHAVE_ORG, org.trim());
-  localStorage.setItem(CHAVE_PESSOA, pessoa.trim());
+  localStorage.setItem(CHAVE_ORG, limparId(org));
+  localStorage.setItem(CHAVE_PESSOA, limparId(pessoa));
   if (rotulo && rotulo.trim()) {
     localStorage.setItem(CHAVE_ROTULO, rotulo.trim());
   } else {

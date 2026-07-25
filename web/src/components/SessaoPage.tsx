@@ -1,7 +1,7 @@
 import { Button, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { definirSessao } from "../api/config";
+import { definirSessao, limparId, RE_UUID } from "../api/config";
 
 /**
  * Tela de sessão do PILOTO (profile demo, sem OIDC). O gestor/executor informa
@@ -32,11 +32,20 @@ export function SessaoPage() {
   }, [navigate]);
 
   const entrar = () => {
-    if (!org.trim() || !pessoa.trim()) {
+    const o = limparId(org);
+    const p = limparId(pessoa);
+    if (!o || !p) {
       setErro("Informe a organização e a pessoa.");
       return;
     }
-    definirSessao(org, pessoa, rotulo);
+    if (!RE_UUID.test(o) || !RE_UUID.test(p)) {
+      setErro(
+        "org_id e pessoa_id precisam ser UUIDs (36 caracteres, formato 8-4-4-4-12). " +
+          "Cole o valor sem aspas — no .env eles ficam entre aspas.",
+      );
+      return;
+    }
+    definirSessao(o, p, rotulo);
     navigate({ to: "/" });
   };
 
