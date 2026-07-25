@@ -22,6 +22,10 @@ GET    /v1/pendencias/{id}/trilha
 POST   /v1/pendencias/{id}/desfundir       { cobranca_id }   # reverte deduplicação
 ```
 
+`GET /v1/pendencias` devolve, por item:
+`id, titulo, classe, horizonte, status, quemEspera, temperatura, baixaConfianca,`
+`oQueTrava, valorEmJogo (número|null), prazoImplicito (ISO|null), criadaEm (ISO)`.
+
 ### Hoje e fila
 ```
 GET    /v1/hoje                            # no máximo 3 itens + justificativa por item

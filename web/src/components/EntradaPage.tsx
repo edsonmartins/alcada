@@ -1,6 +1,7 @@
 import { Alert, Badge, Box, Button, Group, Paper, Stack, Text } from "@mantine/core";
 import { useEffect, useRef, useState } from "react";
-import type { SaidaDireta } from "../api/types";
+import type { Classe, SaidaDireta } from "../api/types";
+import { formatPrazo, formatValor, idadeRelativa } from "../util/formato";
 import { useUI } from "../store/ui";
 import { useTriagem } from "../triagem/useTriagem";
 import { useTriagemKeys } from "../triagem/useTriagemKeys";
@@ -12,6 +13,18 @@ const ROTULO: Record<SaidaDireta, string> = {
   resolver: "resolvido",
   reservar: "reservado",
   repousar: "adormecido",
+};
+
+// Cor do acento por classe (barra à esquerda), na linguagem visual do protótipo.
+const COR_CLASSE: Record<Classe, string> = {
+  DECISAO: "var(--mantine-color-blue-6)",
+  BLOQUEIO: "var(--mantine-color-red-6)",
+  ESTEIRA: "var(--mantine-color-grape-6)",
+};
+const ROTULO_CLASSE: Record<Classe, string> = {
+  DECISAO: "decisão",
+  BLOQUEIO: "bloqueio",
+  ESTEIRA: "esteira",
 };
 
 export function EntradaPage() {
@@ -86,20 +99,63 @@ export function EntradaPage() {
             data-cursor={i === cursor ? "true" : undefined}
             aria-selected={selecao.has(p.id)}
             onClick={() => setCursor(i)}
-            style={{ outline: i === cursor ? "2px solid var(--mantine-color-dark-4)" : undefined, cursor: "pointer" }}
+            style={{
+              cursor: "pointer",
+              borderLeft: `3px solid ${COR_CLASSE[p.classe]}`,
+              outline: i === cursor ? "2px solid var(--mantine-color-dark-4)" : undefined,
+            }}
           >
-            <Group justify="space-between" wrap="nowrap">
-              <div>
+            <Group justify="space-between" wrap="nowrap" align="flex-start">
+              <div style={{ minWidth: 0 }}>
                 <Text fw={500}>{p.titulo}</Text>
-                <Text size="xs" c="dimmed">
-                  {p.quemEspera ? `espera: ${p.quemEspera}` : "—"} · próxima ação: ↵ abrir · 1–4 decidir
-                </Text>
+                {p.oQueTrava && (
+                  <Text size="sm" c="dimmed">
+                    {p.oQueTrava}
+                  </Text>
+                )}
+                <Group gap={6} mt={4} wrap="wrap">
+                  <Badge size="xs" variant="light" color="gray">
+                    {ROTULO_CLASSE[p.classe]}
+                  </Badge>
+                  {p.quemEspera && (
+                    <Text size="xs" c="dimmed">
+                      espera: {p.quemEspera}
+                    </Text>
+                  )}
+                  {p.temperatura > 0 && (
+                    <Badge size="xs" color="orange">
+                      {p.temperatura} {p.temperatura === 1 ? "cobrança" : "cobranças"}
+                    </Badge>
+                  )}
+                  {p.baixaConfianca && (
+                    <Badge size="xs" color="gray" variant="outline">
+                      rever
+                    </Badge>
+                  )}
+                  {selecao.has(p.id) && (
+                    <Badge size="xs" data-testid="selecionado">
+                      no lote
+                    </Badge>
+                  )}
+                </Group>
               </div>
-              <Group gap="xs">
-                {selecao.has(p.id) && <Badge size="xs" data-testid="selecionado">no lote</Badge>}
-                {p.temperatura > 0 && <Badge size="xs" color="orange">{p.temperatura}×</Badge>}
-                {p.baixaConfianca && <Badge size="xs" color="gray">rever</Badge>}
-              </Group>
+              <Stack gap={2} align="flex-end" style={{ flexShrink: 0 }}>
+                {formatValor(p.valorEmJogo) && (
+                  <Text fw={600} size="sm">
+                    {formatValor(p.valorEmJogo)}
+                  </Text>
+                )}
+                {idadeRelativa(p.criadaEm) && (
+                  <Text size="xs" c="dimmed">
+                    {idadeRelativa(p.criadaEm)}
+                  </Text>
+                )}
+                {formatPrazo(p.prazoImplicito) && (
+                  <Text size="xs" c="red.7">
+                    prazo {formatPrazo(p.prazoImplicito)}
+                  </Text>
+                )}
+              </Stack>
             </Group>
           </Paper>
         ))}

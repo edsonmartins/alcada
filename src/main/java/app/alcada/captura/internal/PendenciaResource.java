@@ -1,5 +1,6 @@
 package app.alcada.captura.internal;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -85,7 +86,8 @@ public class PendenciaResource {
             return problema(400, "org.ausente", "X-Org-Id não resolvido");
         }
         StringBuilder sql = new StringBuilder("""
-                SELECT id, titulo, classe, horizonte, status, quem_espera, temperatura, baixa_confianca
+                SELECT id, titulo, classe, horizonte, status, quem_espera, temperatura, baixa_confianca,
+                       o_que_trava, valor_em_jogo, prazo_implicito, criada_em
                 FROM pendencia WHERE org_id = ?
                 """);
         if (status != null && !status.isBlank()) {
@@ -103,7 +105,9 @@ public class PendenciaResource {
         List<PendenciaResumo> fila = new ArrayList<>(linhas.size());
         for (Object[] l : linhas) {
             fila.add(new PendenciaResumo(l[0].toString(), (String) l[1], (String) l[2], (String) l[3],
-                    (String) l[4], (String) l[5], ((Number) l[6]).intValue(), (Boolean) l[7]));
+                    (String) l[4], (String) l[5], ((Number) l[6]).intValue(), (Boolean) l[7],
+                    (String) l[8], l[9] == null ? null : ((Number) l[9]).doubleValue(),
+                    toOdt(l[10]), toOdt(l[11])));
         }
         return Response.ok(fila).build();
     }
@@ -180,7 +184,26 @@ public class PendenciaResource {
     }
 
     public record PendenciaResumo(String id, String titulo, String classe, String horizonte,
-                                  String status, String quemEspera, int temperatura, boolean baixaConfianca) {
+                                  String status, String quemEspera, int temperatura, boolean baixaConfianca,
+                                  String oQueTrava, Double valorEmJogo,
+                                  OffsetDateTime prazoImplicito, OffsetDateTime criadaEm) {
+    }
+
+    /** timestamptz volta como Instant/Timestamp/OffsetDateTime conforme o driver; normaliza. */
+    private static OffsetDateTime toOdt(Object v) {
+        if (v == null) {
+            return null;
+        }
+        if (v instanceof OffsetDateTime odt) {
+            return odt;
+        }
+        if (v instanceof java.sql.Timestamp ts) {
+            return ts.toInstant().atOffset(java.time.ZoneOffset.UTC);
+        }
+        if (v instanceof java.time.Instant inst) {
+            return inst.atOffset(java.time.ZoneOffset.UTC);
+        }
+        return null;
     }
 
     public record EscapeRequest(String titulo, String quemEspera, String oQueTrava, String classe) {

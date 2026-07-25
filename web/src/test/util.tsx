@@ -30,6 +30,10 @@ export function pendencia(over: Partial<Pendencia> & { id: string; titulo: strin
     quemEspera: null,
     temperatura: 0,
     baixaConfianca: false,
+    oQueTrava: null,
+    valorEmJogo: null,
+    prazoImplicito: null,
+    criadaEm: null,
     ...over,
   };
 }

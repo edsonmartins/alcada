@@ -16,6 +16,10 @@ export interface Pendencia {
   quemEspera: string | null;
   temperatura: number;
   baixaConfianca: boolean;
+  oQueTrava: string | null;
+  valorEmJogo: number | null;
+  prazoImplicito: string | null; // ISO-8601
+  criadaEm: string | null; // ISO-8601
 }
 
 export interface ItemHoje {
