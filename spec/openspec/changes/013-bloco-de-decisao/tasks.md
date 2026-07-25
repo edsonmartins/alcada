@@ -25,5 +25,5 @@
 
 ## Verificação
 - [x] JVM suite verde (124) + 31 Vitest
-- [ ] build nativo + RSS ≤120 MB
-- [ ] Deploy no piloto (GHCR pull) e conferência do bloco
+- [x] build nativo — RSS 67 MB
+- [x] Deploy no piloto (GHCR pull); bloco verificado ao vivo (dossiê+opções+redação degradada+decidir)
