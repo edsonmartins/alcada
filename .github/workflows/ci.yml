@@ -11,7 +11,9 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17-alpine
+        # pgvector/pg16: o pacote 014 usa a extensão vector. No CI o role alcada é
+        # superusuário (default da imagem), então o CREATE EXTENSION do Flyway cria de fato.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: alcada
           POSTGRES_PASSWORD: alcada

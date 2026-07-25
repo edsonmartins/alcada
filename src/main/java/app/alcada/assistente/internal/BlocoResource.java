@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import app.alcada.assistente.port.Bloco;
+import app.alcada.assistente.port.Dossie;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import jakarta.transaction.Transactional;
@@ -26,10 +27,12 @@ import jakarta.ws.rs.core.Response;
 public class BlocoResource {
 
     private final Bloco bloco;
+    private final Dossie dossie;
     private final ContextoTenant contexto;
 
-    public BlocoResource(Bloco bloco, ContextoTenant contexto) {
+    public BlocoResource(Bloco bloco, Dossie dossie, ContextoTenant contexto) {
         this.bloco = bloco;
+        this.dossie = dossie;
         this.contexto = contexto;
     }
 
@@ -89,6 +92,24 @@ public class BlocoResource {
         }
     }
 
+    @POST
+    @Path("/dossie/perguntar")
+    @Transactional
+    public Response perguntar(@PathParam("id") String id, PerguntarReq req) {
+        Optional<OrgId> org = contexto.atual();
+        if (org.isEmpty()) {
+            return erro(400, "org.ausente", "X-Org-Id não resolvido");
+        }
+        if (req == null || req.pergunta() == null || req.pergunta().isBlank()) {
+            return erro(400, "pergunta.ausente", "pergunta é obrigatória");
+        }
+        try {
+            return Response.ok(dossie.perguntar(org.get(), UUID.fromString(id), req.pergunta())).build();
+        } catch (NoSuchElementException e) {
+            return erro(404, "pendencia.inexistente", e.getMessage());
+        }
+    }
+
     private static Response erro(int status, String tipo, String detalhe) {
         return Response.status(status).type("application/problem+json")
                 .entity(new Problema("urn:alcada:" + tipo, detalhe, status)).build();
@@ -98,6 +119,9 @@ public class BlocoResource {
     }
 
     public record DecidirReq(String opcao, String texto) {
+    }
+
+    public record PerguntarReq(String pergunta) {
     }
 
     public record Problema(String type, String detail, int status) {

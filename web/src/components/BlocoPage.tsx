@@ -1,8 +1,8 @@
-import { Alert, Button, Group, Paper, Radio, SegmentedControl, Stack, Text, Textarea, Title } from "@mantine/core";
+import { Alert, Badge, Button, Group, Paper, Radio, SegmentedControl, Stack, Text, Textarea, TextInput, Title } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { decidir, getBloco, redigir } from "../api/bloco";
+import { decidir, getBloco, perguntarDossie, redigir, type RespostaDossie } from "../api/bloco";
 import { TrilhaTimeline } from "./TrilhaTimeline";
 
 export function BlocoPage() {
@@ -62,6 +62,7 @@ export function BlocoPage() {
           {verTrilha ? "Ocultar trilha" : "Ver trilha (fonte)"}
         </Button>
         {verTrilha && <div style={{ marginTop: 8 }}><TrilhaTimeline pendenciaId={id} enabled={verTrilha} /></div>}
+        <PerguntarDossie id={id} />
       </Paper>
 
       <Paper withBorder p="md">
@@ -96,6 +97,40 @@ export function BlocoPage() {
           <Button disabled={!opcao} onClick={() => mDecidir.mutate()}>Decidir e comunicar</Button>
         </Group>
       </Paper>
+    </Stack>
+  );
+}
+
+/** Pergunta ao dossiê (RFC-0004 §1): recuperação com fonte; "não encontrei" sem inventar. */
+function PerguntarDossie({ id }: { id: string }) {
+  const [pergunta, setPergunta] = useState("");
+  const [resp, setResp] = useState<RespostaDossie | null>(null);
+  const m = useMutation({
+    mutationFn: () => perguntarDossie(id, pergunta),
+    onSuccess: (r) => setResp(r),
+  });
+  return (
+    <Stack gap={6} mt="md" pt="sm" style={{ borderTop: "1px solid var(--mantine-color-gray-2)" }}>
+      <Text size="xs" fw={600}>Perguntar ao dossiê</Text>
+      <Group gap="xs">
+        <TextInput size="xs" style={{ flex: 1 }} placeholder="ex.: já foi reprovado antes?"
+          value={pergunta} onChange={(e) => setPergunta(e.currentTarget.value)}
+          onKeyDown={(e) => e.key === "Enter" && pergunta && m.mutate()} />
+        <Button size="xs" variant="light" disabled={!pergunta} onClick={() => m.mutate()}>Perguntar</Button>
+      </Group>
+      {resp && !resp.encontrou && (
+        <Text size="sm" c="dimmed" data-testid="dossie-vazio">Não encontrei isso na base.</Text>
+      )}
+      {resp && resp.encontrou && (
+        <Stack gap={4} data-testid="dossie-resposta">
+          <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>{resp.resposta}</Text>
+          <Group gap={4}>
+            {resp.fontes.map((f, i) => (
+              <Badge key={i} size="xs" variant="light" color="blue">{f.fonteTipo}</Badge>
+            ))}
+          </Group>
+        </Stack>
+      )}
     </Stack>
   );
 }

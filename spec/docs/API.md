@@ -23,7 +23,13 @@ POST   /v1/pendencias/{id}/desfundir       { cobranca_id }   # reverte deduplica
 GET    /v1/pendencias/{id}/bloco           # dossiê + opções (pacote 013)
 POST   /v1/pendencias/{id}/bloco/redigir   { opcao, tom }    # rascunho editável (modelo; proposta)
 POST   /v1/pendencias/{id}/decidir         { opcao, texto }  # fecha + DECIDIDA_NO_BLOCO + outbox
+POST   /v1/pendencias/{id}/dossie/perguntar { pergunta }     # recuperação híbrida (014)
 ```
+
+Perguntas ao dossiê (014, RFC-0004 §1): `POST .../dossie/perguntar` → `{encontrou, resposta,
+fontes:[{fonteTipo, fonteRef, trecho}]}`. Recuperação híbrida BM25 (`tsvector`) + embeddings
+(`pgvector`, cosseno) sobre `documento_indice`; **cita fonte**; abaixo do limiar `encontrou=false`
+("não encontrei isso na base"). Sem modelo de embedding, recupera por BM25.
 
 Bloco de decisão (013, RFC-0004): `GET .../bloco` → `{titulo, classe, dossie:[{rotulo,valor}],
 opcoes:[{chave,rotulo,consequencia}]}` (dossiê determinístico; fonte = a trilha). `redigir` →

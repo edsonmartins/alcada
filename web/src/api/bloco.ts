@@ -12,8 +12,15 @@ export interface RascunhoResultado {
   disponivel: boolean;
   aviso: string | null;
 }
+export interface RespostaDossie {
+  encontrou: boolean;
+  resposta: string;
+  fontes: Array<{ fonteTipo: string; fonteRef: string | null; trecho: string }>;
+}
 
 export const getBloco = (id: string) => get<BlocoDados>(`/v1/pendencias/${id}/bloco`);
+export const perguntarDossie = (id: string, pergunta: string) =>
+  post<RespostaDossie>(`/v1/pendencias/${id}/dossie/perguntar`, { pergunta });
 export const redigir = (id: string, opcao: string, tom: string) =>
   post<RascunhoResultado>(`/v1/pendencias/${id}/bloco/redigir`, { opcao, tom });
 export const decidir = (id: string, opcao: string, texto: string) =>

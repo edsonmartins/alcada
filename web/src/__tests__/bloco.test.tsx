@@ -19,12 +19,15 @@ const BLOCO: BlocoDados = {
 const h = vi.hoisted(() => ({
   decidir: vi.fn().mockResolvedValue(undefined),
   redigir: vi.fn().mockResolvedValue({ rascunho: "Comercial, aprovado.", disponivel: false, aviso: "Modelo indisponível" }),
+  perguntarDossie: vi.fn().mockResolvedValue({
+    encontrou: true, resposta: "Sim, reprovado em 08/07.", fontes: [{ fonteTipo: "MENSAGEM", fonteRef: "m1", trecho: "..." }],
+  }),
   navigate: vi.fn(),
 }));
 
 vi.mock("../api/bloco", async () => {
   const real = await vi.importActual<typeof import("../api/bloco")>("../api/bloco");
-  return { ...real, getBloco: () => Promise.resolve(BLOCO), redigir: h.redigir, decidir: h.decidir };
+  return { ...real, getBloco: () => Promise.resolve(BLOCO), redigir: h.redigir, decidir: h.decidir, perguntarDossie: h.perguntarDossie };
 });
 vi.mock("@tanstack/react-router", () => ({
   useParams: () => ({ id: "p1" }),
@@ -49,5 +52,15 @@ describe("bloco de decisão", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Decidir e comunicar" }));
     await waitFor(() => expect(h.decidir).toHaveBeenCalledWith("p1", "Aprovar", "Comercial, aprovado."));
+  });
+
+  it("pergunta ao dossiê e mostra resposta com fonte", async () => {
+    renderComProviders(<BlocoPage />);
+    await screen.findByText("Aprovar reajuste do contrato");
+    fireEvent.change(screen.getByPlaceholderText(/já foi reprovado/), { target: { value: "reprovado antes?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Perguntar" }));
+    await screen.findByTestId("dossie-resposta");
+    expect(screen.getByText("Sim, reprovado em 08/07.")).toBeInTheDocument();
+    expect(h.perguntarDossie).toHaveBeenCalledWith("p1", "reprovado antes?");
   });
 });
