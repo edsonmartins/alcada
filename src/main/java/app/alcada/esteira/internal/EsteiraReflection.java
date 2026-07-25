@@ -5,6 +5,7 @@ import app.alcada.esteira.port.ChecklistDados;
 import app.alcada.esteira.port.EntradasEsteira;
 import app.alcada.esteira.port.EsteiraDados;
 import app.alcada.esteira.port.InstanciaDados;
+import app.alcada.esteira.port.PortalInstancia;
 import app.alcada.esteira.port.PropostaChecklist;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
@@ -28,7 +29,13 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         EsteiraResource.Criada.class,
         EsteiraResource.VersaoPublicada.class,
         EsteiraResource.Problema.class,
-        InstanciaResource.AvaliarReq.class
+        InstanciaResource.AvaliarReq.class,
+        PortalInstancia.TokenEmitido.class,
+        PortalInstancia.Declaracao.class,
+        PortalInstancia.EstadoInstancia.class,
+        PortalInstancia.EstadoInstancia.ItemFalta.class,
+        PortalInstanciaResource.AutoavaliacaoReq.class,
+        PortalInstanciaResource.Problema.class
 })
 public final class EsteiraReflection {
     private EsteiraReflection() {

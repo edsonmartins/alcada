@@ -36,12 +36,14 @@ public class GuardaOrgId implements StatementInspector {
             "delegacao", "classe_decisao", "ausencia", "adiamento", "token_portal",
             "regra_silenciada", "pergunta_aprendizado",
             "esteira", "etapa", "checklist", "criterio", "instancia", "avaliacao", "apontamento",
-            "documento_indice");
+            "documento_indice", "autoavaliacao");
     static final Set<String> FILAS_TENANT = Set.of(
             "outbox", "job", "tarefa_reprocesso", "chamada_modelo", "descarte_captura",
             // fonte: o webhook resolve o tenant lendo org_id da própria fonte (id+segredo),
             // então basta org_id aparecer; não há predicado de org antes de conhecê-lo.
-            "fonte");
+            "fonte",
+            // token_instancia: o portal resolve o tenant a partir do token (hash), como a fonte.
+            "token_instancia");
 
     /** org_id em posição de predicado: seguido de operador de comparação. */
     private static final Pattern PREDICADO_ORG_ID =

@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   avaliar,
   criarInstancia,
+  emitirPortal,
   getChecklist,
   getEsteiras,
   getInstancias,
@@ -82,6 +83,11 @@ function CardInstancia({ esteiraId, i, checklist }: { esteiraId: string; i: Inst
   const [apTexto, setApTexto] = useState("");
   const [apTipo, setApTipo] = useState("OBJETIVO");
   const [desfecho, setDesfecho] = useState<string | null>(null);
+  const [linkPortal, setLinkPortal] = useState<string | null>(null);
+  const mPortal = useMutation({
+    mutationFn: () => emitirPortal(i.id),
+    onSuccess: (t) => setLinkPortal(`${window.location.origin}/portal/instancia/${t.token}`),
+  });
 
   const m = useMutation({
     mutationFn: () =>
@@ -107,8 +113,14 @@ function CardInstancia({ esteiraId, i, checklist }: { esteiraId: string; i: Inst
           {i.status === "EM_ANDAMENTO" && (
             <Button size="compact-xs" variant="subtle" onClick={() => setAberto((v) => !v)}>Avaliar</Button>
           )}
+          <Button size="compact-xs" variant="subtle" color="gray" onClick={() => mPortal.mutate()}>Portal</Button>
         </Group>
       </Group>
+      {linkPortal && (
+        <Text size="xs" c="dimmed" data-testid="link-portal" style={{ wordBreak: "break-all" }}>
+          Link da contraparte: {linkPortal}
+        </Text>
+      )}
       {desfecho && <Text size="xs" c={desfecho === "APROVADA" ? "teal" : "orange"}>desfecho: {desfecho}</Text>}
       <Collapse expanded={aberto}>
         <Stack gap={6} mt="xs">

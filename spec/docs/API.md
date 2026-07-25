@@ -145,8 +145,17 @@ POST   /v1/trajetos/{id}/confirmar         # libera efeitos externos represados
 POST   /v1/pendencias/{id}/portal          # emite link assinado (interno, tenant) -> { link } (ADR-0013)
 POST   /v1/portal/{tokenId}/revogar        # revoga token (interno, tenant)
 GET    /p/{token}                          # público, sem login: estado/prazo/o que falta (no-index)
-POST   /p/{token}/autoavaliacao            # declaração de conformidade (com a esteira, pacote 014)
+
+# Instância de esteira (pacote 015, RFC-0006)
+POST   /v1/instancias/{id}/portal          # emite link assinado da instância (gestor) -> { token }
+POST   /v1/instancias/portais/{tokenId}/revogar
+GET    /pi/{token}                          # público: esteira, etapa, prazo previsto, o que falta (no-index)
+POST   /pi/{token}/autoavaliacao   { declaracoes:[{criterioChave, conforme}] }  # contraparte declara conformidade
 ```
+
+`GET /pi/{token}` → `{esteiraNome, etapaAtualNome, entrouEm, prazoPrevisto, oQueFalta:[{chave,descricao}]}`
+(critérios OBJETIVOS da etapa do gestor). Token só-hash; resposta uniforme para inválido/expirado/
+revogado; nunca expõe deliberação/decisores/outras contrapartes. Autoavaliação informa o gestor (INV-10).
 
 ### Métricas de produto
 ```

@@ -56,3 +56,21 @@ export const getPropostasChecklist = (esteiraId: string) =>
   get<PropostaChecklist>(`/v1/esteiras/${esteiraId}/checklist/propostas`);
 export const publicarChecklist = (esteiraId: string, criterios: Criterio[]) =>
   post<{ versao: number }>(`/v1/esteiras/${esteiraId}/checklist`, { criterios });
+
+// --- Portal de instância (015) ---
+export interface EstadoInstancia {
+  esteiraNome: string;
+  etapaAtualNome: string | null;
+  entrouEm: string | null;
+  prazoPrevisto: string | null;
+  oQueFalta: Array<{ chave: string; descricao: string }>;
+}
+export const emitirPortal = (instanciaId: string) =>
+  post<{ tokenId: string; token: string }>(`/v1/instancias/${instanciaId}/portal`, {});
+export const revogarPortal = (tokenId: string) =>
+  post<void>(`/v1/instancias/portais/${tokenId}/revogar`, {});
+export const getPortalInstancia = (token: string) => get<EstadoInstancia>(`/pi/${token}`);
+export const autoavaliarInstancia = (
+  token: string,
+  declaracoes: Array<{ criterioChave: string; conforme: boolean }>,
+) => post<void>(`/pi/${token}/autoavaliacao`, { declaracoes });

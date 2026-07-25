@@ -21,6 +21,7 @@ import { EntradaPage } from "./components/EntradaPage";
 import { EsteiraPage } from "./components/EsteiraPage";
 import { ExecutorPage } from "./components/ExecutorPage";
 import { HojePage } from "./components/HojePage";
+import { PortalInstanciaPage } from "./components/PortalInstanciaPage";
 import { RadarPage } from "./components/RadarPage";
 import { SessaoPage } from "./components/SessaoPage";
 import { SextaPage } from "./components/SextaPage";
@@ -30,13 +31,18 @@ function Layout() {
   const navigate = useNavigate();
   const rota = useRouterState({ select: (s) => s.location.pathname });
   const naSessao = rota === "/entrar";
+  const portalPublico = rota.startsWith("/portal"); // portal externo: sem login, sem chrome interno
 
-  // Guarda do piloto: sem sessão, manda para /entrar (menos na própria /entrar).
+  // Guarda do piloto: sem sessão, manda para /entrar (menos na /entrar e no portal público).
   useEffect(() => {
-    if (!naSessao && !temSessao()) {
+    if (!naSessao && !portalPublico && !temSessao()) {
       navigate({ to: "/entrar" });
     }
-  }, [naSessao, rota, navigate]);
+  }, [naSessao, portalPublico, rota, navigate]);
+
+  if (portalPublico) {
+    return <Outlet />;
+  }
 
   const sair = () => {
     limparSessao();
@@ -97,11 +103,13 @@ const radarRoute = createRoute({ getParentRoute: () => rootRoute, path: "/radar"
 const alcadasRoute = createRoute({ getParentRoute: () => rootRoute, path: "/alcadas", component: AlcadasPage });
 const esteiraRoute = createRoute({ getParentRoute: () => rootRoute, path: "/esteira", component: EsteiraPage });
 const blocoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/bloco/$id", component: BlocoPage });
+const portalInstanciaRoute = createRoute({ getParentRoute: () => rootRoute, path: "/portal/instancia/$token", component: PortalInstanciaPage });
 const sextaRoute = createRoute({ getParentRoute: () => rootRoute, path: "/sexta", component: SextaPage });
 const sessaoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/entrar", component: SessaoPage });
 const router = createRouter({
   routeTree: rootRoute.addChildren([
-    indexRoute, hojeRoute, executorRoute, radarRoute, alcadasRoute, esteiraRoute, blocoRoute, sextaRoute, sessaoRoute,
+    indexRoute, hojeRoute, executorRoute, radarRoute, alcadasRoute, esteiraRoute, blocoRoute,
+    portalInstanciaRoute, sextaRoute, sessaoRoute,
   ]),
 });
 

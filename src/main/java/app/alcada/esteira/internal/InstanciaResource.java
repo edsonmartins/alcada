@@ -1,5 +1,7 @@
 package app.alcada.esteira.internal;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -9,6 +11,7 @@ import app.alcada.esteira.port.Avaliacoes;
 import app.alcada.esteira.port.EntradasEsteira.ApontamentoItem;
 import app.alcada.esteira.port.EntradasEsteira.ResultadoItem;
 import app.alcada.esteira.port.Esteiras;
+import app.alcada.esteira.port.PortalInstancia;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import jakarta.transaction.Transactional;
@@ -25,14 +28,44 @@ import jakarta.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 public class InstanciaResource {
 
+    private static final int VALIDADE_PADRAO_DIAS = 30;
+
     private final Avaliacoes avaliacoes;
     private final Esteiras esteiras;
+    private final PortalInstancia portal;
     private final ContextoTenant contexto;
 
-    public InstanciaResource(Avaliacoes avaliacoes, Esteiras esteiras, ContextoTenant contexto) {
+    public InstanciaResource(Avaliacoes avaliacoes, Esteiras esteiras, PortalInstancia portal,
+                             ContextoTenant contexto) {
         this.avaliacoes = avaliacoes;
         this.esteiras = esteiras;
+        this.portal = portal;
         this.contexto = contexto;
+    }
+
+    @POST
+    @Path("/{id}/portal")
+    @Transactional
+    public Response emitirPortal(@PathParam("id") String id) {
+        Optional<OrgId> org = contexto.atual();
+        if (org.isEmpty()) {
+            return erro(400, "org.ausente", "X-Org-Id não resolvido");
+        }
+        OffsetDateTime expira = OffsetDateTime.now(ZoneOffset.UTC).plusDays(VALIDADE_PADRAO_DIAS);
+        var t = portal.emitir(org.get(), UUID.fromString(id), expira);
+        return Response.status(201).entity(t).build();
+    }
+
+    @POST
+    @Path("/portais/{tokenId}/revogar")
+    @Transactional
+    public Response revogarPortal(@PathParam("tokenId") String tokenId) {
+        Optional<OrgId> org = contexto.atual();
+        if (org.isEmpty()) {
+            return erro(400, "org.ausente", "X-Org-Id não resolvido");
+        }
+        portal.revogar(org.get(), UUID.fromString(tokenId));
+        return Response.noContent().build();
     }
 
     @POST
