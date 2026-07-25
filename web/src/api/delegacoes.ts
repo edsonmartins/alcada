@@ -33,11 +33,17 @@ export function devolver(id: string, motivo: string): Promise<void> {
   return post<void>(`/v1/delegacoes/${id}/devolver`, { motivo });
 }
 
+/** Janela de reversibilidade em forma legível: "2 min", "4h", "3 dias". */
+export function formatJanela(segundos: number): string {
+  if (segundos < 3600) return `${Math.max(1, Math.round(segundos / 60))} min`;
+  if (segundos < 86_400) return `${Math.round(segundos / 3600)}h`;
+  return `${Math.round(segundos / 86_400)} dias`;
+}
+
 /** Explicação do contrato do silêncio, para o executor entender o que acontece se não agir. */
 export function contratoDoSilencio(d: Delegacao): string {
-  const horas = Math.round(d.janelaSegundos / 3600);
   if (d.status === "PROPOSTA" || d.status === "AGUARDANDO_JANELA") {
-    return `Você propôs. Se o gestor não intervir, executa por ausência ${horas}h após o prazo.`;
+    return `Você propôs. Se o gestor não intervir, executa por ausência ${formatJanela(d.janelaSegundos)} após o prazo.`;
   }
   return "Sem proposta registrada: no silêncio de ambos, o item escala ao gestor — não executa em branco.";
 }

@@ -1,6 +1,6 @@
-import { Alert, Badge, Box, Button, Group, Paper, Stack, Text } from "@mantine/core";
-import { useEffect, useRef, useState } from "react";
-import type { Classe, SaidaDireta } from "../api/types";
+import { Alert, Badge, Box, Button, Chip, Group, Paper, Stack, Text } from "@mantine/core";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Classe, Horizonte, SaidaDireta } from "../api/types";
 import { formatPrazo, formatValor, idadeRelativa } from "../util/formato";
 import { useUI } from "../store/ui";
 import { useTriagem } from "../triagem/useTriagem";
@@ -27,9 +27,41 @@ const ROTULO_CLASSE: Record<Classe, string> = {
   ESTEIRA: "esteira",
 };
 
+const HORIZONTES: Array<[string, string]> = [
+  ["todos", "Todos"],
+  ["HOJE", "Hoje"],
+  ["SEMANA", "Semana"],
+  ["TRIMESTRE", "Trimestre"],
+];
+const CLASSES: Array<[string, string]> = [
+  ["todos", "Todas"],
+  ["DECISAO", "Decisão"],
+  ["BLOQUEIO", "Bloqueio"],
+  ["ESTEIRA", "Esteira"],
+];
+
 export function EntradaPage() {
   const { itens, pendentes, aplicar, aplicarLote, desfazer } = useTriagem();
   const { cursor, selecao, setCursor } = useUI();
+
+  const [fHorizonte, setFHorizonte] = useState<string>("todos");
+  const [fClasse, setFClasse] = useState<string>("todos");
+  const itensFiltrados = useMemo(
+    () =>
+      itens.filter(
+        (p) =>
+          (fHorizonte === "todos" || p.horizonte === (fHorizonte as Horizonte)) &&
+          (fClasse === "todos" || p.classe === (fClasse as Classe)),
+      ),
+    [itens, fHorizonte, fClasse],
+  );
+
+  // Mantém o cursor dentro dos limites quando o filtro encolhe a lista.
+  useEffect(() => {
+    if (cursor > itensFiltrados.length - 1) {
+      setCursor(Math.max(0, itensFiltrados.length - 1));
+    }
+  }, [itensFiltrados.length, cursor, setCursor]);
 
   // Sessão improdutiva (ADR-0018): uso sem nenhuma transição.
   const transicoes = useRef(0);
@@ -49,7 +81,7 @@ export function EntradaPage() {
   const aplicarC = (id: string, s: SaidaDireta) => comContagem(() => aplicar(id, s));
   const aplicarLoteC = (ids: string[], s: SaidaDireta) => comContagem(() => aplicarLote(ids, s));
 
-  useTriagemKeys({ itens, aplicar: aplicarC, aplicarLote: aplicarLoteC });
+  useTriagemKeys({ itens: itensFiltrados, aplicar: aplicarC, aplicarLote: aplicarLoteC });
 
   return (
     <Box>
@@ -88,8 +120,26 @@ export function EntradaPage() {
         </Paper>
       )}
 
+      <Group gap={6} mb="xs" data-testid="filtros">
+        <Chip.Group multiple={false} value={fHorizonte} onChange={(v) => setFHorizonte(v as string)}>
+          {HORIZONTES.map(([v, label]) => (
+            <Chip key={v} value={v} size="xs" variant="light">
+              {label}
+            </Chip>
+          ))}
+        </Chip.Group>
+        <span style={{ width: 1, height: 18, background: "var(--mantine-color-gray-3)" }} />
+        <Chip.Group multiple={false} value={fClasse} onChange={(v) => setFClasse(v as string)}>
+          {CLASSES.map(([v, label]) => (
+            <Chip key={v} value={v} size="xs" variant="light">
+              {label}
+            </Chip>
+          ))}
+        </Chip.Group>
+      </Group>
+
       <Stack gap={4} role="list" aria-label="entrada">
-        {itens.map((p, i) => (
+        {itensFiltrados.map((p, i) => (
           <Paper
             key={p.id}
             withBorder
@@ -159,9 +209,11 @@ export function EntradaPage() {
             </Group>
           </Paper>
         ))}
-        {itens.length === 0 && (
+        {itensFiltrados.length === 0 && (
           <Text c="dimmed" ta="center" py="xl">
-            Entrada vazia. Nada depende de você agora.
+            {itens.length === 0
+              ? "Entrada vazia. Nada depende de você agora."
+              : "Nada neste filtro."}
           </Text>
         )}
       </Stack>

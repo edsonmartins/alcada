@@ -124,18 +124,19 @@ function CardDelegacao({ d }: { d: Delegacao }) {
         </Group>
       </Stack>
 
-      <Button
-        size="xs"
-        variant="subtle"
-        mt="xs"
-        px={0}
-        onClick={() => setVerTrilha((v) => !v)}
-        aria-expanded={verTrilha}
-      >
-        {verTrilha ? "Ocultar trilha" : "Ver trilha"}
-      </Button>
+      <Group mt="xs">
+        <Button
+          size="xs"
+          variant="subtle"
+          px={0}
+          onClick={() => setVerTrilha((v) => !v)}
+          aria-expanded={verTrilha}
+        >
+          {verTrilha ? "Ocultar trilha" : "Ver trilha"}
+        </Button>
+      </Group>
       <Collapse expanded={verTrilha}>
-        <Stack gap={4} mt="xs">
+        <Stack gap={4} mt="sm" pt="xs" style={{ borderTop: "1px solid var(--mantine-color-gray-2)" }}>
           <TrilhaTimeline pendenciaId={d.pendenciaId} enabled={verTrilha} />
         </Stack>
       </Collapse>
