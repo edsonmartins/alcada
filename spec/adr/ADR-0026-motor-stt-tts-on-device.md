@@ -1,6 +1,6 @@
 # ADR-0026 — Motor de STT/TTS on-device para o canal de voz
 
-**Status:** proposto (aguarda ratificação) · **Data:** 2026-07 · **Encerra:** G4 (DECISOES-ABERTAS)
+**Status:** aceito · **Data:** 2026-07 · **Encerra:** G4 (DECISOES-ABERTAS)
 **Relacionado:** ADR-0014, INV-13, ADR-0010 · **Condiciona:** pacote 022
 
 ## Contexto

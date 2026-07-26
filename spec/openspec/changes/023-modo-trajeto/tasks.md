@@ -1,8 +1,7 @@
 # Tarefas — 023 modo trajeto
 
-## Decisão prévia (gate) — ADR-0027 (proposto)
-- [x] Fonte de detecção de movimento registrada em ADR-0027 (estado explícito + override manual + sinais que só ligam o modo)
-- [ ] Ratificar ADR-0027
+## Decisão prévia (gate) — ADR-0027 (aceito)
+- [x] Fonte de detecção de movimento registrada e **ratificada** (ADR-0027 aceito): estado explícito + override manual + sinais que só ligam o modo
 - [ ] Definir a lista de classes recusáveis em movimento por tenant (default: BLOQUEIO + acima de valor-limite)
 
 ## Backend (este repo — pequeno)

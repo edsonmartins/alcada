@@ -1,6 +1,6 @@
 # ADR-0027 — Detecção de movimento do modo trajeto
 
-**Status:** proposto (aguarda ratificação) · **Data:** 2026-07 · **Encerra:** G6 (DECISOES-ABERTAS)
+**Status:** aceito · **Data:** 2026-07 · **Encerra:** G6 (DECISOES-ABERTAS)
 **Relacionado:** ADR-0014 · **Condiciona:** pacote 023
 
 ## Contexto

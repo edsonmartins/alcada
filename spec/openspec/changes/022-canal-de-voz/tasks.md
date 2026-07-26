@@ -1,8 +1,8 @@
 # Tarefas — 022 canal de voz
 
-## Decisão prévia (gate) — ADR-0026 (proposto)
-- [x] Decisão de STT/TTS registrada em ADR-0026 (Whisper small + fallback de plataforma; TTS nativo)
-- [ ] Ratificar ADR-0026 e o limiar de WER de negócio
+## Decisão prévia (gate) — ADR-0026 (aceito)
+- [x] Decisão de STT/TTS registrada e **ratificada** (ADR-0026 aceito): Whisper small + fallback; TTS nativo
+- [ ] Definir o limiar de WER de negócio (número do piloto)
 - [ ] Rodar o gate de avaliação PT-BR com ruído de carro antes da POC
 
 ## App (Flutter)

@@ -18,23 +18,25 @@ Duas perguntas ao cliente-piloto:
 
 Se for (2), a alavanca é o formato de submissão e a esteira muda de desenho (ADR-0012).
 
-## G4 — Motor de STT/TTS on-device  → **ADR-0026 (proposto)**
-Decisão proposta: STT on-device atrás de porta, baseline Whisper `small` (MIT) + fallback de
-plataforma; TTS nativo da plataforma para a confirmação; Supertonic reservado. Mantém-se o **gate de
-avaliação PT-BR com ruído de carro** antes da POC. Falta ratificar o limiar de WER de negócio.
+## G4 — Motor de STT/TTS on-device  → **ADR-0026 (aceito)** ✅
+STT on-device atrás de porta, baseline Whisper `small` (MIT) + fallback de plataforma; TTS nativo da
+plataforma para a confirmação; Supertonic reservado. Mantém-se o **gate de avaliação PT-BR com ruído
+de carro** antes da POC. Pendência remanescente: o **limiar de WER de negócio** (número do piloto).
 
 ## G5 — Base legal e DPIA
 RIPD formal para captura de canais antes do primeiro cliente em produção (ADR-0011).
 
-## G6 — Detecção de movimento  → **ADR-0027 (proposto)**
-Decisão proposta: modo trajeto é estado explícito com **override manual sempre disponível**; sinais
-(CarPlay/Android Auto, APIs de atividade do SO, declaração manual) só **ligam** o modo, nunca
-destravam sozinhos; viés de projeto = preferir bloquear a permitir; sem rastreamento. Falta ratificar.
+## G6 — Detecção de movimento  → **ADR-0027 (aceito)** ✅
+Modo trajeto é estado explícito com **override manual sempre disponível**; sinais (CarPlay/Android
+Auto, APIs de atividade do SO, declaração manual) só **ligam** o modo, nunca destravam sozinhos;
+viés de projeto = preferir bloquear a permitir; sem rastreamento. Pendência remanescente: a **lista
+de classes recusáveis em movimento** por tenant (pacote 023).
 
-## G8 — Segmentação de oferta: Cloud x Soberano  **(comercial, urgente)**
-ADR-0020 tornou impossível vender "soberania de dados" no SKU que usa OpenRouter. Definir as duas
-ofertas, o preço de cada uma e o discurso antes da primeira proposta comercial. Não há roteamento
-in-region no Brasil pelo gateway; residência nacional só existe no SKU Soberano.
+## G8 — Segmentação de oferta: Cloud x Soberano  **(comercial, urgente)**  → **ADR-0028 (proposto)**
+Rascunho de decisão em ADR-0028: duas ofertas com promessas honestas — **Cloud** (OpenRouter +
+guardrails; vende método/minimização, **não** soberania) e **Soberano** (inferência local, residência
+nacional). Piloto atual = Cloud. Falta **ratificar** preço/posicionamento e, para o Soberano,
+implementar o `AdaptadorLocal` real. Não há roteamento in-region no Brasil pelo gateway.
 
 ## G7 — Recall mínimo aceitável da captura
 Definir o número **de negócio** antes de produção. Abaixo dele, o produto não vai ao ar.
