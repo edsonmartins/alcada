@@ -4,6 +4,7 @@ import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 /**
@@ -25,6 +26,10 @@ public class RolagemParticoes {
     /** Quantos meses à frente manter pré-criados. */
     static final int MESES_DE_FOLGA = 3;
 
+    /** Janela de retenção quente; além disso a partição é destacada (frio). 0 = nunca. */
+    @ConfigProperty(name = "trilha.retencao-meses", defaultValue = "24")
+    int retencaoMeses;
+
     private final EntityManager em;
 
     public RolagemParticoes(EntityManager em) {
@@ -36,9 +41,27 @@ public class RolagemParticoes {
         try {
             garantirJanela(MESES_DE_FOLGA);
             alertarSeDefaultPovoada();
+            if (retencaoMeses > 0) {
+                int frias = arquivarFrias(retencaoMeses);
+                if (frias > 0) {
+                    LOG.infof("arquivamento frio da trilha: %d partição(ões) destacada(s)", frias);
+                }
+            }
         } catch (RuntimeException ex) {
             LOG.error("falha na rolagem de partições da trilha", ex);
         }
+    }
+
+    /**
+     * Arquivamento frio (004): destaca (não deleta) as partições mensais além da
+     * retenção. Imutável (ADR-0016) — a tabela destacada persiste, só sai do
+     * caminho quente. Retorna quantas foram destacadas.
+     */
+    @Transactional
+    public int arquivarFrias(int meses) {
+        Number n = (Number) em.createNativeQuery("SELECT trilha_arquiva_frias(?1)")
+                .setParameter(1, meses).getSingleResult();
+        return n.intValue();
     }
 
     /** Cria as partições do mês corrente até +{@code meses} (idempotente). */
