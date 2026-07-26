@@ -1,8 +1,9 @@
 # Tarefas — 022 canal de voz
 
-## Decisão prévia (gate)
-- [ ] Escolher motor de STT on-device PT-BR (qualidade com ruído de carro, tamanho, licença) — RFC-0005/DECISOES-ABERTAS
-- [ ] Avaliar TTS (Supertonic e alternativas) para as frases de confirmação
+## Decisão prévia (gate) — ADR-0026 (proposto)
+- [x] Decisão de STT/TTS registrada em ADR-0026 (Whisper small + fallback de plataforma; TTS nativo)
+- [ ] Ratificar ADR-0026 e o limiar de WER de negócio
+- [ ] Rodar o gate de avaliação PT-BR com ruído de carro antes da POC
 
 ## App (Flutter)
 - [ ] Captura de áudio + persistência local ANTES da rede (INV-13)

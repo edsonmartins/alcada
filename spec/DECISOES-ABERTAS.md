@@ -18,16 +18,18 @@ Duas perguntas ao cliente-piloto:
 
 Se for (2), a alavanca é o formato de submissão e a esteira muda de desenho (ADR-0012).
 
-## G4 — Motor de STT/TTS on-device
-Avaliar qualidade em PT-BR com ruído de carro, tamanho, licença e latência. Reabrir a avaliação de
-Supertonic (MIT/OpenRAIL-M) e alternativas **antes** de qualquer POC de voz. Gate de ADR.
+## G4 — Motor de STT/TTS on-device  → **ADR-0026 (proposto)**
+Decisão proposta: STT on-device atrás de porta, baseline Whisper `small` (MIT) + fallback de
+plataforma; TTS nativo da plataforma para a confirmação; Supertonic reservado. Mantém-se o **gate de
+avaliação PT-BR com ruído de carro** antes da POC. Falta ratificar o limiar de WER de negócio.
 
 ## G5 — Base legal e DPIA
 RIPD formal para captura de canais antes do primeiro cliente em produção (ADR-0011).
 
-## G6 — Detecção de movimento
-Sensor, conexão do veículo ou declaração manual. Falso positivo bloqueia ação legítima; falso
-negativo permite decisão grave em movimento.
+## G6 — Detecção de movimento  → **ADR-0027 (proposto)**
+Decisão proposta: modo trajeto é estado explícito com **override manual sempre disponível**; sinais
+(CarPlay/Android Auto, APIs de atividade do SO, declaração manual) só **ligam** o modo, nunca
+destravam sozinhos; viés de projeto = preferir bloquear a permitir; sem rastreamento. Falta ratificar.
 
 ## G8 — Segmentação de oferta: Cloud x Soberano  **(comercial, urgente)**
 ADR-0020 tornou impossível vender "soberania de dados" no SKU que usa OpenRouter. Definir as duas

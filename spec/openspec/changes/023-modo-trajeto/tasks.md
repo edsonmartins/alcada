@@ -1,7 +1,8 @@
 # Tarefas — 023 modo trajeto
 
-## Decisão prévia (gate)
-- [ ] Definir fonte de detecção de movimento (sensor × conexão do veículo × declaração manual) — RFC-0005
+## Decisão prévia (gate) — ADR-0027 (proposto)
+- [x] Fonte de detecção de movimento registrada em ADR-0027 (estado explícito + override manual + sinais que só ligam o modo)
+- [ ] Ratificar ADR-0027
 - [ ] Definir a lista de classes recusáveis em movimento por tenant (default: BLOQUEIO + acima de valor-limite)
 
 ## Backend (este repo — pequeno)

@@ -46,9 +46,11 @@ CarPlay / Android Auto, áudio em background, ativação por atalho de sistema, 
 notificação persistente durante o trajeto.
 
 ## Decisões pendentes
-- motor de STT on-device (qualidade em PT-BR com ruído de carro, tamanho do modelo, licença)
-- TTS: reavaliar Supertonic e alternativas como gate anterior à POC (ver DECISOES-ABERTAS)
-- detecção de movimento: sensor vs. conexão do veículo vs. declaração manual
+- motor de STT/TTS on-device → **ADR-0026 (proposto)**: Whisper `small` (MIT) atrás de porta +
+  fallback de plataforma; TTS nativo para a confirmação; Supertonic reservado. Mantém o gate de
+  avaliação PT-BR com ruído de carro antes da POC.
+- detecção de movimento → **ADR-0027 (proposto)**: modo trajeto como estado explícito com override
+  manual sempre disponível; sinais (CarPlay/Android Auto, atividade do SO) só ligam o modo.
 
 ## Métricas
 - % do trajeto convertido em decisão
