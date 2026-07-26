@@ -54,6 +54,32 @@ class DossieTest {
         assertFalse(r.encontrou(), "a pergunta de B nunca vê passagens de A");
     }
 
+    // RFC-0004 §1 — correção de premissa: a base contradiz um fato da pergunta.
+    @Test
+    void corrige_premissa_de_data_contradita_pela_base() {
+        OrgId org = novaOrg();
+        UUID p = pendenciaComTrava(org, "Reajuste do contrato do integrador",
+                "reajuste aprovado em 08/07/2026 pela diretoria");
+
+        RespostaDossie r = QuarkusTransaction.requiringNew()
+                .call(() -> dossie.perguntar(org, p, "o reajuste do contrato foi aprovado em maio?"));
+
+        assertTrue(r.encontrou());
+        assertTrue(r.correcao() != null && r.correcao().contains("08/07/2026"),
+                "corrige citando a data da base: " + r.correcao());
+        assertTrue(r.correcao().toLowerCase().contains("maio"), "aponta a premissa errada: " + r.correcao());
+    }
+
+    @Test
+    void sem_contradicao_nao_ha_correcao() {
+        OrgId org = novaOrg();
+        UUID p = pendenciaComTrava(org, "Reajuste do contrato", "reajuste aprovado em 08/07/2026");
+        RespostaDossie r = QuarkusTransaction.requiringNew()
+                .call(() -> dossie.perguntar(org, p, "o reajuste foi aprovado em julho?"));
+        assertTrue(r.encontrou());
+        assertTrue(r.correcao() == null, "julho bate com a base: sem correção");
+    }
+
     @Test
     void indexacao_idempotente() {
         OrgId org = novaOrg();
@@ -97,6 +123,16 @@ class DossieTest {
                 INSERT INTO pendencia (id, org_id, titulo, classe, horizonte, status)
                 VALUES (?, ?, ?, 'DECISAO', 'SEMANA', 'AGENDADA')
                 """).setParameter(1, id).setParameter(2, org.valor()).setParameter(3, titulo).executeUpdate());
+        return id;
+    }
+
+    private UUID pendenciaComTrava(OrgId org, String titulo, String oQueTrava) {
+        UUID id = UUID.randomUUID();
+        QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery("""
+                INSERT INTO pendencia (id, org_id, titulo, o_que_trava, classe, horizonte, status)
+                VALUES (?, ?, ?, ?, 'DECISAO', 'SEMANA', 'AGENDADA')
+                """).setParameter(1, id).setParameter(2, org.valor()).setParameter(3, titulo)
+                .setParameter(4, oQueTrava).executeUpdate());
         return id;
     }
 

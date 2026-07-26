@@ -16,6 +16,7 @@ export interface RespostaDossie {
   encontrou: boolean;
   resposta: string;
   fontes: Array<{ fonteTipo: string; fonteRef: string | null; trecho: string }>;
+  correcao: string | null;
 }
 
 export const getBloco = (id: string) => get<BlocoDados>(`/v1/pendencias/${id}/bloco`);

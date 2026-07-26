@@ -126,6 +126,11 @@ function PerguntarDossie({ id }: { id: string }) {
       )}
       {resp && resp.encontrou && (
         <Stack gap={4} data-testid="dossie-resposta">
+          {resp.correcao && (
+            <Alert color="orange" p="xs" data-testid="dossie-correcao">
+              <Text size="sm" fw={500}>{resp.correcao}</Text>
+            </Alert>
+          )}
           <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>{resp.resposta}</Text>
           <Group gap={4}>
             {resp.fontes.map((f, i) => (
