@@ -14,6 +14,8 @@
 - [x] Enfileira via a fila offline do 021 (não chama rede direto)
 - [x] Superfície (TelaVoz) rodando em device real (Galaxy Tab SM X115)
 - [x] STT real on-device da plataforma (Android SpeechRecognizer pt-BR) — fallback ADR-0026; testado no tablet
+- [x] STT na NUVEM via gateway (`POST /v1/voz/transcrever` → OpenRouter whisper-large-v3-turbo) — verificado ao vivo (HTTP 200); só SKU Cloud
+- [ ] App: gravar áudio (plugin `record`) + enviar ao /v1/voz/transcrever; usar nuvem online, device offline (híbrido)
 - [ ] Whisper `small` on-device (baseline ADR-0026) — depende de disco + gate de WER
 - [ ] Repassar por voz precisa de diretório de pessoas (nome → pessoa_id)
 
