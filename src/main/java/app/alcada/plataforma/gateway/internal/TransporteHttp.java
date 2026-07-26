@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.quarkus.arc.profile.IfBuildProfile;
+import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -21,13 +21,15 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * pesado). A política fixa e {@code response_format: json_schema} entram no
  * corpo; os plugins do OpenRouter ficam desabilitados.
  *
- * <p><b>Só existe em {@code prod}.</b> Dev/test usam o {@link TransporteStub},
- * que nunca bate no host externo — a garantia de que dado de cliente jamais sai
- * por acidente fora de prod (ADR-0020). Para a <b>fiação</b> (prova de contrato)
- * com {@code :free} e dado sintético, rode o build de prod localmente.
+ * <p><b>Ativado por {@code gateway.openrouter.enabled=true}</b> (ligado nos
+ * profiles {@code prod} e {@code demo} — ver application.properties). Dev/test
+ * usam o {@link TransporteStub}, que nunca bate no host externo. No piloto
+ * (demo), a chamada real ainda depende da chave ({@code OPENROUTER_API_KEY}) e a
+ * minimização/roteamento por sensibilidade continuam valendo (ADR-0010/0020):
+ * classe RESTRITA nunca sai (vai para inferência local).
  */
 @ApplicationScoped
-@IfBuildProfile("prod")
+@IfBuildProperty(name = "gateway.openrouter.enabled", stringValue = "true")
 public class TransporteHttp implements TransporteModelo {
 
     @ConfigProperty(name = "gateway.openrouter.url",

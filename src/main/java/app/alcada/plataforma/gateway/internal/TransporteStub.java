@@ -1,7 +1,7 @@
 package app.alcada.plataforma.gateway.internal;
 
 import io.quarkus.arc.DefaultBean;
-import io.quarkus.arc.profile.UnlessBuildProfile;
+import io.quarkus.arc.properties.UnlessBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
@@ -17,7 +17,7 @@ import org.jboss.logging.Logger;
  */
 @ApplicationScoped
 @DefaultBean
-@UnlessBuildProfile("prod")
+@UnlessBuildProperty(name = "gateway.openrouter.enabled", stringValue = "true", enableIfMissing = true)
 public class TransporteStub implements TransporteModelo {
 
     private static final Logger LOG = Logger.getLogger(TransporteStub.class);

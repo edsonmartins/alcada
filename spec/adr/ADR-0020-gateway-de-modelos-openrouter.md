@@ -94,6 +94,15 @@ como diferencial e rotear conteúdo para provedores fora do país. Duas ofertas 
 - <cite index="5-1">Cache em memória é considerado compatível com ZDR; para não-retenção completa é necessário o filtro de "No Caching"</cite>. Avaliar por classe de conteúdo.
 - <cite index="2-1">Existem endpoints que não treinam com os dados mas os retêm, por varredura de abuso ou razão legal</cite> — daí `data_collection: deny` **e** `zdr: true`, não um ou outro.
 
+## Emenda (piloto, 2026-07)
+A regra original "transporte real do OpenRouter só em `prod`" acoplava o gateway real ao OIDC
+obrigatório do `prod`, impedindo o piloto (profile `demo`, sem IdP) de usar IA. Emenda: o transporte
+real passa a ser ligado por **`gateway.openrouter.enabled`** (`@IfBuildProperty`), ativo em `prod` **e**
+`demo`. Garantias preservadas: a chamada real ainda depende da chave (`OPENROUTER_API_KEY`); sem ela,
+degrada como o stub; minimização e roteamento por sensibilidade continuam (RESTRITA nunca sai, vai
+para inferência local); o Linktor **permanece stub** fora de `prod`. Dev/test seguem no stub. Habilita,
+no piloto, interpretação/consulta por LLM e (fase 2) STT/TTS de áudio do OpenRouter.
+
 ## Revisão
 Reavaliar em 12 meses ou quando: houver exigência de residência nacional em contrato relevante, o
 custo por item ultrapassar o de operar inferência própria, ou o volume justificar o custo fixo.
