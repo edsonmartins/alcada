@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Box, Button, Chip, Group, Paper, Stack, Text } from "@mantine/core";
+import { Alert, Anchor, Badge, Box, Button, Chip, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Classe, Horizonte, SaidaDireta } from "../api/types";
 import { formatPrazo, formatValor, idadeRelativa } from "../util/formato";
@@ -86,7 +86,7 @@ export function EntradaPage() {
   useTriagemKeys({ itens: itensFiltrados, aplicar: aplicarC, aplicarLote: aplicarLoteC });
 
   return (
-    <Box>
+    <Box style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 96px)" }}>
       <PageHeader titulo="Entrada" sub="A fila a esvaziar — uma pergunta: isso precisa mesmo de você?" />
       {improdutiva && (
         <Alert color="yellow" mb="sm" data-testid="sessao-improdutiva">
@@ -141,7 +141,8 @@ export function EntradaPage() {
         </Chip.Group>
       </Group>
 
-      <Paper p={0} role="list" aria-label="entrada" style={{ overflow: "hidden" }}>
+      <Paper p={0} style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+        <ScrollArea h="100%" type="auto" role="list" aria-label="entrada">
         {itensFiltrados.map((p, i) => (
           <div
             key={p.id}
@@ -211,6 +212,7 @@ export function EntradaPage() {
               : "Nada neste filtro."}
           </Text>
         )}
+        </ScrollArea>
       </Paper>
 
       <DrawerDetalhe />
