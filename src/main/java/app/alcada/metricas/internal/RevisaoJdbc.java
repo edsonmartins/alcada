@@ -15,6 +15,7 @@ import app.alcada.metricas.port.RadarDados;
 import app.alcada.metricas.port.RevisaoDados;
 import app.alcada.metricas.port.RevisaoSemanal;
 import app.alcada.plataforma.gateway.port.ModelGateway;
+import app.alcada.plataforma.multitenancy.port.FusoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
@@ -27,27 +28,29 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @ApplicationScoped
 public class RevisaoJdbc implements RevisaoSemanal {
 
-    private static final ZoneId SP = ZoneId.of("America/Sao_Paulo");
     private static final int LIMITE_ENTRADA = 50;
 
     private final EntityManager em;
     private final ModelGateway modelo;
+    private final FusoTenant fuso;
 
     @ConfigProperty(name = "revisao.usar-llm", defaultValue = "false")
     boolean usarLlm;
 
-    public RevisaoJdbc(EntityManager em, ModelGateway modelo) {
+    public RevisaoJdbc(EntityManager em, ModelGateway modelo, FusoTenant fuso) {
         this.em = em;
         this.modelo = modelo;
+        this.fuso = fuso;
     }
 
     @Override
     public RevisaoDados calcular(OrgId org) {
         UUID orgId = org.valor();
+        ZoneId zona = fuso.fuso(org);
         RevisaoDados.Entrada entrada = entrada(orgId);
         List<RadarDados.ItemAdiado> adiados = adiados(orgId);
         List<RevisaoDados.DicaRegra> regras = podeVirarRegra(orgId);
-        RevisaoDados.ResumoSemana resumo = resumoSemana(orgId);
+        RevisaoDados.ResumoSemana resumo = resumoSemana(orgId, zona);
         RevisaoDados.Conducao conducao = conduzir(org, entrada, adiados, regras, resumo);
         return new RevisaoDados(entrada, adiados, regras, resumo, conducao);
     }
@@ -143,10 +146,10 @@ public class RevisaoJdbc implements RevisaoSemanal {
         return res;
     }
 
-    private RevisaoDados.ResumoSemana resumoSemana(UUID orgId) {
-        OffsetDateTime inicio = LocalDate.now(SP)
+    private RevisaoDados.ResumoSemana resumoSemana(UUID orgId, ZoneId zona) {
+        OffsetDateTime inicio = LocalDate.now(zona)
                 .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                .atStartOfDay(SP).toOffsetDateTime();
+                .atStartOfDay(zona).toOffsetDateTime();
         @SuppressWarnings("unchecked")
         List<Object[]> linhas = em.createNativeQuery(
                 "SELECT tipo, count(*) FROM trilha WHERE org_id = ? AND ocorrido_em >= ? GROUP BY tipo")

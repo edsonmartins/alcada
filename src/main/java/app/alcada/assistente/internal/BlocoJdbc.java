@@ -34,12 +34,15 @@ public class BlocoJdbc implements Bloco {
     private final Trilha trilha;
     private final Outbox outbox;
     private final ModelGateway modelo;
+    private final app.alcada.plataforma.multitenancy.port.FusoTenant fuso;
 
-    public BlocoJdbc(EntityManager em, Trilha trilha, Outbox outbox, ModelGateway modelo) {
+    public BlocoJdbc(EntityManager em, Trilha trilha, Outbox outbox, ModelGateway modelo,
+                     app.alcada.plataforma.multitenancy.port.FusoTenant fuso) {
         this.em = em;
         this.trilha = trilha;
         this.outbox = outbox;
         this.modelo = modelo;
+        this.fuso = fuso;
     }
 
     @Override
@@ -54,7 +57,7 @@ public class BlocoJdbc implements Bloco {
             add(dossie, "Valor em jogo", "R$ " + ((Number) p[4]).longValue());
         }
         if (p[5] != null) {
-            add(dossie, "Prazo", formatarPrazo(p[5]));
+            add(dossie, "Prazo", formatarPrazo(p[5], fuso.fuso(org)));
         }
         int temperatura = ((Number) p[6]).intValue();
         if (temperatura > 0) {
@@ -133,16 +136,15 @@ public class BlocoJdbc implements Bloco {
         };
     }
 
-    /** timestamptz → data curta em America/Sao_Paulo (ex.: 28/07/2026). */
-    private static String formatarPrazo(Object v) {
+    /** timestamptz → data curta no fuso do tenant (ex.: 28/07/2026). */
+    private static String formatarPrazo(Object v, java.time.ZoneId zona) {
         java.time.Instant inst = v instanceof java.sql.Timestamp ts ? ts.toInstant()
                 : v instanceof java.time.OffsetDateTime odt ? odt.toInstant()
                 : v instanceof java.time.Instant i ? i : null;
         if (inst == null) {
             return v.toString();
         }
-        return java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
-                .withZone(java.time.ZoneId.of("America/Sao_Paulo")).format(inst);
+        return java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(zona).format(inst);
     }
 
     private static String json(String s) {

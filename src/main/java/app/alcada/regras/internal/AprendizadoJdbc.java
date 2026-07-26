@@ -38,7 +38,6 @@ import jakarta.persistence.NoResultException;
 @ApplicationScoped
 public class AprendizadoJdbc implements Aprendizado {
 
-    private static final ZoneId SP = ZoneId.of("America/Sao_Paulo");
     private static final int TETO_SEMANA = 3;
     private static final Map<String, Integer> RANK = Map.of("N3", 1, "N2", 2, "N1", 3);
 
@@ -46,12 +45,15 @@ public class AprendizadoJdbc implements Aprendizado {
     private final Mineracao mineracao;
     private final Regras regras;
     private final Trilha trilha;
+    private final app.alcada.plataforma.multitenancy.port.FusoTenant fuso;
 
-    public AprendizadoJdbc(EntityManager em, Mineracao mineracao, Regras regras, Trilha trilha) {
+    public AprendizadoJdbc(EntityManager em, Mineracao mineracao, Regras regras, Trilha trilha,
+                           app.alcada.plataforma.multitenancy.port.FusoTenant fuso) {
         this.em = em;
         this.mineracao = mineracao;
         this.regras = regras;
         this.trilha = trilha;
+        this.fuso = fuso;
     }
 
     @Override
@@ -82,8 +84,9 @@ public class AprendizadoJdbc implements Aprendizado {
 
     private void gerar(OrgId org, Map<String, PropostaRegra> candidatas) {
         UUID orgId = org.valor();
-        OffsetDateTime inicioSemana = LocalDate.now(SP)
-                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay(SP).toOffsetDateTime();
+        ZoneId zona = fuso.fuso(org);
+        OffsetDateTime inicioSemana = LocalDate.now(zona)
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay(zona).toOffsetDateTime();
 
         Set<String> abertas = classes(orgId, "status = 'ABERTA'", null);
         Set<String> recusadasSemana = classes(orgId, "status = 'RECUSADA' AND respondida_em >= ?", inicioSemana);

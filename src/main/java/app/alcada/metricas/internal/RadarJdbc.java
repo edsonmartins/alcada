@@ -23,21 +23,23 @@ import jakarta.persistence.EntityManager;
 @ApplicationScoped
 public class RadarJdbc implements Radar {
 
-    private static final ZoneId SP = ZoneId.of("America/Sao_Paulo");
     private static final int SEMANAS = 8;
 
     // Estados ativos de uma delegação (a que vale agora).
     private static final String DELEG_ATIVA = "('ABERTA','PROPOSTA','AGUARDANDO_JANELA')";
 
     private final EntityManager em;
+    private final app.alcada.plataforma.multitenancy.port.FusoTenant fuso;
 
-    public RadarJdbc(EntityManager em) {
+    public RadarJdbc(EntityManager em, app.alcada.plataforma.multitenancy.port.FusoTenant fuso) {
         this.em = em;
+        this.fuso = fuso;
     }
 
     @Override
     public RadarDados calcular(OrgId org) {
         var orgId = org.valor();
+        ZoneId zona = fuso.fuso(org);
 
         long total = num(em.createNativeQuery(
                 "SELECT count(*) FROM pendencia WHERE org_id = ? AND status <> 'FECHADA'")
@@ -66,7 +68,7 @@ public class RadarJdbc implements Radar {
                 piorEspera(orgId),
                 autonomia(orgId),
                 fechamentoCanal(orgId),
-                encolhimento(orgId));
+                encolhimento(orgId, zona));
     }
 
     private List<RadarDados.ItemAdiado> adiados(java.util.UUID orgId) {
@@ -142,9 +144,9 @@ public class RadarJdbc implements Radar {
      * entraram (CAPTADA) × fecharam. Buckets vazios preenchidos com zero para a
      * linha do INV-01 nunca ter buracos.
      */
-    private List<RadarDados.SemanaFluxo> encolhimento(java.util.UUID orgId) {
+    private List<RadarDados.SemanaFluxo> encolhimento(java.util.UUID orgId, ZoneId zona) {
         // buckets de segunda, do mais antigo ao mais recente
-        LocalDate segundaAtual = LocalDate.now(SP).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate segundaAtual = LocalDate.now(zona).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         Map<String, long[]> buckets = new LinkedHashMap<>();
         for (int i = SEMANAS - 1; i >= 0; i--) {
             buckets.put(segundaAtual.minusWeeks(i).toString(), new long[] {0, 0});
@@ -152,13 +154,14 @@ public class RadarJdbc implements Radar {
 
         @SuppressWarnings("unchecked")
         List<Object[]> linhas = em.createNativeQuery("""
-                SELECT to_char(date_trunc('week', (ocorrido_em AT TIME ZONE 'America/Sao_Paulo'))::date, 'YYYY-MM-DD') AS semana,
+                SELECT to_char(date_trunc('week', (ocorrido_em AT TIME ZONE ?))::date, 'YYYY-MM-DD') AS semana,
                        count(*) FILTER (WHERE tipo = 'CAPTADA') AS entraram,
                        count(*) FILTER (WHERE tipo IN ('RESOLVIDA','EXECUTADA','EXECUTADA_POR_AUSENCIA','DECIDIDA_NO_BLOCO')) AS fecharam
                 FROM trilha
                 WHERE org_id = ? AND ocorrido_em >= now() - (? * interval '1 day')
                 GROUP BY 1
-                """).setParameter(1, orgId).setParameter(2, SEMANAS * 7).getResultList();
+                """).setParameter(1, zona.getId()).setParameter(2, orgId)
+                .setParameter(3, SEMANAS * 7).getResultList();
         for (Object[] l : linhas) {
             long[] b = buckets.get((String) l[0]);
             if (b != null) {
