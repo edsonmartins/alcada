@@ -8,5 +8,5 @@
 - [x] `POST /v1/consulta` + reflexão para native
 - [x] Testes: C1 esperando-mim, C2 travado-por, C3 aversivos, C4 desconhecido, C5 isolamento org
 - [x] UI: caixa de consulta (Radar) com resposta + itens clicáveis
-- [ ] Verificar: JVM verde (142 testes) + native build + RSS ≤120MB
+- [x] Verificar: JVM verde (142 testes) + native build + RSS = 75MB (≤120MB), endpoint OK
 - [ ] Deploy e conferência
