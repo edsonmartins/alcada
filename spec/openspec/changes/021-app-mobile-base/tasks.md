@@ -12,9 +12,12 @@
 - [x] Verificar: JVM verde + native + RSS ≤120MB
 - [x] Portas novas expostas: `Triagem`, `Autonomia`, `EscapeCaptura` (para o módulo movel)
 
-## App (Flutter — repo/target separado, ADR-0015)
-- [ ] Esqueleto Flutter 3.27 offline-first; fila local persistida (Drift/SQLite)
-- [ ] Worker de sync idempotente com retry exponencial
-- [ ] Sessão por org_id/pessoa_id (piloto); ganchos para OIDC
-- [ ] Lista da fila (leitura) + ações de despacho de 1 toque, sem push de "novo item"
-- [ ] Teste offline: comando enfileirado sem rede sincroniza ao voltar, sem duplicar
+## App (Flutter — repo separado `alcada-mobile`, ADR-0015)
+- [x] Esqueleto Flutter offline-first; fila local persistida (sqflite)
+- [x] Sincronizador idempotente (comandoId por comando); falha mantém pendente (INV-13)
+- [x] Sessão por org_id/pessoa_id (piloto), limpeza de aspas + validação UUID; ganchos para OIDC
+- [x] Lista da fila por pull + despacho de 1 toque (resolver) e registrar; sem push de "novo item"
+- [x] Testes: enfileira offline → sincroniza sem duplicar; ERRO segue pendente (7 testes, analyze limpo)
+- [ ] Repassar com dono/nível (seletor de pessoa) — próxima fatia
+- [ ] Sync em background + retry agendado — próxima fatia
+- [ ] Rodar em device/emulador (build iOS/Android) — depende de ambiente
