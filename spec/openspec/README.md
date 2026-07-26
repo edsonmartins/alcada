@@ -27,9 +27,9 @@ diretórios reais em `changes/` e o estado real do código.
 | 018 | `gateway-de-modelos` | F1 | ADR-0020 · RFC-0007 | **implementado** (OpenRouter/DeepInfra real) |
 | 019 | `linktor-real` | F2+ | ADR-0021 · ADR-0025 | **implementado** |
 | 020 | `consulta-linguagem-natural` | F4 | RFC-0004 §3 | **implementado** |
-| — | `app-mobile-base` | F5 | ADR-0015 · RFC-0005 | a escrever |
-| — | `canal-de-voz` | F5 | ADR-0014 · RFC-0005 | a escrever |
-| — | `modo-trajeto` | F5 | ADR-0014 · RFC-0005 | a escrever |
+| 021 | `app-mobile-base` | F5 | ADR-0015 · RFC-0005 | **escrito** |
+| 022 | `canal-de-voz` | F5 | ADR-0014 · RFC-0005 | **escrito** |
+| 023 | `modo-trajeto` | F5 | ADR-0014 · RFC-0005 | **escrito** |
 
 ## Regra
 Nenhum pacote pode contradizer `CONSTITUTION.md`. Se precisar, primeiro se escreve o ADR de revogação.
