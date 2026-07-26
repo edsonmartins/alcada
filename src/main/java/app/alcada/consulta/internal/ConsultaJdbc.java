@@ -98,7 +98,7 @@ public class ConsultaJdbc implements Consulta {
         if (usarLlm) {
             try {
                 Extracao<Plano> ex = modelo.extrair(new TarefaExtracao<>(
-                        org, Sensibilidade.INTERNA, null, pergunta, SCHEMA, this::parsePlano));
+                        org, Sensibilidade.INTERNA, null, promptClassificacao(pergunta), SCHEMA, this::parsePlano));
                 if (ex != null && ex.valor() != null && ex.valor().template() != null) {
                     return ex.valor();
                 }
@@ -107,6 +107,26 @@ public class ConsultaJdbc implements Consulta {
             }
         }
         return porPalavrasChave(pergunta);
+    }
+
+    /** Instrução que dá ao modelo a semântica de cada template (INV-10: ele só escolhe). */
+    private static String promptClassificacao(String pergunta) {
+        return """
+                Classifique a pergunta do gestor sobre a FILA DE DECISÕES em UM template.
+                Responda só com o JSON do schema (template e, quando fizer sentido, filtro).
+
+                Templates:
+                - ESPERANDO_MIM: o que aguarda a decisão do gestor / depende de mim / tenho pra fazer / \
+                está parado esperando por mim.
+                - TRAVADO_POR: o que está bloqueado por causa de uma área ou pessoa. Preencha "filtro" \
+                com essa área/pessoa (ex.: "financeiro", "TI").
+                - AVERSIVOS: o que venho adiando / empurrando com a barriga (adiado várias vezes).
+                - DELEGADAS_ABERTAS: o que deleguei a alguém e ainda está em aberto.
+                - POR_CLASSE: contagem por tipo. Preencha "filtro" com DECISAO, BLOQUEIO ou ESTEIRA.
+                - VALOR_TOTAL: quanto de valor/dinheiro está em jogo na fila.
+                - DESCONHECIDO: se a pergunta não for sobre a fila.
+
+                Pergunta: """ + pergunta;
     }
 
     private Plano parsePlano(String conteudo) {
