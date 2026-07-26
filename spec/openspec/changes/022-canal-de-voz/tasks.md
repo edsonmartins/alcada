@@ -13,7 +13,8 @@
 - [x] Modos Ditar (registrar/consultar) / Despachar (resolver/adiar)
 - [x] Enfileira via a fila offline do 021 (não chama rede direto)
 - [x] Superfície (TelaVoz) rodando em device real (Galaxy Tab SM X115)
-- [ ] Captura de áudio + STT real Whisper on-device (hoje: stand-in por texto)
+- [x] STT real on-device da plataforma (Android SpeechRecognizer pt-BR) — fallback ADR-0026; testado no tablet
+- [ ] Whisper `small` on-device (baseline ADR-0026) — depende de disco + gate de WER
 - [ ] Repassar por voz precisa de diretório de pessoas (nome → pessoa_id)
 
 ## Testes
