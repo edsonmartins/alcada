@@ -52,12 +52,15 @@ export function SessaoPage() {
 
   return (
     <Stack align="center" mt="xl">
-      <Paper withBorder p="xl" style={{ width: "100%", maxWidth: 460 }}>
-        <img
-          src={logoVertical}
-          alt="Alçada"
-          style={{ height: 120, width: "auto", display: "block", margin: "4px auto 18px" }}
-        />
+      <Paper withBorder p={0} style={{ width: "100%", maxWidth: 460, overflow: "hidden" }}>
+        <div style={{ background: "#131a2b", padding: "26px 24px", textAlign: "center" }}>
+          <img
+            src={logoVertical}
+            alt="Alçada"
+            style={{ height: 150, width: "auto", display: "block", margin: "0 auto" }}
+          />
+        </div>
+        <div style={{ padding: "24px" }}>
         <Title order={3} ta="center">Entrar</Title>
         <Text size="sm" c="dimmed" mt={4} mb="md">
           Piloto sem login: informe sua organização e sua pessoa. A fila é sempre
@@ -91,6 +94,7 @@ export function SessaoPage() {
           )}
           <Button onClick={entrar}>Entrar</Button>
         </Stack>
+        </div>
       </Paper>
     </Stack>
   );

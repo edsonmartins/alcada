@@ -66,11 +66,9 @@ function Sidebar() {
   };
   return (
     <aside style={{ width: 236, background: "#131a2b", color: "#fff", display: "flex", flexDirection: "column", flex: "none" }}>
-      <div style={{ padding: "16px 16px 14px", borderBottom: "1px solid #ffffff14" }}>
-        <div style={{ background: "#fff", borderRadius: 10, padding: "9px 12px", display: "inline-block" }}>
-          <img src={logoHorizontal} alt="Alçada" style={{ height: 26, width: "auto", display: "block" }} />
-        </div>
-        <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", color: "#7C89A8", marginTop: 9 }}>
+      <div style={{ padding: "18px 16px 14px", borderBottom: "1px solid #ffffff14" }}>
+        <img src={logoHorizontal} alt="Alçada" style={{ height: 34, width: "auto", display: "block" }} />
+        <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", color: "#7C89A8", marginTop: 8 }}>
           plano de controle
         </div>
       </div>
