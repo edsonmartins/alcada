@@ -122,6 +122,27 @@ class RadarRevisaoTest {
                 "assinatura {DECISAO} com >=3 resolvidas vira dica");
     }
 
+    // 018/009 — saúde do gateway exposta no radar: chamadas, falhas e custo.
+    @Test
+    void radar_expoe_saude_do_gateway() {
+        OrgId org = novaOrg();
+        QuarkusTransaction.requiringNew().run(() -> {
+            em.createNativeQuery("""
+                    INSERT INTO chamada_modelo (org_id, tarefa, sensibilidade, destino, custo, schema_ok)
+                    VALUES (?, 'extracao', 'INTERNA', 'EXTERNO', 0.002, true)
+                    """).setParameter(1, org.valor()).executeUpdate();
+            em.createNativeQuery("""
+                    INSERT INTO chamada_modelo (org_id, tarefa, sensibilidade, destino, custo, schema_ok)
+                    VALUES (?, 'extracao', 'INTERNA', 'EXTERNO', 0, false)
+                    """).setParameter(1, org.valor()).executeUpdate();
+        });
+
+        RadarDados.SaudeGateway s = QuarkusTransaction.requiringNew().call(() -> radar.calcular(org)).saudeGateway();
+        assertEquals(2, s.chamadas());
+        assertEquals(1, s.falhas(), "a chamada com schema_ok=false conta como falha");
+        assertTrue(s.custo() > 0, "soma o custo");
+    }
+
     // RFC-0004 §4 — condução: uma frase-guia por passo, coerente com os números.
     @Test
     void revisao_conduz_cada_passo_com_frase_guia() {

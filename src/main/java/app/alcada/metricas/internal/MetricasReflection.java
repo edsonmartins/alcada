@@ -16,6 +16,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         RadarDados.Autonomia.class,
         RadarDados.FechamentoCanal.class,
         RadarDados.SemanaFluxo.class,
+        RadarDados.SaudeGateway.class,
         RevisaoDados.class,
         RevisaoDados.Entrada.class,
         RevisaoDados.ItemFila.class,

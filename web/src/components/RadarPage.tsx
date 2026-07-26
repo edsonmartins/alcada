@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Paper, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import { Alert, Badge, Button, Group, Paper, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRadar, type ItemAdiado } from "../api/metricas";
 import { aplicarSaida } from "../api/pendencias";
@@ -50,6 +50,23 @@ export function RadarPage() {
           não encolhe (INV-01).
         </Text>
         <Encolhimento serie={d.encolhimento} />
+      </Paper>
+
+      <Paper withBorder p="md">
+        <Title order={6}>Saúde do gateway de modelos — últimos 28 dias</Title>
+        <Text size="xs" c="dimmed" mb="sm">
+          Chamadas ao modelo, falhas (schema recusado ou indisponibilidade) e custo acumulado.
+        </Text>
+        {d.saudeGateway.falhas > 0 && (
+          <Alert color="orange" mb="sm" data-testid="gateway-alerta">
+            {d.saudeGateway.falhas} de {d.saudeGateway.chamadas} chamadas falharam — verifique o gateway.
+          </Alert>
+        )}
+        <SimpleGrid cols={{ base: 3 }}>
+          <Metrica valor={d.saudeGateway.chamadas} rotulo="chamadas" nota="ao modelo" />
+          <Metrica valor={d.saudeGateway.falhas} rotulo="falhas" nota="schema / indisponível" />
+          <Metrica valor={`US$ ${d.saudeGateway.custo.toFixed(2)}`} rotulo="custo" nota="acumulado (28d)" />
+        </SimpleGrid>
       </Paper>
 
       <SimpleGrid cols={{ base: 1, sm: 2 }}>

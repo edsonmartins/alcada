@@ -15,6 +15,7 @@ const RADAR: RadarDados = {
     { semana: "2026-06-01", entraram: 30, fecharam: 20 },
     { semana: "2026-06-08", entraram: 12, fecharam: 18 },
   ],
+  saudeGateway: { chamadas: 12, falhas: 1, custo: 0.34 },
 };
 
 const REVISAO: RevisaoDados = {

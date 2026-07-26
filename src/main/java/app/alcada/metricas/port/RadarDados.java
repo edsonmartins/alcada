@@ -14,7 +14,8 @@ public record RadarDados(
         PiorEspera piorEspera,
         Autonomia autonomia,
         FechamentoCanal fechamentoCanal,
-        List<SemanaFluxo> encolhimento) {
+        List<SemanaFluxo> encolhimento,
+        SaudeGateway saudeGateway) {
 
     /** Quanto ainda trava no gestor: ENTRADA + AGENDADA + DELEGADA(N3) sobre abertos. */
     public record Dependencia(long qtd, long total, int pct) {
@@ -35,6 +36,13 @@ public record RadarDados(
 
     /** Fechamento no canal: entregue × falho × impossível (ADR-0025). */
     public record FechamentoCanal(long entregue, long falho, long impossivel) {
+    }
+
+    /**
+     * Saúde do gateway de modelos nos últimos 28 dias (018/009): chamadas, falhas
+     * (schema recusado/indisponibilidade) e custo acumulado. Alerta = falhas &gt; 0.
+     */
+    public record SaudeGateway(long chamadas, long falhas, double custo) {
     }
 
     /** Fluxo semanal: entraram (CAPTADA) × fecharam. Proxy honesto do encolhimento. */

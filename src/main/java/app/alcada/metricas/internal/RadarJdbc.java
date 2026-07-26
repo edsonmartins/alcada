@@ -68,7 +68,21 @@ public class RadarJdbc implements Radar {
                 piorEspera(orgId),
                 autonomia(orgId),
                 fechamentoCanal(orgId),
-                encolhimento(orgId, zona));
+                encolhimento(orgId, zona),
+                saudeGateway(orgId));
+    }
+
+    /** Saúde do gateway nos últimos 28 dias: chamadas, falhas (schema/indisp.), custo (018/009). */
+    private RadarDados.SaudeGateway saudeGateway(java.util.UUID orgId) {
+        Object[] r = (Object[]) em.createNativeQuery("""
+                SELECT count(*),
+                       count(*) FILTER (WHERE schema_ok = false),
+                       coalesce(sum(custo), 0)
+                FROM chamada_modelo
+                WHERE org_id = ? AND ocorrido_em >= now() - interval '28 days'
+                """).setParameter(1, orgId).getSingleResult();
+        return new RadarDados.SaudeGateway(
+                ((Number) r[0]).longValue(), ((Number) r[1]).longValue(), ((Number) r[2]).doubleValue());
     }
 
     private List<RadarDados.ItemAdiado> adiados(java.util.UUID orgId) {

@@ -17,6 +17,7 @@ export interface RadarDados {
   autonomia: { deliberada: number; porAusencia: number; devolvida: number; escalada: number; promovida: number };
   fechamentoCanal: { entregue: number; falho: number; impossivel: number };
   encolhimento: Array<{ semana: string; entraram: number; fecharam: number }>;
+  saudeGateway: { chamadas: number; falhas: number; custo: number };
 }
 
 export interface RevisaoDados {
