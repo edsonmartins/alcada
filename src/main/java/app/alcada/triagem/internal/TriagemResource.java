@@ -45,6 +45,15 @@ public class TriagemResource {
     }
 
     @POST
+    @Path("/{id}/descartar")
+    public Response descartar(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa) {
+        return comContexto(pessoa, (org, gestor) -> {
+            triagem.descartar(org, UUID.fromString(id), gestor);
+            return Response.noContent().build();
+        });
+    }
+
+    @POST
     @Path("/{id}/reservar")
     public Response reservar(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa,
                              ReservarRequest req) {

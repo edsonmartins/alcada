@@ -36,7 +36,7 @@ public class GuardaOrgId implements StatementInspector {
             "delegacao", "classe_decisao", "ausencia", "adiamento", "token_portal",
             "regra_silenciada", "pergunta_aprendizado",
             "esteira", "etapa", "checklist", "criterio", "instancia", "avaliacao", "apontamento",
-            "documento_indice", "autoavaliacao");
+            "documento_indice", "autoavaliacao", "sinal_descarte");
     static final Set<String> FILAS_TENANT = Set.of(
             "outbox", "job", "tarefa_reprocesso", "chamada_modelo", "descarte_captura",
             // fonte: o webhook resolve o tenant lendo org_id da própria fonte (id+segredo),

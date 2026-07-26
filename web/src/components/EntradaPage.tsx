@@ -15,6 +15,7 @@ const ROTULO: Record<SaidaDireta, string> = {
   resolver: "resolvido",
   reservar: "reservado",
   repousar: "adormecido",
+  descartar: "descartado",
 };
 
 // Cor do acento por classe (barra à esquerda), na linguagem visual do protótipo.
@@ -117,6 +118,9 @@ export function EntradaPage() {
               </Button>
               <Button size="xs" variant="default" onClick={() => { aplicarLoteC([...selecao], "repousar"); useUI.getState().limparSelecao(); }}>
                 Repousar (4)
+              </Button>
+              <Button size="xs" variant="subtle" color="gray" onClick={() => { aplicarLoteC([...selecao], "descartar"); useUI.getState().limparSelecao(); }}>
+                Descartar (x)
               </Button>
             </Group>
           </Group>

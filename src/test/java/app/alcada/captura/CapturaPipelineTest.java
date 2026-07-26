@@ -71,6 +71,39 @@ class CapturaPipelineTest {
         assertEquals(1L, contar(org, "SELECT count(*) FROM evento_bruto WHERE org_id = ? AND expira_em IS NOT NULL"));
     }
 
+    // 001 — descarte manual realimenta o filtro: remetente reincidente entra como "rever".
+    @Test
+    void remetente_com_descartes_repetidos_entra_como_baixa_confianca() {
+        OrgId org = new OrgId(UUID.randomUUID());
+        UUID fonte = criarOrgEFonte(org, "CLOUD", "WHATSAPP");
+        // dois descartes manuais prévios do mesmo remetente "spammer"
+        QuarkusTransaction.requiringNew().run(() -> {
+            for (int i = 0; i < 2; i++) {
+                em.createNativeQuery("INSERT INTO sinal_descarte (org_id, chave) VALUES (?, 'spammer')")
+                        .setParameter(1, org.valor()).executeUpdate();
+            }
+        });
+        transporte.programar(Status.OK, extracao("Reembolso Rafael", "Rafael", "aprovar reembolso", "DECISAO", 0.9));
+
+        processador.processar(org, ingerir(org, fonte, "@alcada aprovar reembolso do Rafael", "spammer"));
+
+        long rever = contar(org,
+                "SELECT count(*) FROM pendencia WHERE org_id = ? AND status = 'ENTRADA' AND baixa_confianca = true");
+        assertEquals(1L, rever, "captura do remetente reincidente entra marcada como rever");
+    }
+
+    @Test
+    void remetente_sem_descartes_entra_normal() {
+        OrgId org = new OrgId(UUID.randomUUID());
+        UUID fonte = criarOrgEFonte(org, "CLOUD", "WHATSAPP");
+        transporte.programar(Status.OK, extracao("Reembolso Rafael", "Rafael", "aprovar reembolso", "DECISAO", 0.9));
+
+        processador.processar(org, ingerir(org, fonte, "@alcada aprovar reembolso do Rafael", "confiavel"));
+
+        assertEquals(0L, contar(org,
+                "SELECT count(*) FROM pendencia WHERE org_id = ? AND baixa_confianca = true"));
+    }
+
     // ---- Cenário 3 ---------------------------------------------------------
     @Test
     void recobranca_nao_cria_item() {

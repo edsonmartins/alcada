@@ -20,6 +20,8 @@ export function aplicarSaida(id: string, saida: SaidaDireta): Promise<void> {
       });
     case "repousar":
       return post<void>(`/v1/pendencias/${id}/repousar`, { voltaEm: emDias(7) });
+    case "descartar":
+      return post<void>(`/v1/pendencias/${id}/descartar`, {});
   }
 }
 

@@ -5,7 +5,7 @@ export type Nivel = "N1" | "N2" | "N3";
 export type OQueFalta = "NADA" | "INSUMO" | "TERCEIRO";
 
 /** As três saídas aplicáveis direto pelo teclado (repassar e adiar têm formulário). */
-export type SaidaDireta = "resolver" | "reservar" | "repousar";
+export type SaidaDireta = "resolver" | "reservar" | "repousar" | "descartar";
 
 export interface Pendencia {
   id: string;

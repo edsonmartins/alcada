@@ -125,6 +125,26 @@ class TriagemBackendTest {
         assertTrue(hoje.stream().allMatch(h -> h.valorEmJogo() != null));
     }
 
+    // 001 — descarte de 1 toque fecha o item e grava o sinal pelo remetente.
+    @Test
+    void descartar_fecha_e_realimenta_o_filtro() {
+        OrgId org = new OrgId(UUID.randomUUID());
+        UUID pend = novaPendencia(org, null);
+        QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery(
+                "UPDATE pendencia SET origem_destino = 'spammer' WHERE org_id = ? AND id = ?")
+                .setParameter(1, org.valor()).setParameter(2, pend).executeUpdate());
+        UUID gestor = UUID.randomUUID();
+
+        triagem.descartar(org, pend, gestor);
+
+        assertEquals("FECHADA", status(org, pend));
+        assertTrue(tipos(org, pend).contains("DESCARTADA"));
+        long sinais = ((Number) unica(org,
+                "SELECT count(*) FROM sinal_descarte WHERE org_id = ? AND chave = 'spammer'")).longValue();
+        assertEquals(1L, sinais, "grava o sinal pelo remetente");
+        assertEquals(0L, countOutbox(org, "item.fechado"), "descarte é silêncio: não avisa ninguém");
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private UUID novaPendencia(OrgId org, java.math.BigDecimal valor) {

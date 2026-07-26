@@ -37,6 +37,11 @@ public class ProcessadorCaptura {
     @ConfigProperty(name = "captura.dedup.limiar", defaultValue = "0.82")
     double limiarDedup;
 
+    // Descartes manuais do mesmo remetente a partir dos quais a captura passa a
+    // marcar (não dropar) futuras capturas dele como baixa confiança (001).
+    @ConfigProperty(name = "captura.descarte.limiar", defaultValue = "2")
+    int limiarDescarte;
+
     private final EntityManager em;
     private final Minimizador minimizador;
     private final Extrator extrator;
@@ -120,9 +125,10 @@ public class ProcessadorCaptura {
             return;
         }
 
+        boolean ruido = marcadoComoRuido(org, autor);
         UUID id = criarPendencia(org, d.titulo(), d.quemEspera(), d.oQueTrava(), d.prazoImplicito(),
                 d.valorEmJogo(), d.classeSugerida(), horizonte(d.prazoImplicito()), "ENTRADA",
-                entidadeId, false, d.confianca());
+                entidadeId, ruido, d.confianca());
         gravarOrigem(org, id, tipoFonte, autor, thread);
         registrarTrilhaCriacao(org, id, fonteId, eventoBrutoId, tipoFonte, "ENTRADA", d.confianca());
         responder(org, autor, tipoFonte, id, eventoBrutoId, "na sua entrada");
@@ -262,6 +268,17 @@ public class ProcessadorCaptura {
                 "INSERT INTO cobranca (org_id, pendencia_id, evento_bruto_id) VALUES (?, ?, ?)")
                 .setParameter(1, org.valor()).setParameter(2, pendenciaId).setParameter(3, eventoBrutoId)
                 .executeUpdate();
+    }
+
+    /** Remetente com descartes manuais acima do limiar → futura captura entra como "rever" (001). */
+    private boolean marcadoComoRuido(OrgId org, String autor) {
+        if (autor == null || autor.isBlank()) {
+            return false;
+        }
+        long n = ((Number) em.createNativeQuery(
+                "SELECT count(*) FROM sinal_descarte WHERE org_id = ? AND chave = ?")
+                .setParameter(1, org.valor()).setParameter(2, autor).getSingleResult()).longValue();
+        return n >= limiarDescarte;
     }
 
     private void registrarDescarte(OrgId org, UUID fonteId, String motivo) {

@@ -1,7 +1,8 @@
 package app.alcada.plataforma.trilha;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.UUID;
 
@@ -51,11 +52,14 @@ class TrilhaVocabularioTest {
     }
 
     @Test
-    void descarte_por_irrelevancia_nao_e_evento_de_trilha() {
-        // O anexo define que descarte vai para métrica de captura, não gera trilha:
-        // não existe tipo de evento de descarte no vocabulário fechado.
-        for (TipoEvento t : TipoEvento.values()) {
-            assertFalse(t.name().contains("DESCART"), "não deve haver tipo de descarte: " + t);
-        }
+    void descarte_automatico_da_captura_nao_e_evento_de_trilha() {
+        // O anexo define que o descarte AUTOMÁTICO por irrelevância vai para métrica
+        // de captura (descarte_captura), não gera trilha. O único evento de descarte
+        // no vocabulário é o DESCARTADA — decisão MANUAL de triagem (001), auditável
+        // (INV-11). Não há tipo de descarte de captura.
+        long descartes = java.util.Arrays.stream(TipoEvento.values())
+                .filter(t -> t.name().contains("DESCART")).count();
+        assertEquals(1, descartes, "só o descarte manual da triagem é evento de trilha");
+        assertTrue(java.util.Arrays.stream(TipoEvento.values()).anyMatch(t -> t == TipoEvento.DESCARTADA));
     }
 }

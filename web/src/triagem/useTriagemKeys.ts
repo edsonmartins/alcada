@@ -89,6 +89,14 @@ export function useTriagemKeys({ itens, aplicar, aplicarLote }: Args) {
           e.preventDefault();
           ui.abrirDrawer(atual.id, "adiar");
           return;
+        case "x": // Descartar — 1 toque; realimenta o filtro de captura (001)
+        case "Delete":
+          e.preventDefault();
+          if (sel.length) {
+            aplicarLote(sel, "descartar");
+            ui.limparSelecao();
+          } else aplicar(atual.id, "descartar");
+          return;
       }
     }
 

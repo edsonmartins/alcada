@@ -55,6 +55,38 @@ public class TriagemService {
                 "{\"pendencia_id\":\"" + pendenciaId + "\"}", pendenciaId + ":fechado"));
     }
 
+    /**
+     * Descarte de 1 toque (001): fecha o item como ruído e realimenta o filtro —
+     * grava um sinal pelo remetente para a captura marcar futuras capturas dele
+     * como baixa confiança ("rever"), nunca dropando.
+     */
+    @Transactional
+    public void descartar(OrgId org, UUID pendenciaId, UUID gestorId) {
+        exigirEntrada(org, pendenciaId);
+        String remetente = remetente(org, pendenciaId);
+        setStatus(org, pendenciaId, "FECHADA");
+        trilha.registrar(new EventoTrilha(org, pendenciaId, TipoEvento.DESCARTADA,
+                Ator.humano(gestorId), "ENTRADA", "FECHADA", null, null));
+        if (remetente != null && !remetente.isBlank()) {
+            em.createNativeQuery(
+                    "INSERT INTO sinal_descarte (org_id, chave, pendencia_id) VALUES (?, ?, ?)")
+                    .setParameter(1, org.valor()).setParameter(2, remetente).setParameter(3, pendenciaId)
+                    .executeUpdate();
+        }
+        // Descarte é silêncio: nada sai por outbox (não avisa o remetente).
+    }
+
+    private String remetente(OrgId org, UUID pendenciaId) {
+        try {
+            Object v = em.createNativeQuery(
+                    "SELECT origem_destino FROM pendencia WHERE org_id = ? AND id = ?")
+                    .setParameter(1, org.valor()).setParameter(2, pendenciaId).getSingleResult();
+            return v == null ? null : v.toString();
+        } catch (NoResultException e) {
+            return null;
+        }
+    }
+
     @Transactional
     public void reservar(OrgId org, UUID pendenciaId, OffsetDateTime agendadoPara, UUID gestorId) {
         exigirEntrada(org, pendenciaId);
