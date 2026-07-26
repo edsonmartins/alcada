@@ -22,6 +22,12 @@ const REVISAO: RevisaoDados = {
   adiados: [],
   podeVirarRegra: [{ classe: "DECISAO", ocorrencias: 4 }],
   resumoSemana: { resolvidas: 6, executadas: 3, delegadas: 4, escaladas: 1, devolvidas: 0, fechadas: 9 },
+  conducao: {
+    entrada: "2 itens na entrada. Esvazie: decida, delegue ou deixe dormir.",
+    adiados: "Nada que você venha adiando 3 vezes ou mais — bom sinal.",
+    regras: "DECISAO se repetiu 4 vezes — candidata a virar autonomia.",
+    resumo: "Na semana: 6 resolvidas, 3 executadas, 4 delegadas.",
+  },
 };
 
 vi.mock("../api/metricas", async () => {

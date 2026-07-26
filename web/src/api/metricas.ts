@@ -31,6 +31,7 @@ export interface RevisaoDados {
     devolvidas: number;
     fechadas: number;
   };
+  conducao: { entrada: string; adiados: string; regras: string; resumo: string };
 }
 
 export function getRadar(): Promise<RadarDados> {

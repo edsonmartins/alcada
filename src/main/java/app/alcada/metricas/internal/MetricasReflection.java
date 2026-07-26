@@ -21,6 +21,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         RevisaoDados.ItemFila.class,
         RevisaoDados.DicaRegra.class,
         RevisaoDados.ResumoSemana.class,
+        RevisaoDados.Conducao.class,
         RadarResource.Problema.class
 })
 public final class MetricasReflection {

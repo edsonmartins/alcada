@@ -14,9 +14,11 @@ import java.util.UUID;
 import app.alcada.metricas.port.RadarDados;
 import app.alcada.metricas.port.RevisaoDados;
 import app.alcada.metricas.port.RevisaoSemanal;
+import app.alcada.plataforma.gateway.port.ModelGateway;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
  * Roteiro da revisão de sexta — leitura pura. Semana corrente ancorada em
@@ -29,15 +31,67 @@ public class RevisaoJdbc implements RevisaoSemanal {
     private static final int LIMITE_ENTRADA = 50;
 
     private final EntityManager em;
+    private final ModelGateway modelo;
 
-    public RevisaoJdbc(EntityManager em) {
+    @ConfigProperty(name = "revisao.usar-llm", defaultValue = "false")
+    boolean usarLlm;
+
+    public RevisaoJdbc(EntityManager em, ModelGateway modelo) {
         this.em = em;
+        this.modelo = modelo;
     }
 
     @Override
     public RevisaoDados calcular(OrgId org) {
         UUID orgId = org.valor();
-        return new RevisaoDados(entrada(orgId), adiados(orgId), podeVirarRegra(orgId), resumoSemana(orgId));
+        RevisaoDados.Entrada entrada = entrada(orgId);
+        List<RadarDados.ItemAdiado> adiados = adiados(orgId);
+        List<RevisaoDados.DicaRegra> regras = podeVirarRegra(orgId);
+        RevisaoDados.ResumoSemana resumo = resumoSemana(orgId);
+        RevisaoDados.Conducao conducao = conduzir(org, entrada, adiados, regras, resumo);
+        return new RevisaoDados(entrada, adiados, regras, resumo, conducao);
+    }
+
+    /** Frase-guia por passo (RFC-0004 §4): determinística, polida por modelo se habilitado. */
+    private RevisaoDados.Conducao conduzir(OrgId org, RevisaoDados.Entrada entrada,
+            List<RadarDados.ItemAdiado> adiados, List<RevisaoDados.DicaRegra> regras,
+            RevisaoDados.ResumoSemana r) {
+        String nEntrada = entrada.qtd() == 0
+                ? "Entrada limpa — nada a triar hoje."
+                : entrada.qtd() + (entrada.qtd() == 1 ? " item na entrada." : " itens na entrada.")
+                        + " Esvazie: para cada um, decida, delegue ou deixe dormir.";
+        String nAdiados = adiados.isEmpty()
+                ? "Nada que você venha adiando 3 vezes ou mais — bom sinal."
+                : adiados.size() + (adiados.size() == 1 ? " item que você vem empurrando." : " itens que você vem empurrando.")
+                        + " Decida agora ou deixe morrer, sem culpa.";
+        String nRegras = regras.isEmpty()
+                ? "Nenhum padrão repetido o suficiente para virar regra ainda."
+                : regras.get(0).classe() + " se repetiu " + regras.get(0).ocorrencias()
+                        + " vezes — candidata a virar autonomia. Reveja em /alcadas.";
+        long total = r.resolvidas() + r.executadas() + r.delegadas();
+        String nResumo = "Na semana: " + r.resolvidas() + " resolvidas, " + r.executadas()
+                + " executadas, " + r.delegadas() + " delegadas. "
+                + (total == 0 ? "Semana quieta." : "Fechamento em dia — siga assim.");
+        RevisaoDados.Conducao base = new RevisaoDados.Conducao(nEntrada, nAdiados, nRegras, nResumo);
+        return usarLlm ? polir(org, base) : base;
+    }
+
+    /** Polimento opcional por modelo (mantém o conteúdo factual das frases determinísticas). */
+    private RevisaoDados.Conducao polir(OrgId org, RevisaoDados.Conducao base) {
+        return new RevisaoDados.Conducao(
+                frase(org, base.entrada()), frase(org, base.adiados()),
+                frase(org, base.regras()), frase(org, base.resumo()));
+    }
+
+    private String frase(OrgId org, String determinada) {
+        try {
+            return modelo.redigir(new app.alcada.plataforma.gateway.port.Tarefas.TarefaRedacao(
+                    org, app.alcada.plataforma.gateway.port.Sensibilidade.INTERNA, null,
+                    "Reescreva em uma frase curta e direta, sem inventar números: " + determinada, "direto"))
+                    .rascunho();
+        } catch (RuntimeException e) {
+            return determinada;
+        }
     }
 
     private RevisaoDados.Entrada entrada(UUID orgId) {

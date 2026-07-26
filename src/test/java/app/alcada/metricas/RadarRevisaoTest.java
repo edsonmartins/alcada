@@ -122,6 +122,20 @@ class RadarRevisaoTest {
                 "assinatura {DECISAO} com >=3 resolvidas vira dica");
     }
 
+    // RFC-0004 §4 — condução: uma frase-guia por passo, coerente com os números.
+    @Test
+    void revisao_conduz_cada_passo_com_frase_guia() {
+        OrgId org = novaOrg();
+        pendencia(org, "Entrada A", "ENTRADA", 0);
+        pendencia(org, "Entrada B", "ENTRADA", 0);
+
+        RevisaoDados.Conducao c = QuarkusTransaction.requiringNew().call(() -> revisao.calcular(org)).conducao();
+
+        assertTrue(c.entrada().contains("2"), "narra a contagem da entrada: " + c.entrada());
+        assertTrue(c.adiados().toLowerCase().contains("nada"), "sem adiados: " + c.adiados());
+        assertTrue(c.resumo() != null && !c.resumo().isBlank(), "resumo guiado");
+    }
+
     @Test
     void isolamento_por_organizacao() {
         OrgId a = novaOrg();

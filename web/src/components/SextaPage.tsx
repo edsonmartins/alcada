@@ -16,6 +16,7 @@ export function SextaPage() {
       sub: "O que ainda não foi triado. Esvaziar, não organizar.",
       corpo: (
         <Stack gap="xs">
+          <Guia texto={d.conducao.entrada} />
           <Text size="sm">{d.entrada.qtd} item(s) na entrada.</Text>
           {d.entrada.itens.map((i) => (
             <Paper key={i.id} withBorder p="xs">
@@ -32,6 +33,7 @@ export function SextaPage() {
       sub: "Diagnóstico, não priorização. Resolver, soltar ou matar.",
       corpo: (
         <Stack gap="xs">
+          <Guia texto={d.conducao.adiados} />
           {d.adiados.map((a) => (
             <Paper key={a.id} withBorder p="xs">
               <Group gap={6}>
@@ -50,6 +52,7 @@ export function SextaPage() {
       sub: "Dica de repetição — não é regra automática (a mineração vem depois).",
       corpo: (
         <Stack gap="xs">
+          <Guia texto={d.conducao.regras} />
           {d.podeVirarRegra.map((r) => (
             <Paper key={r.classe} withBorder p="xs">
               <Text size="sm">
@@ -68,14 +71,17 @@ export function SextaPage() {
       titulo: "4. Resumo da semana",
       sub: "O que aconteceu desde segunda.",
       corpo: (
-        <SimpleGrid cols={{ base: 2, sm: 3 }}>
+        <Stack gap="xs">
+          <Guia texto={d.conducao.resumo} />
+          <SimpleGrid cols={{ base: 2, sm: 3 }}>
           <Contador v={d.resumoSemana.resolvidas} r="resolvidas" />
           <Contador v={d.resumoSemana.executadas} r="executadas (N2)" />
           <Contador v={d.resumoSemana.delegadas} r="delegadas" />
           <Contador v={d.resumoSemana.escaladas} r="escaladas" />
           <Contador v={d.resumoSemana.devolvidas} r="devolvidas" />
           <Contador v={d.resumoSemana.fechadas} r="fechadas" />
-        </SimpleGrid>
+          </SimpleGrid>
+        </Stack>
       ),
     },
   ];
@@ -102,6 +108,23 @@ export function SextaPage() {
         </Button>
       </Group>
     </Stack>
+  );
+}
+
+/** Frase-guia da condução (RFC-0004 §4): o sistema conduz o passo, o gestor decide. */
+function Guia({ texto }: { texto: string }) {
+  if (!texto) return null;
+  return (
+    <Paper
+      p="xs"
+      radius="md"
+      data-testid="conducao-guia"
+      style={{ background: "var(--mantine-color-indigo-0)", borderColor: "var(--mantine-color-indigo-2)" }}
+    >
+      <Text size="sm" fw={500} c="indigo.9">
+        {texto}
+      </Text>
+    </Paper>
   );
 }
 

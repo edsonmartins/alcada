@@ -11,7 +11,16 @@ public record RevisaoDados(
         Entrada entrada,
         List<RadarDados.ItemAdiado> adiados,
         List<DicaRegra> podeVirarRegra,
-        ResumoSemana resumoSemana) {
+        ResumoSemana resumoSemana,
+        Conducao conducao) {
+
+    /**
+     * Condução da revisão (RFC-0004 §4): uma frase-guia por passo do roteiro. É
+     * gerada — determinística a partir dos números, com polimento por modelo
+     * quando habilitado. Orienta o gestor sem ele ter que interpretar as tabelas.
+     */
+    public record Conducao(String entrada, String adiados, String regras, String resumo) {
+    }
 
     public record Entrada(long qtd, List<ItemFila> itens) {
     }
