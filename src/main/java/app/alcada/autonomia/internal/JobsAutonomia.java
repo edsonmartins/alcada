@@ -71,6 +71,50 @@ public final class JobsAutonomia {
     }
 
     @ApplicationScoped
+    public static class Lembrete50 implements ExecutorJob {
+        private final MotorAutonomia motor;
+
+        public Lembrete50(MotorAutonomia motor) {
+            this.motor = motor;
+        }
+
+        @Override
+        public String tipo() {
+            return TiposAutonomia.LEMBRETE_50;
+        }
+
+        @Override
+        public void executar(OrgId org, String chave, String payloadJson) {
+            UUID id = delegacao(payloadJson);
+            if (id != null) {
+                motor.aoLembrete(org, id, false);
+            }
+        }
+    }
+
+    @ApplicationScoped
+    public static class Lembrete90 implements ExecutorJob {
+        private final MotorAutonomia motor;
+
+        public Lembrete90(MotorAutonomia motor) {
+            this.motor = motor;
+        }
+
+        @Override
+        public String tipo() {
+            return TiposAutonomia.LEMBRETE_90;
+        }
+
+        @Override
+        public void executar(OrgId org, String chave, String payloadJson) {
+            UUID id = delegacao(payloadJson);
+            if (id != null) {
+                motor.aoLembrete(org, id, true);
+            }
+        }
+    }
+
+    @ApplicationScoped
     public static class Escalonamento implements ExecutorJob {
         private final MotorAutonomia motor;
 

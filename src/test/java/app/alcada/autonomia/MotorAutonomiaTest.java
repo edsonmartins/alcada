@@ -49,6 +49,34 @@ class MotorAutonomiaTest {
         assertTrue(tipos(c.org, c.pend).contains("EXECUTADA_POR_AUSENCIA"));
     }
 
+    // ---- Cenário: lembretes a 50% e 90% do prazo (002) --------------------
+    @Test
+    void lembretes_50_e_90_notificam_executor_e_gestor() {
+        Ctx c = novo("DECISAO");
+        UUID deleg = motor.delegar(c.org, c.pend, c.dono, "N2", futuro(), c.gestor);
+
+        adiantar(c.org, "AUT_LEMBRETE_50");
+        worker.processarDevidos();
+        assertEquals(1L, countOutbox(c.org, "delegacao.lembrete_executor"), "50%: cutuca o executor");
+        assertEquals(0L, countOutbox(c.org, "delegacao.lembrete_gestor"));
+
+        adiantar(c.org, "AUT_LEMBRETE_90");
+        worker.processarDevidos();
+        assertEquals(1L, countOutbox(c.org, "delegacao.lembrete_gestor"), "90%: avisa o gestor");
+    }
+
+    @Test
+    void lembrete_nao_notifica_se_delegacao_ja_saiu_da_janela() {
+        Ctx c = novo("DECISAO");
+        UUID deleg = motor.delegar(c.org, c.pend, c.dono, "N2", futuro(), c.gestor);
+        motor.intervir(c.org, c.pend, c.gestor); // gestor devolve → DEVOLVIDA
+
+        adiantar(c.org, "AUT_LEMBRETE_50");
+        worker.processarDevidos();
+        assertEquals(0L, countOutbox(c.org, "delegacao.lembrete_executor"),
+                "sem lembrete depois que a delegação já saiu da janela");
+    }
+
     // ---- Cenário: gestor interrompe antes do prazo ------------------------
     @Test
     void gestor_interrompe_antes_do_prazo() {

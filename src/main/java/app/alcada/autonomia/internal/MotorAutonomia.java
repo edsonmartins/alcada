@@ -92,6 +92,15 @@ public class MotorAutonomia {
                     prazo, payload(delegacaoId)));
             agenda.agendar(new TarefaAgendada(org, TiposAutonomia.ESCALONAMENTO, delegacaoId.toString(),
                     prazo.plus(p.escalonamento()), payload(delegacaoId)));
+            // Lembretes: a 50% do prazo cutuca o executor; a 90%, o gestor (002).
+            OffsetDateTime agora = OffsetDateTime.now(ZoneOffset.UTC);
+            long dur = Duration.between(agora, prazo).toSeconds();
+            if (dur > 0) {
+                agenda.agendar(new TarefaAgendada(org, TiposAutonomia.LEMBRETE_50, delegacaoId.toString(),
+                        agora.plusSeconds(dur / 2), payload(delegacaoId)));
+                agenda.agendar(new TarefaAgendada(org, TiposAutonomia.LEMBRETE_90, delegacaoId.toString(),
+                        agora.plusSeconds((dur * 9) / 10), payload(delegacaoId)));
+            }
         }
         return delegacaoId;
     }
@@ -232,7 +241,26 @@ public class MotorAutonomia {
         notificar(org, "delegacao.escalada", delegacaoId, "ninguém agiu; subiu ao gestor");
     }
 
+    /** Lembrete a 50%/90% do prazo. Só cutuca enquanto ninguém agiu (idempotente por status). */
+    @Transactional
+    public void aoLembrete(OrgId org, UUID delegacaoId, boolean paraGestor) {
+        Delegacao d = carregar(org, delegacaoId);
+        if (!ATIVO.contains(d.status())) {
+            return; // já executada/escalada/devolvida — nada a lembrar
+        }
+        if (paraGestor) {
+            notificar(org, "delegacao.lembrete_gestor", delegacaoId,
+                    "90% do prazo; sem ação, o sistema executa por ausência em breve");
+        } else {
+            notificar(org, "delegacao.lembrete_executor", delegacaoId,
+                    "metade do prazo; a delegação ainda espera por você");
+        }
+    }
+
     // ---- helpers -----------------------------------------------------------
+
+    private static final java.util.Set<String> ATIVO =
+            java.util.Set.of("ABERTA", "PROPOSTA", "AGUARDANDO_JANELA");
 
     private record Delegacao(UUID id, UUID pendenciaId, String status, Duration janela, String proposta) {
     }
