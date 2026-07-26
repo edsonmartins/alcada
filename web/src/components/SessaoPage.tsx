@@ -2,6 +2,7 @@ import { Button, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { definirSessao, limparId, RE_UUID } from "../api/config";
+import logoVertical from "../assets/logo-vertical.png";
 
 /**
  * Tela de sessão do PILOTO (profile demo, sem OIDC). O gestor/executor informa
@@ -52,7 +53,12 @@ export function SessaoPage() {
   return (
     <Stack align="center" mt="xl">
       <Paper withBorder p="xl" style={{ width: "100%", maxWidth: 460 }}>
-        <Title order={3}>Entrar</Title>
+        <img
+          src={logoVertical}
+          alt="Alçada"
+          style={{ height: 120, width: "auto", display: "block", margin: "4px auto 18px" }}
+        />
+        <Title order={3} ta="center">Entrar</Title>
         <Text size="sm" c="dimmed" mt={4} mb="md">
           Piloto sem login: informe sua organização e sua pessoa. A fila é sempre
           escopada por organização.

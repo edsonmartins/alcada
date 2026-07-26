@@ -23,6 +23,7 @@ import {
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { limparSessao, pessoaId, rotuloSessao, temSessao } from "./api/config";
+import logoHorizontal from "./assets/logo-horizontal.png";
 import { AlcadasPage } from "./components/AlcadasPage";
 import { BlocoPage } from "./components/BlocoPage";
 import { EntradaPage } from "./components/EntradaPage";
@@ -66,11 +67,10 @@ function Sidebar() {
   return (
     <aside style={{ width: 236, background: "#131a2b", color: "#fff", display: "flex", flexDirection: "column", flex: "none" }}>
       <div style={{ padding: "16px 16px 14px", borderBottom: "1px solid #ffffff14" }}>
-        <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, fontSize: 19, letterSpacing: "-.03em", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ width: 9, height: 9, background: "#d6246e", borderRadius: 2, display: "block" }} />
-          Alçada
+        <div style={{ background: "#fff", borderRadius: 10, padding: "9px 12px", display: "inline-block" }}>
+          <img src={logoHorizontal} alt="Alçada" style={{ height: 26, width: "auto", display: "block" }} />
         </div>
-        <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", color: "#7C89A8", marginTop: 5 }}>
+        <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", color: "#7C89A8", marginTop: 9 }}>
           plano de controle
         </div>
       </div>
