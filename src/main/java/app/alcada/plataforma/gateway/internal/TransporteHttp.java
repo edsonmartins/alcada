@@ -89,6 +89,7 @@ public class TransporteHttp implements TransporteModelo {
             ObjectNode rf = raiz.putObject("response_format");
             rf.put("type", "json_schema");
             ObjectNode js = rf.putObject("json_schema");
+            js.put("name", "resposta"); // OpenRouter EXIGE 'name' no json_schema
             js.put("strict", true);
             js.set("schema", json.readTree(req.schemaJson()));
         }

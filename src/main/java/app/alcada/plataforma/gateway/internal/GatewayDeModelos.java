@@ -73,8 +73,12 @@ public class GatewayDeModelos implements ModelGateway {
                     r.tokensIn(), r.tokensOut(), 0, BigDecimal.ZERO, true, t.refMensagemId());
             return new Extracao<>(t.mapeador().apply(r.conteudo()), 1.0);
         } catch (FalhasGateway.Indisponivel indisponivel) {
-            // captura nunca perdida: enfileira e devolve pendente (confianca = null)
-            fila.enfileirar(t.org(), "extracao", t.refMensagemId());
+            // captura nunca perdida: enfileira e devolve pendente (confianca = null).
+            // Só reprocessa o que tem referência (a consulta/interpretação não tem —
+            // é leitura pura; nada a reprocessar).
+            if (t.refMensagemId() != null) {
+                fila.enfileirar(t.org(), "extracao", t.refMensagemId());
+            }
             registro.registrar(t.org(), "extracao", t.sensibilidade(), Destino.EXTERNO,
                     externo.provedorEfetivo(), externo.modeloExtracao(),
                     0, 0, 0, BigDecimal.ZERO, false, t.refMensagemId());
