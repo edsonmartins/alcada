@@ -79,7 +79,7 @@ public class ConsultaJdbc implements Consulta {
         String p = pergunta == null ? "" : pergunta.trim();
         Plano plano = planejar(org, p);
         return switch (plano.template()) {
-            case ESPERANDO_MIM -> esperandoMim(org, p);
+            case ESPERANDO_MIM -> esperandoMim(org, p, plano.filtro());
             case TRAVADO_POR -> travadoPor(org, p, plano.filtro());
             case AVERSIVOS -> aversivos(org, p);
             case DELEGADAS_ABERTAS -> delegadasAbertas(org, p);
@@ -117,7 +117,8 @@ public class ConsultaJdbc implements Consulta {
 
                 Templates:
                 - ESPERANDO_MIM: o que aguarda a decisão do gestor / depende de mim / tenho pra fazer / \
-                está parado esperando por mim.
+                está parado esperando por mim. Se a pergunta mencionar um período, preencha "filtro" \
+                com HOJE, SEMANA (esta semana / semana que vem) ou TRIMESTRE.
                 - TRAVADO_POR: o que está bloqueado por causa de uma área ou pessoa. Preencha "filtro" \
                 com essa área/pessoa (ex.: "financeiro", "TI").
                 - AVERSIVOS: o que venho adiando / empurrando com a barriga (adiado várias vezes).
@@ -145,8 +146,12 @@ public class ConsultaJdbc implements Consulta {
         String q = norm(pergunta);
         if (q.contains("esperando por mim") || q.contains("espera por mim")
                 || (q.contains("esperando") && q.contains("mim"))
-                || q.contains("parado esperando")) {
-            return new Plano(Template.ESPERANDO_MIM, null);
+                || q.contains("parado esperando") || q.contains("pra hoje") || q.contains("para hoje")
+                || q.contains("semana que vem") || q.contains("proxima semana")
+                || q.contains("essa semana") || q.contains("esta semana")
+                || q.contains("o que tenho") || q.contains("o que eu tenho")
+                || q.contains("depende de mim")) {
+            return new Plano(Template.ESPERANDO_MIM, horizonteDe(q));
         }
         if (q.contains("trava") || q.contains("travad") || q.contains("bloqueio") || q.contains("bloquead")) {
             return new Plano(Template.TRAVADO_POR, extrairArea(q));
@@ -176,6 +181,20 @@ public class ConsultaJdbc implements Consulta {
         return new Plano(Template.DESCONHECIDO, null);
     }
 
+    /** Horizonte mencionado na fala (para o filtro de ESPERANDO_MIM). */
+    private static String horizonteDe(String q) {
+        if (q.contains("hoje")) {
+            return "HOJE";
+        }
+        if (q.contains("semana")) {
+            return "SEMANA";
+        }
+        if (q.contains("trimestre") || q.contains("mes que vem") || q.contains("mês que vem")) {
+            return "TRIMESTRE";
+        }
+        return null;
+    }
+
     /** Extrai a "área" mencionada após "causa d…"/"conta d…" (ex.: financeiro). */
     private static String extrairArea(String q) {
         for (String marca : new String[] {"causa d", "conta d", "por causa de", "por conta de"}) {
@@ -203,22 +222,44 @@ public class ConsultaJdbc implements Consulta {
 
     // ---- templates (SQL determinístico, org-escopado) -----------------------
 
-    private ResultadoConsulta esperandoMim(OrgId org, String pergunta) {
+    private ResultadoConsulta esperandoMim(OrgId org, String pergunta, String filtroHorizonte) {
+        String h = horizonteValido(filtroHorizonte); // HOJE|SEMANA|TRIMESTRE ou null
         Object[] agg = (Object[]) em.createNativeQuery("""
                 SELECT count(*), coalesce(sum(valor_em_jogo), 0)
                 FROM pendencia WHERE org_id = ? AND status = 'ENTRADA'
-                """).setParameter(1, org.valor()).getSingleResult();
+                  AND (CAST(? AS text) IS NULL OR horizonte = ?)
+                """).setParameter(1, org.valor()).setParameter(2, h).setParameter(3, h).getSingleResult();
         long n = ((Number) agg[0]).longValue();
         double soma = ((Number) agg[1]).doubleValue();
-        List<Item> itens = itens("""
+        List<Item> itens = new ArrayList<>();
+        @SuppressWarnings("unchecked")
+        List<Object[]> linhas = em.createNativeQuery("""
                 SELECT id, titulo, classe, valor_em_jogo FROM pendencia
-                WHERE org_id = ? AND status = 'ENTRADA'
+                WHERE org_id = ? AND status = 'ENTRADA' AND (CAST(? AS text) IS NULL OR horizonte = ?)
                 ORDER BY valor_em_jogo DESC NULLS LAST, criada_em ASC LIMIT %d
-                """.formatted(LIMITE_ITENS), org);
-        String resp = n == 0 ? "Nada esperando por você agora."
-                : "Há " + n + plural(n, " item", " itens") + " esperando por você"
+                """.formatted(LIMITE_ITENS))
+                .setParameter(1, org.valor()).setParameter(2, h).setParameter(3, h).getResultList();
+        for (Object[] l : linhas) {
+            itens.add(item(l));
+        }
+        String periodo = switch (h == null ? "" : h) {
+            case "HOJE" -> " para hoje";
+            case "SEMANA" -> " para esta semana";
+            case "TRIMESTRE" -> " no trimestre";
+            default -> "";
+        };
+        String resp = n == 0 ? ("Nada esperando por você" + periodo + ".")
+                : "Há " + n + plural(n, " item", " itens") + " esperando por você" + periodo
                         + (soma > 0 ? ", somando " + reais(soma) + "." : ".");
         return new ResultadoConsulta(pergunta, "ESPERANDO_MIM", resp, itens);
+    }
+
+    private static String horizonteValido(String s) {
+        if (s == null) {
+            return null;
+        }
+        String u = s.trim().toUpperCase();
+        return (u.equals("HOJE") || u.equals("SEMANA") || u.equals("TRIMESTRE")) ? u : null;
     }
 
     private ResultadoConsulta travadoPor(OrgId org, String pergunta, String area) {
