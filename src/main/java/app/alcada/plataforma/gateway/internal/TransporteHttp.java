@@ -36,6 +36,10 @@ public class TransporteHttp implements TransporteModelo {
             defaultValue = "https://openrouter.ai/api/v1/chat/completions")
     String url;
 
+    @ConfigProperty(name = "gateway.openrouter.audio-url",
+            defaultValue = "https://openrouter.ai/api/v1/audio/transcriptions")
+    String audioUrl;
+
     @ConfigProperty(name = "gateway.openrouter.api-key")
     Optional<String> apiKey;
 
@@ -71,6 +75,39 @@ public class TransporteHttp implements TransporteModelo {
                 return Resposta.erro(Status.INDISPONIVEL);
             }
             return Resposta.erro(Status.GUARDRAIL_RECUSOU);
+        } catch (Exception e) {
+            return Resposta.erro(Status.INDISPONIVEL);
+        }
+    }
+
+    @Override
+    public Resposta transcrever(RequisicaoAudio req) {
+        if (apiKey.isEmpty()) {
+            return Resposta.erro(Status.INDISPONIVEL);
+        }
+        try {
+            ObjectNode raiz = json.createObjectNode();
+            raiz.put("model", req.modelo());
+            if (req.idioma() != null && !req.idioma().isBlank()) {
+                raiz.put("language", req.idioma());
+            }
+            ObjectNode ia = raiz.putObject("input_audio");
+            ia.put("data", req.audioBase64());
+            ia.put("format", req.formato());
+            HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(audioUrl))
+                    .header("Authorization", "Bearer " + apiKey.get())
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(60))
+                    .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(raiz)))
+                    .build();
+            HttpResponse<String> r = http.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            if (r.statusCode() == 200) {
+                JsonNode raizR = json.readTree(r.body());
+                String texto = raizR.path("text").asText("");
+                int seg = raizR.path("usage").path("seconds").asInt(0);
+                return Resposta.ok(texto, seg, 0); // tokensIn reaproveitado como segundos de áudio
+            }
+            return Resposta.erro(Status.INDISPONIVEL);
         } catch (Exception e) {
             return Resposta.erro(Status.INDISPONIVEL);
         }

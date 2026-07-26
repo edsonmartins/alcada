@@ -8,6 +8,8 @@ import app.alcada.plataforma.gateway.port.Tarefas.TarefaClassificacao;
 import app.alcada.plataforma.gateway.port.Tarefas.TarefaEmbedding;
 import app.alcada.plataforma.gateway.port.Tarefas.TarefaExtracao;
 import app.alcada.plataforma.gateway.port.Tarefas.TarefaRedacao;
+import app.alcada.plataforma.gateway.port.Tarefas.TarefaTranscricao;
+import app.alcada.plataforma.gateway.port.Tarefas.Transcricao;
 
 /**
  * Porta única de inferência (RFC-0007). Política e roteamento vivem no gateway,
@@ -29,4 +31,8 @@ public interface ModelGateway {
     Classificacao classificar(TarefaClassificacao tarefa);
 
     Embedding embutir(TarefaEmbedding tarefa);
+
+    /** Transcrição de áudio (STT). Indisponibilidade falha de forma visível — o
+     * chamador degrada (ex.: STT on-device). Nunca inventa transcrição. */
+    Transcricao transcrever(TarefaTranscricao tarefa);
 }

@@ -9,8 +9,17 @@ public interface TransporteModelo {
 
     Resposta enviar(Requisicao requisicao);
 
+    /** Transcrição de áudio (STT). Default indisponível (dev/test/stub não falam fora). */
+    default Resposta transcrever(RequisicaoAudio req) {
+        return Resposta.erro(Status.INDISPONIVEL);
+    }
+
     /** Requisição a um provedor. Carrega a política fixa, para inspeção/aplicação. */
     record Requisicao(String modelo, String texto, String schemaJson, PoliticaProvedor politica) {
+    }
+
+    /** Requisição de transcrição: áudio em base64 + formato + idioma (ex.: pt). */
+    record RequisicaoAudio(String modelo, String audioBase64, String formato, String idioma) {
     }
 
     enum Status {

@@ -105,6 +105,31 @@ public class GatewayDeModelos implements ModelGateway {
     }
 
     @Override
+    @Transactional
+    public app.alcada.plataforma.gateway.port.Tarefas.Transcricao transcrever(
+            app.alcada.plataforma.gateway.port.Tarefas.TarefaTranscricao t) {
+        Destino destino = roteador.decidir(t.org(), t.sensibilidade());
+        if (destino == Destino.LOCAL) {
+            // Sem STT local nesta fase (SKU Soberano): não sai para fora — indisponível.
+            registro.registrar(t.org(), "transcricao", t.sensibilidade(), Destino.LOCAL,
+                    "local", null, 0, 0, 0, BigDecimal.ZERO, false, t.refMensagemId());
+            throw new FalhasGateway.Indisponivel("STT local indisponível nesta fase");
+        }
+        try {
+            var r = comBackoff(() -> externo.transcrever(t.audioBase64(), t.formato(), t.idioma()));
+            registro.registrar(t.org(), "transcricao", t.sensibilidade(), Destino.EXTERNO,
+                    "openrouter-audio", externo.modeloTranscricao(),
+                    r.tokensIn(), 0, 0, BigDecimal.ZERO, true, t.refMensagemId());
+            return new app.alcada.plataforma.gateway.port.Tarefas.Transcricao(r.conteudo());
+        } catch (FalhasGateway.Indisponivel indisponivel) {
+            registro.registrar(t.org(), "transcricao", t.sensibilidade(), Destino.EXTERNO,
+                    "openrouter-audio", externo.modeloTranscricao(),
+                    0, 0, 0, BigDecimal.ZERO, false, t.refMensagemId());
+            throw indisponivel; // falha visível: o chamador degrada (STT on-device)
+        }
+    }
+
+    @Override
     public Classificacao classificar(TarefaClassificacao t) {
         throw new UnsupportedOperationException("classificação: implementada com o pacote 001");
     }

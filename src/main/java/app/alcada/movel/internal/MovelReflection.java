@@ -11,7 +11,10 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         ResultadoComando.class,
         ComandoResource.Lote.class,
         ComandoResource.Resposta.class,
-        ComandoResource.Problema.class
+        ComandoResource.Problema.class,
+        VozResource.Req.class,
+        VozResource.Resp.class,
+        VozResource.Problema.class
 })
 public final class MovelReflection {
     private MovelReflection() {

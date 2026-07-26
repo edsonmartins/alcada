@@ -57,4 +57,13 @@ public final class Tarefas {
 
     public record Embedding(float[] vetor) {
     }
+
+    /** Transcrição de áudio (STT, RFC-0005/ADR-0026 nuvem). {@code audioBase64} já minimizado ao trecho. */
+    public record TarefaTranscricao(
+            OrgId org, Sensibilidade sensibilidade, UUID refMensagemId,
+            String audioBase64, String formato, String idioma) {
+    }
+
+    public record Transcricao(String texto) {
+    }
 }

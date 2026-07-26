@@ -103,6 +103,13 @@ degrada como o stub; minimização e roteamento por sensibilidade continuam (RES
 para inferência local); o Linktor **permanece stub** fora de `prod`. Dev/test seguem no stub. Habilita,
 no piloto, interpretação/consulta por LLM e (fase 2) STT/TTS de áudio do OpenRouter.
 
+## Emenda (áudio/STT, 2026-07)
+O canal de voz (022) passa a usar **STT na nuvem via OpenRouter** (`openai/whisper-large-v3-turbo`)
+como caminho online, com fallback on-device (INV-13). Os provedores de áudio **não** são a lista
+`only` do chat (DeepInfra não serve Whisper), então são **novos suboperadores** — a serem registrados
+no RIPD. Autorizado **só no SKU Cloud** (áudio de decisão cruza a fronteira; RESTRITA nunca sai). A
+chave e a chamada ficam no servidor (gateway), nunca no app.
+
 ## Revisão
 Reavaliar em 12 meses ou quando: houver exigência de residência nacional em contrato relevante, o
 custo por item ultrapassar o de operar inferência própria, ou o volume justificar o custo fixo.

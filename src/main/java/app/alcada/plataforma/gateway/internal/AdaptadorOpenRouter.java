@@ -24,6 +24,9 @@ public class AdaptadorOpenRouter {
     @ConfigProperty(name = "gateway.modelo.redacao", defaultValue = "homologado/redator")
     String modeloRedacao;
 
+    @ConfigProperty(name = "gateway.modelo.transcricao", defaultValue = "openai/whisper-large-v3-turbo")
+    String modeloTranscricao;
+
     private final TransporteModelo transporte;
 
     public AdaptadorOpenRouter(TransporteModelo transporte) {
@@ -59,6 +62,16 @@ public class AdaptadorOpenRouter {
         String texto = tom == null ? contexto : "[tom:" + tom + "] " + contexto;
         return traduzir(transporte.enviar(
                 new TransporteModelo.Requisicao(modeloRedacao, texto, null, politicaFixa())));
+    }
+
+    public String modeloTranscricao() {
+        return modeloTranscricao;
+    }
+
+    /** STT: os provedores de áudio não são a lista `only` do chat (roteamento livre do modelo). */
+    public ResultadoExterno transcrever(String audioBase64, String formato, String idioma) {
+        return traduzir(transporte.transcrever(
+                new TransporteModelo.RequisicaoAudio(modeloTranscricao, audioBase64, formato, idioma)));
     }
 
     private ResultadoExterno traduzir(TransporteModelo.Resposta r) {
