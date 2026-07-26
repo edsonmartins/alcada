@@ -1,0 +1,169 @@
+package app.alcada.movel.internal;
+
+import java.util.List;
+
+import app.alcada.consulta.port.Consulta;
+import app.alcada.consulta.port.ResultadoConsulta;
+import app.alcada.plataforma.gateway.port.ModelGateway;
+import app.alcada.plataforma.gateway.port.Sensibilidade;
+import app.alcada.plataforma.gateway.port.Tarefas.Extracao;
+import app.alcada.plataforma.gateway.port.Tarefas.TarefaExtracao;
+import app.alcada.plataforma.multitenancy.port.OrgId;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.enterprise.context.ApplicationScoped;
+
+/**
+ * Interpretação de fala livre por LLM (022, ADR-0014/0019): mapeia a fala do
+ * gestor para UMA intenção de um conjunto fechado (INV-10 — o modelo só escolhe,
+ * o código executa) e resolve o item da fila, usando o contexto da conversa para
+ * follow-ups. Nenhum efeito aqui: comandos voltam para o app confirmar; consulta
+ * é leitura. Sem LLM disponível, devolve NENHUMA (o app cai no matcher offline).
+ */
+@ApplicationScoped
+public class InterpretadorVoz {
+
+    private static final String SCHEMA = """
+            {"type":"object","additionalProperties":false,
+             "properties":{
+               "intencao":{"type":"string","enum":["RESOLVER","REPASSAR","ADIAR","REGISTRAR","CONSULTAR","NENHUMA"]},
+               "item":{"type":"integer"},
+               "donoNome":{"type":"string"},"nivel":{"type":"string"},
+               "quandoVoltar":{"type":"string"},"tituloNovo":{"type":"string"},"pergunta":{"type":"string"}},
+             "required":["intencao"]}""";
+
+    private final ModelGateway modelo;
+    private final Consulta consulta;
+    private final ObjectMapper json = new ObjectMapper();
+
+    public InterpretadorVoz(ModelGateway modelo, Consulta consulta) {
+        this.modelo = modelo;
+        this.consulta = consulta;
+    }
+
+    public record ItemFila(String id, String titulo) {
+    }
+
+    /** Resultado estruturado para o app: comando a confirmar, consulta respondida, ou nada. */
+    public record Resultado(
+            String intencao, String pendenciaId, String titulo,
+            String donoNome, String nivel, String tituloNovo,
+            String resposta, String frase, boolean precisaConfirmar) {
+    }
+
+    public Resultado interpretar(OrgId org, String texto, List<String> contexto, List<ItemFila> fila) {
+        Bruto b;
+        try {
+            Extracao<Bruto> ex = modelo.extrair(new TarefaExtracao<>(
+                    org, Sensibilidade.INTERNA, null, prompt(texto, contexto, fila), SCHEMA, this::parse));
+            b = ex == null ? null : ex.valor();
+        } catch (RuntimeException degrada) {
+            b = null;
+        }
+        if (b == null || b.intencao == null) {
+            return new Resultado("NENHUMA", null, null, null, null, null, null,
+                    "Não entendi. Pode repetir?", false);
+        }
+        return switch (b.intencao) {
+            case "CONSULTAR" -> {
+                ResultadoConsulta rc = consulta.consultar(org, vazioOu(b.pergunta, texto));
+                yield new Resultado("CONSULTAR", null, null, null, null, null, rc.resposta(), rc.resposta(), false);
+            }
+            case "REGISTRAR" -> {
+                String t = vazioOu(b.tituloNovo, texto);
+                yield new Resultado("REGISTRAR", null, null, null, null, t, null,
+                        "Registrar “" + t + "”. Confirma?", true);
+            }
+            case "RESOLVER", "ADIAR" -> {
+                ItemFila alvo = item(fila, b.item);
+                if (alvo == null) {
+                    yield new Resultado("NENHUMA", null, null, null, null, null, null,
+                            "Não identifiquei o item na fila. Qual deles?", false);
+                }
+                String verbo = b.intencao.equals("RESOLVER") ? "Resolver" : "Adiar";
+                yield new Resultado(b.intencao, alvo.id(), alvo.titulo(), null, null, null, null,
+                        verbo + " “" + alvo.titulo() + "”. Confirma?", true);
+            }
+            case "REPASSAR" -> {
+                ItemFila alvo = item(fila, b.item);
+                if (alvo == null) {
+                    yield new Resultado("NENHUMA", null, null, null, null, null, null,
+                            "Não identifiquei o item para repassar.", false);
+                }
+                yield new Resultado("REPASSAR", alvo.id(), alvo.titulo(), b.donoNome,
+                        b.nivel == null ? "N2" : b.nivel, null, null,
+                        "Repassar “" + alvo.titulo() + "”" + (b.donoNome != null ? " para " + b.donoNome : "")
+                                + ". Confirma?", true);
+            }
+            default -> new Resultado("NENHUMA", null, null, null, null, null, null,
+                    "Não entendi. Pode repetir?", false);
+        };
+    }
+
+    // ---- prompt + parsing --------------------------------------------------
+
+    private static String prompt(String texto, List<String> contexto, List<ItemFila> fila) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Interprete a fala do gestor no canal de voz da Alçada em UMA intenção.\n");
+        sb.append("Intenções: RESOLVER (já feito), REPASSAR (delegar a alguém), ADIAR (deixar pra depois), ");
+        sb.append("REGISTRAR (criar lembrete/cobrança), CONSULTAR (pergunta sobre a fila), NENHUMA (não entendi).\n");
+        if (fila != null && !fila.isEmpty()) {
+            sb.append("Fila atual (use o índice em \"item\" quando a intenção agir sobre um destes):\n");
+            for (int i = 0; i < fila.size(); i++) {
+                sb.append(i + 1).append(". ").append(fila.get(i).titulo()).append('\n');
+            }
+        }
+        if (contexto != null && !contexto.isEmpty()) {
+            sb.append("Conversa recente (mais antiga → mais nova):\n");
+            for (String c : contexto) {
+                sb.append("- ").append(c).append('\n');
+            }
+        }
+        sb.append("Fala agora: \"").append(texto).append("\"\n");
+        sb.append("Regras: item=0 se nenhum/ambíguo. REPASSAR → donoNome e nivel (N1/N2/N3). ");
+        sb.append("ADIAR → quandoVoltar. REGISTRAR → tituloNovo. ");
+        sb.append("CONSULTAR → reescreva a pergunta COMPLETA em \"pergunta\" usando o contexto ");
+        sb.append("(ex.: follow-up \"e para a semana que vem\" → \"o que tenho para a semana que vem\").\n");
+        sb.append("Responda só o JSON do schema.");
+        return sb.toString();
+    }
+
+    private Bruto parse(String conteudo) {
+        try {
+            JsonNode n = json.readTree(conteudo);
+            Bruto b = new Bruto();
+            b.intencao = n.path("intencao").asText(null);
+            b.item = n.path("item").asInt(0);
+            b.donoNome = txt(n, "donoNome");
+            b.nivel = txt(n, "nivel");
+            b.quandoVoltar = txt(n, "quandoVoltar");
+            b.tituloNovo = txt(n, "tituloNovo");
+            b.pergunta = txt(n, "pergunta");
+            return b;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String txt(JsonNode n, String campo) {
+        return n.hasNonNull(campo) && !n.get(campo).asText().isBlank() ? n.get(campo).asText() : null;
+    }
+
+    private static ItemFila item(List<ItemFila> fila, int idx) {
+        return (fila != null && idx >= 1 && idx <= fila.size()) ? fila.get(idx - 1) : null;
+    }
+
+    private static String vazioOu(String v, String padrao) {
+        return v == null || v.isBlank() ? padrao : v;
+    }
+
+    private static final class Bruto {
+        String intencao;
+        int item;
+        String donoNome;
+        String nivel;
+        String quandoVoltar;
+        String tituloNovo;
+        String pergunta;
+    }
+}
