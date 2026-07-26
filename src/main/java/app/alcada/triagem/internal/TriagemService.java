@@ -25,7 +25,7 @@ import jakarta.transaction.Transactional;
  * com trilha. `repassar` é do motor de autonomia (002). Só `FECHADA` notifica.
  */
 @ApplicationScoped
-public class TriagemService {
+public class TriagemService implements app.alcada.triagem.port.Triagem {
 
     static final String JOB_DESPERTAR = "TRIAGEM_DESPERTAR";
     private static final Set<String> MOTIVOS = Set.of("NADA", "INSUMO", "TERCEIRO");
@@ -44,6 +44,20 @@ public class TriagemService {
 
     // ---- saídas ------------------------------------------------------------
 
+    @Override
+    @Transactional
+    public boolean emEntrada(OrgId org, UUID pendenciaId) {
+        try {
+            String status = (String) em.createNativeQuery(
+                    "SELECT status FROM pendencia WHERE org_id = ? AND id = ?")
+                    .setParameter(1, org.valor()).setParameter(2, pendenciaId).getSingleResult();
+            return "ENTRADA".equals(status);
+        } catch (NoResultException e) {
+            return false;
+        }
+    }
+
+    @Override
     @Transactional
     public void resolver(OrgId org, UUID pendenciaId, String nota, UUID gestorId) {
         exigirEntrada(org, pendenciaId);

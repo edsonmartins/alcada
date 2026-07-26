@@ -26,7 +26,7 @@ import jakarta.transaction.Transactional;
  * externo só após a janela de reversibilidade (INV-14), sempre via outbox.
  */
 @ApplicationScoped
-public class MotorAutonomia {
+public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
 
     private static final Map<String, Integer> CONSERVADORISMO = Map.of("N1", 1, "N2", 2, "N3", 3);
     private static final Duration JANELA_PADRAO = Duration.ofHours(4);

@@ -48,6 +48,23 @@ GET    /v1/radar                           # diagnóstico organizacional (ADR-00
 GET    /v1/revisao-semanal                 # roteiro conduzido da sexta
 ```
 
+### Consulta e canal móvel
+```
+POST   /v1/consulta                        { pergunta }                 # consulta NL sobre a fila (020, RFC-0004 §3)
+POST   /v1/comandos                        { comandos:[Comando] }       # sync do canal móvel (021, RFC-0005)
+```
+
+`POST /v1/consulta` (020): pergunta livre → template de whitelist → SQL determinístico
+(INV-10/INV-15). Resposta `{pergunta, template, resposta, itens:[{id,titulo,classe,valorEmJogo}]}`;
+fora da whitelist, template `DESCONHECIDO` ("não sei responder isso sobre a fila").
+
+`POST /v1/comandos` (021): lote **idempotente** por `(org_id, comandoId)` — reenvio devolve o
+resultado gravado, não re-executa (INV-13). Cada `Comando{comandoId, intencao, pendenciaId?, campos}`
+mapeia para a ação determinística existente (INV-10); intenções: `RESOLVER, REPASSAR, RESERVAR,
+REPOUSAR, ADIAR, REGISTRAR, CONSULTAR`. Resposta `{resultados:[{comandoId, status:
+OK|IGNORADO|RECUSADO|ERRO, detalhe?, pendenciaId?, consulta?}]}`. Pendência que já saiu da fila →
+`IGNORADO` (não erro); `REGISTRAR` (escape) nunca é ignorado; `CONSULTAR` traz `consulta`.
+
 `GET /v1/radar` (pacote 009) → `dependeDoGestor{qtd,total,pct}`, `rodandoSemVoce`,
 `adiados[{id,titulo,adiadoCount,oQueTrava,quemEspera,valorEmJogo}]`,
 `piorEspera{pendenciaId,titulo,dias,quemEspera}`,

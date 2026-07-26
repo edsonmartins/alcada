@@ -36,11 +36,14 @@ public class PendenciaResource {
     private final EntityManager em;
     private final ContextoTenant contexto;
     private final Trilha trilha;
+    private final app.alcada.captura.port.EscapeCaptura escape;
 
-    public PendenciaResource(EntityManager em, ContextoTenant contexto, Trilha trilha) {
+    public PendenciaResource(EntityManager em, ContextoTenant contexto, Trilha trilha,
+                             app.alcada.captura.port.EscapeCaptura escape) {
         this.em = em;
         this.contexto = contexto;
         this.trilha = trilha;
+        this.escape = escape;
     }
 
     /**
@@ -59,23 +62,13 @@ public class PendenciaResource {
         if (req == null || req.titulo() == null || req.titulo().isBlank()) {
             return problema(400, "escape.sem_titulo", "titulo é obrigatório");
         }
-        String classe = req.classe() == null ? "DECISAO" : req.classe();
-        if (!List.of("DECISAO", "BLOQUEIO", "ESTEIRA").contains(classe)) {
-            return problema(422, "classe.invalida", "classe deve ser DECISAO, BLOQUEIO ou ESTEIRA");
+        try {
+            UUID id = escape.registrar(org.get(), req.titulo(), req.quemEspera(), req.oQueTrava(),
+                    req.classe(), UUID.fromString(pessoa));
+            return Response.status(201).entity(new EscapeCriada(id.toString())).build();
+        } catch (IllegalArgumentException e) {
+            return problema(422, "classe.invalida", e.getMessage());
         }
-        UUID id = UUID.randomUUID();
-        em.createNativeQuery("""
-                INSERT INTO pendencia (id, org_id, titulo, quem_espera, o_que_trava, classe, horizonte, status)
-                VALUES (?, ?, ?, ?, ?, ?, 'SEMANA', 'ENTRADA')
-                """)
-                .setParameter(1, id).setParameter(2, org.get().valor())
-                .setParameter(3, req.titulo()).setParameter(4, req.quemEspera())
-                .setParameter(5, req.oQueTrava()).setParameter(6, classe)
-                .executeUpdate();
-        // trilha do escape — ator humano; sem identificador direto na carga (ADR-0016)
-        trilha.registrar(new EventoTrilha(org.get(), id, TipoEvento.CAPTADA,
-                Ator.humano(UUID.fromString(pessoa)), null, "ENTRADA", null, "{\"escape\":true}"));
-        return Response.status(201).entity(new EscapeCriada(id.toString())).build();
     }
 
     @GET
