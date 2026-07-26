@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRadar, type ItemAdiado } from "../api/metricas";
 import { aplicarSaida } from "../api/pendencias";
 import { formatValor } from "../util/formato";
+import { ConsultaBox } from "./ConsultaBox";
 import { PageHeader } from "./PageHeader";
 
 export function RadarPage() {
@@ -13,6 +14,8 @@ export function RadarPage() {
   return (
     <Stack>
       <PageHeader titulo="Radar de gargalo" sub="Diagnóstico organizacional — não placar pessoal." />
+
+      <ConsultaBox />
 
       <SimpleGrid cols={{ base: 2, sm: 4 }}>
         <Metrica valor={`${d.dependeDoGestor.pct}%`} rotulo="trava em você"

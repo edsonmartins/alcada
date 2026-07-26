@@ -21,7 +21,7 @@ class FronteirasModulaisTest {
     /** Segmentos de pacote de cada módulo (domínio + plataforma). */
     private static final List<String> MODULOS = List.of(
             "identidade", "captura", "triagem", "autonomia", "regras",
-            "esteira", "assistente", "notificacao", "metricas",
+            "esteira", "assistente", "metricas", "consulta", "notificacao",
             "plataforma.multitenancy", "plataforma.trilha",
             "plataforma.outbox", "plataforma.scheduler", "plataforma.gateway");
 
@@ -48,7 +48,7 @@ class FronteirasModulaisTest {
 
     private static final List<String> DOMINIO = List.of(
             "identidade", "captura", "triagem", "autonomia", "regras",
-            "esteira", "assistente", "notificacao", "metricas");
+            "esteira", "assistente", "notificacao", "metricas", "consulta");
 
     @Test
     void modulos_de_dominio_nao_dependem_de_internal_de_plataforma() {
@@ -67,6 +67,6 @@ class FronteirasModulaisTest {
     @Test
     void modulos_esperados_existem() {
         // Guarda simples: a lista de módulos não regrediu silenciosamente.
-        assertTrue(MODULOS.size() == 14, "14 módulos esperados (9 domínio + 5 plataforma)");
+        assertTrue(MODULOS.size() == 15, "15 módulos esperados (10 domínio + 5 plataforma)");
     }
 }
