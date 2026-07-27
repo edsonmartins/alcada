@@ -1,5 +1,7 @@
 package app.alcada.consulta.port;
 
+import java.util.UUID;
+
 import app.alcada.plataforma.multitenancy.port.OrgId;
 
 /**
@@ -11,5 +13,15 @@ import app.alcada.plataforma.multitenancy.port.OrgId;
  */
 public interface Consulta {
 
-    ResultadoConsulta consultar(OrgId org, String pergunta);
+    /** Consulta org-escopada. Perguntas "o que EU decidi" precisam do gestor — use a sobrecarga. */
+    default ResultadoConsulta consultar(OrgId org, String pergunta) {
+        return consultar(org, null, pergunta);
+    }
+
+    /**
+     * Consulta ciente do gestor (X-Pessoa-Id): a maioria dos templates é
+     * org-escopada e ignora {@code gestor}; só "o que eu decidi" o usa para
+     * filtrar a trilha pelo ator.
+     */
+    ResultadoConsulta consultar(OrgId org, UUID gestor, String pergunta);
 }

@@ -10,8 +10,11 @@ import java.util.UUID;
 
 import app.alcada.consulta.port.Consulta;
 import app.alcada.consulta.port.ResultadoConsulta;
+import java.util.Optional;
+
 import app.alcada.identidade.port.Pessoas;
 import app.alcada.identidade.port.Pessoas.PessoaRef;
+import app.alcada.identidade.port.Preferencias;
 import app.alcada.movel.internal.InterpretadorVoz.ItemFila;
 import app.alcada.plataforma.gateway.port.ModelGateway;
 import app.alcada.plataforma.gateway.port.Tarefas.Classificacao;
@@ -40,8 +43,13 @@ class InterpretadorVozTest {
     private static final List<ItemFila> FILA = List.of(new ItemFila("11", "Reembolso viagem"));
 
     private InterpretadorVoz com(String json, List<PessoaRef> achados, List<PessoaRef> equipe) {
+        return comPreferencia(json, achados, equipe, null);
+    }
+
+    private InterpretadorVoz comPreferencia(String json, List<PessoaRef> achados,
+            List<PessoaRef> equipe, String nivelPref) {
         return new InterpretadorVoz(new GatewayFixo(json), new ConsultaFixa(),
-                new PessoasFixo(achados, equipe));
+                new PessoasFixo(achados, equipe), new PreferenciasFixo(nivelPref));
     }
 
     @Test
@@ -95,6 +103,25 @@ class InterpretadorVozTest {
     }
 
     @Test
+    void nivelUsaPreferenciaQuandoNaoFalado() {
+        var uid = UUID.randomUUID();
+        // fala sem nível → usa o hábito aprendido (N1), não o padrão N2.
+        var r = comPreferencia("{\"intencao\":\"REPASSAR\",\"item\":1,\"donoNome\":\"Executor\"}",
+                List.of(new PessoaRef(uid, "Executor Piloto")), List.of(), "N1")
+                .interpretar(ORG, GESTOR, "passa esse pro executor", List.of(), FILA);
+        assertEquals("N1", r.nivel());
+    }
+
+    @Test
+    void nivelFaladoTemPrioridadeSobreAPreferencia() {
+        var uid = UUID.randomUUID();
+        var r = comPreferencia("{\"intencao\":\"REPASSAR\",\"item\":1,\"donoNome\":\"Executor\",\"nivel\":\"N3\"}",
+                List.of(new PessoaRef(uid, "Executor Piloto")), List.of(), "N1")
+                .interpretar(ORG, GESTOR, "passa esse pro executor no n3", List.of(), FILA);
+        assertEquals("N3", r.nivel());
+    }
+
+    @Test
     void itemUnicoResolveMesmoComIndiceZero() {
         var uid = UUID.randomUUID();
         var r = com("{\"intencao\":\"REPASSAR\",\"item\":0,\"donoNome\":\"Executor\"}",
@@ -119,6 +146,17 @@ class InterpretadorVozTest {
 
         @Override
         public void aprender(OrgId org, UUID gestorId, String termo, UUID pessoaId) {
+        }
+    }
+
+    private record PreferenciasFixo(String nivel) implements Preferencias {
+        @Override
+        public Optional<String> nivelRepasse(OrgId org, UUID gestorId) {
+            return Optional.ofNullable(nivel);
+        }
+
+        @Override
+        public void registrarNivelRepasse(OrgId org, UUID gestorId, String nivel) {
         }
     }
 
@@ -152,7 +190,7 @@ class InterpretadorVozTest {
 
     private static final class ConsultaFixa implements Consulta {
         @Override
-        public ResultadoConsulta consultar(OrgId org, String pergunta) {
+        public ResultadoConsulta consultar(OrgId org, UUID gestor, String pergunta) {
             return new ResultadoConsulta(pergunta, "T", "resposta", List.of());
         }
     }

@@ -11,6 +11,7 @@ import app.alcada.captura.port.EscapeCaptura;
 import app.alcada.consulta.port.Consulta;
 import app.alcada.consulta.port.ResultadoConsulta;
 import app.alcada.identidade.port.Pessoas;
+import app.alcada.identidade.port.Preferencias;
 import app.alcada.movel.port.Comando;
 import app.alcada.movel.port.ComandoMovel;
 import app.alcada.movel.port.ResultadoComando;
@@ -37,15 +38,18 @@ public class ComandoMovelJdbc implements ComandoMovel {
     private final EscapeCaptura escape;
     private final Consulta consulta;
     private final Pessoas pessoas;
+    private final Preferencias preferencias;
 
     public ComandoMovelJdbc(EntityManager em, Triagem triagem, Autonomia autonomia,
-                            EscapeCaptura escape, Consulta consulta, Pessoas pessoas) {
+                            EscapeCaptura escape, Consulta consulta, Pessoas pessoas,
+                            Preferencias preferencias) {
         this.em = em;
         this.triagem = triagem;
         this.autonomia = autonomia;
         this.escape = escape;
         this.consulta = consulta;
         this.pessoas = pessoas;
+        this.preferencias = preferencias;
     }
 
     @Override
@@ -105,10 +109,11 @@ public class ComandoMovelJdbc implements ComandoMovel {
                     }
                     autonomia.delegar(org, c.pendenciaId(), f.dono(), f.nivel(), prazoOu(f.prazo(), 2), pessoa);
                     // Memória durável (022): o termo falado vira apelido do dono (no-op se
-                    // já casava pelo nome). Aprender é do gestor que despacha.
+                    // já casava pelo nome) e o nível usado vira o padrão do gestor.
                     if (f.aliasFalado() != null) {
                         pessoas.aprender(org, pessoa, f.aliasFalado(), f.dono());
                     }
+                    preferencias.registrarNivelRepasse(org, pessoa, f.nivel());
                 }
                 default -> { /* REGISTRAR/CONSULTAR tratados em executar */ }
             }

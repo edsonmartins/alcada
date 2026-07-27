@@ -1,8 +1,12 @@
 package app.alcada.consulta.internal;
 
 import java.text.Normalizer;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import app.alcada.consulta.port.Consulta;
 import app.alcada.consulta.port.ResultadoConsulta;
@@ -11,6 +15,7 @@ import app.alcada.plataforma.gateway.port.ModelGateway;
 import app.alcada.plataforma.gateway.port.Sensibilidade;
 import app.alcada.plataforma.gateway.port.Tarefas.Extracao;
 import app.alcada.plataforma.gateway.port.Tarefas.TarefaExtracao;
+import app.alcada.plataforma.multitenancy.port.FusoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +40,8 @@ public class ConsultaJdbc implements Consulta {
 
     /** Templates parametrizados permitidos. Nenhuma consulta fora desta lista roda. */
     enum Template {
-        ESPERANDO_MIM, TRAVADO_POR, AVERSIVOS, DELEGADAS_ABERTAS, POR_CLASSE, VALOR_TOTAL, DESCONHECIDO;
+        ESPERANDO_MIM, TRAVADO_POR, AVERSIVOS, DELEGADAS_ABERTAS, POR_CLASSE, VALOR_TOTAL,
+        DECISOES_RECENTES, DESCONHECIDO;
 
         static Template seguro(String s) {
             if (s == null) {
@@ -56,26 +62,28 @@ public class ConsultaJdbc implements Consulta {
             {"type":"object","additionalProperties":false,
              "properties":{
                "template":{"type":"string","enum":["ESPERANDO_MIM","TRAVADO_POR","AVERSIVOS",
-                 "DELEGADAS_ABERTAS","POR_CLASSE","VALOR_TOTAL","DESCONHECIDO"]},
+                 "DELEGADAS_ABERTAS","POR_CLASSE","VALOR_TOTAL","DECISOES_RECENTES","DESCONHECIDO"]},
                "filtro":{"type":"string"}},
              "required":["template"]}""";
 
     private final EntityManager em;
     private final ModelGateway modelo;
     private final ObjectMapper json;
+    private final FusoTenant fuso;
 
     @ConfigProperty(name = "consulta.usar-llm", defaultValue = "false")
     boolean usarLlm;
 
-    public ConsultaJdbc(EntityManager em, ModelGateway modelo, ObjectMapper json) {
+    public ConsultaJdbc(EntityManager em, ModelGateway modelo, ObjectMapper json, FusoTenant fuso) {
         this.em = em;
         this.modelo = modelo;
         this.json = json;
+        this.fuso = fuso;
     }
 
     @Override
     @Transactional
-    public ResultadoConsulta consultar(OrgId org, String pergunta) {
+    public ResultadoConsulta consultar(OrgId org, UUID gestor, String pergunta) {
         String p = pergunta == null ? "" : pergunta.trim();
         Plano plano = planejar(org, p);
         return switch (plano.template()) {
@@ -85,6 +93,7 @@ public class ConsultaJdbc implements Consulta {
             case DELEGADAS_ABERTAS -> delegadasAbertas(org, p);
             case POR_CLASSE -> porClasse(org, p, plano.filtro());
             case VALOR_TOTAL -> valorTotal(org, p);
+            case DECISOES_RECENTES -> decisoesRecentes(org, gestor, p, plano.filtro());
             case DESCONHECIDO -> new ResultadoConsulta(p, "DESCONHECIDO",
                     "Não sei responder isso sobre a fila. Tente algo como “quanto está esperando por mim”, "
                             + "“o que trava por causa do financeiro” ou “o que estou adiando”.",
@@ -125,6 +134,8 @@ public class ConsultaJdbc implements Consulta {
                 - DELEGADAS_ABERTAS: o que deleguei a alguém e ainda está em aberto.
                 - POR_CLASSE: contagem por tipo. Preencha "filtro" com DECISAO, BLOQUEIO ou ESTEIRA.
                 - VALOR_TOTAL: quanto de valor/dinheiro está em jogo na fila.
+                - DECISOES_RECENTES: o que o gestor JÁ decidiu/fez (resolveu, repassou, adiou) \
+                num período. Preencha "filtro" com ONTEM, HOJE, SEMANA ou TRIMESTRE.
                 - DESCONHECIDO: se a pergunta não for sobre a fila.
 
                 Pergunta: """ + pergunta;
@@ -144,6 +155,12 @@ public class ConsultaJdbc implements Consulta {
     /** Classificador determinístico: cobre os exemplos do RFC sem LLM. */
     Plano porPalavrasChave(String pergunta) {
         String q = norm(pergunta);
+        // "o que eu decidi" vem antes de ESPERANDO_MIM: "decidi esta semana" não é a fila,
+        // é a trilha de decisões.
+        if (q.contains("decidi") || q.contains("o que fiz") || q.contains("que decisoes")
+                || q.contains("decisoes que tomei") || q.contains("decisoes tomei")) {
+            return new Plano(Template.DECISOES_RECENTES, horizonteDe(q));
+        }
         if (q.contains("esperando por mim") || q.contains("espera por mim")
                 || (q.contains("esperando") && q.contains("mim"))
                 || q.contains("parado esperando") || q.contains("pra hoje") || q.contains("para hoje")
@@ -183,6 +200,9 @@ public class ConsultaJdbc implements Consulta {
 
     /** Horizonte mencionado na fala (para o filtro de ESPERANDO_MIM). */
     private static String horizonteDe(String q) {
+        if (q.contains("ontem")) {
+            return "ONTEM";
+        }
         if (q.contains("hoje")) {
             return "HOJE";
         }
@@ -348,6 +368,55 @@ public class ConsultaJdbc implements Consulta {
         String resp = n == 0 ? "Nenhum item aberto com valor em jogo registrado."
                 : (reais(soma) + " em jogo na fila, em " + n + plural(n, " item", " itens") + ".");
         return new ResultadoConsulta(pergunta, "VALOR_TOTAL", resp, itens);
+    }
+
+    /** O que o gestor já decidiu num período — lido da trilha (append-only), filtrado pelo ator. */
+    private ResultadoConsulta decisoesRecentes(OrgId org, UUID gestor, String pergunta, String horizonte) {
+        if (gestor == null) {
+            return new ResultadoConsulta(pergunta, "DECISOES_RECENTES",
+                    "Não consegui identificar quem está perguntando.", List.of());
+        }
+        ZoneId zona = fuso.fuso(org);
+        String h = horizonte == null ? "SEMANA" : horizonte.trim().toUpperCase();
+        LocalDate hoje = LocalDate.now(zona);
+        OffsetDateTime inicioHoje = hoje.atStartOfDay(zona).toOffsetDateTime();
+        OffsetDateTime desde = switch (h) {
+            case "ONTEM" -> hoje.minusDays(1).atStartOfDay(zona).toOffsetDateTime();
+            case "HOJE" -> inicioHoje;
+            case "TRIMESTRE" -> hoje.minusDays(90).atStartOfDay(zona).toOffsetDateTime();
+            default -> hoje.minusDays(6).atStartOfDay(zona).toOffsetDateTime(); // SEMANA
+        };
+        OffsetDateTime ate = h.equals("ONTEM") ? inicioHoje : null;
+
+        List<Item> itens = new ArrayList<>();
+        @SuppressWarnings("unchecked")
+        List<Object[]> linhas = em.createNativeQuery("""
+                SELECT t.pendencia_id, p.titulo, p.classe, p.valor_em_jogo FROM trilha t
+                JOIN pendencia p ON p.id = t.pendencia_id
+                WHERE t.org_id = ? AND p.org_id = ? AND t.ator = ?
+                  AND t.tipo IN ('RESOLVIDA','REPASSADA','ADIADA','RESERVADA','REPOUSADA',
+                                 'DESCARTADA','DECIDIDA_NO_BLOCO')
+                  AND t.ocorrido_em >= ?
+                  AND (CAST(? AS timestamptz) IS NULL OR t.ocorrido_em < ?)
+                ORDER BY t.ocorrido_em DESC LIMIT %d
+                """.formatted(LIMITE_ITENS))
+                .setParameter(1, org.valor()).setParameter(2, org.valor())
+                .setParameter(3, "HUMANO:" + gestor)
+                .setParameter(4, desde).setParameter(5, ate).setParameter(6, ate)
+                .getResultList();
+        for (Object[] l : linhas) {
+            itens.add(item(l));
+        }
+        long n = itens.size();
+        String periodo = switch (h) {
+            case "ONTEM" -> " ontem";
+            case "HOJE" -> " hoje";
+            case "TRIMESTRE" -> " no trimestre";
+            default -> " nos últimos 7 dias";
+        };
+        String resp = n == 0 ? ("Você não registrou decisões" + periodo + ".")
+                : ("Você decidiu " + n + plural(n, " item", " itens") + periodo + ".");
+        return new ResultadoConsulta(pergunta, "DECISOES_RECENTES", resp, itens);
     }
 
     // ---- helpers ------------------------------------------------------------

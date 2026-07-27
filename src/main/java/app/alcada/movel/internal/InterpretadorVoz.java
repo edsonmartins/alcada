@@ -7,6 +7,7 @@ import app.alcada.consulta.port.Consulta;
 import app.alcada.consulta.port.ResultadoConsulta;
 import app.alcada.identidade.port.Pessoas;
 import app.alcada.identidade.port.Pessoas.PessoaRef;
+import app.alcada.identidade.port.Preferencias;
 import app.alcada.plataforma.gateway.port.ModelGateway;
 import app.alcada.plataforma.gateway.port.Sensibilidade;
 import app.alcada.plataforma.gateway.port.Tarefas.Extracao;
@@ -43,12 +44,15 @@ public class InterpretadorVoz {
     private final ModelGateway modelo;
     private final Consulta consulta;
     private final Pessoas pessoas;
+    private final Preferencias preferencias;
     private final ObjectMapper json = new ObjectMapper();
 
-    public InterpretadorVoz(ModelGateway modelo, Consulta consulta, Pessoas pessoas) {
+    public InterpretadorVoz(ModelGateway modelo, Consulta consulta, Pessoas pessoas,
+            Preferencias preferencias) {
         this.modelo = modelo;
         this.consulta = consulta;
         this.pessoas = pessoas;
+        this.preferencias = preferencias;
     }
 
     public record ItemFila(String id, String titulo) {
@@ -88,7 +92,7 @@ public class InterpretadorVoz {
         }
         return switch (b.intencao) {
             case "CONSULTAR" -> {
-                ResultadoConsulta rc = consulta.consultar(org, vazioOu(b.pergunta, texto));
+                ResultadoConsulta rc = consulta.consultar(org, gestorId, vazioOu(b.pergunta, texto));
                 yield new Resultado("CONSULTAR", null, null, null, null, null, null,
                         rc.resposta(), rc.resposta(), false, List.of(), null);
             }
@@ -117,7 +121,10 @@ public class InterpretadorVoz {
         if (alvo == null) {
             return nada("Não identifiquei o item para repassar.");
         }
-        String nivel = b.nivel == null || b.nivel.isBlank() ? "N2" : b.nivel;
+        // Nível: o que o gestor disse; senão o hábito aprendido; senão N2 (padrão seguro).
+        String nivel = b.nivel != null && !b.nivel.isBlank()
+                ? b.nivel
+                : preferencias.nivelRepasse(org, gestorId).orElse("N2");
         if (b.donoNome == null || b.donoNome.isBlank()) {
             return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, null, nivel, null, null,
                     "Para quem repassar “" + alvo.titulo() + "”?", false, List.of(), null);
