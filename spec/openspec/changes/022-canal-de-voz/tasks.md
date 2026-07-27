@@ -2,8 +2,8 @@
 
 ## Decisão prévia (gate) — ADR-0026 (aceito)
 - [x] Decisão de STT/TTS registrada e **ratificada** (ADR-0026 aceito): Whisper small + fallback; TTS nativo
-- [ ] Definir o limiar de WER de negócio (número do piloto)
-- [ ] Rodar o gate de avaliação PT-BR com ruído de carro antes da POC
+- [~] Definir o limiar de WER de negócio (número do piloto) — `LimiarWer` provisório (wer≤0,15 / campos≤0,05) no app; número oficial é decisão do gestor
+- [~] Rodar o gate de avaliação PT-BR com ruído de carro antes da POC — harness pronto e testado (`lib/voz/aval/`, ver `gate-stt.md`); falta o corpus real (áudio+transcrição) para rodar de fato
 
 ## App (Flutter — repo alcada-mobile)
 - [x] STT on-device atrás de uma porta (`Stt`/`SttManual`; motor Whisper pluga depois — ADR-0026)
@@ -17,7 +17,7 @@
 - [x] STT na NUVEM via gateway (`POST /v1/voz/transcrever` → OpenRouter whisper-large-v3-turbo) — verificado ao vivo (HTTP 200); só SKU Cloud
 - [x] Interpretação por LLM com memória de conversa (`POST /v1/voz/interpretar`, `InterpretadorVoz`): fala livre → UMA intenção do conjunto fechado (INV-10) + contexto dos turnos (follow-ups); app envia turnos+fila e cai no matcher local offline (INV-13). Verificado ao vivo
 - [x] App: gravar áudio (plugin `record`) + enviar ao /v1/voz/transcrever; usar nuvem online, device offline (híbrido) — `ApiCliente.online()` sonda o health (timeout curto); o "Segurar para falar" roteia sozinho: online → nuvem (record→transcrever), offline → STT do aparelho (INV-13). Testado
-- [ ] Whisper `small` on-device (baseline ADR-0026) — depende de disco + gate de WER
+- [ ] Whisper `small` on-device (baseline ADR-0026) — SÓ após o gate passar (ADR-0026 §4). Harness pronto; falta corpus + limiar oficial, aí pluga whisper.cpp na porta `Stt`
 - [x] Repassar por voz precisa de diretório de pessoas (nome → pessoa_id) — porta `identidade.Pessoas` + `PessoasJdbc` (match sem acento por prefixo); `InterpretadorVoz` resolve donoNome→pessoa_id (1 match confirma / ≥2 candidatos p/ escolha / 0 avisa); app com fluxo `EscolherPessoa`. Verificado ao vivo (3 caminhos)
 - [x] Memória durável de apelidos (fatia B) — tabela `apelido_pessoa` (V22, por org+gestor); o próprio gestor nunca é candidato; nome não reconhecido oferece a equipe e, ao confirmar o repasse, `Pessoas.aprender` grava o termo→pessoa (ignora redundantes); apelido tem prioridade na resolução. Verificado ao vivo (B1 exclusão do gestor; B2 aprende/resolve "Xandão")
 - [x] Preferências do gestor (fatia C1) — tabela `preferencia_gestor` (V23); nível de repasse habitual aprendido do uso (`Preferencias`); REPASSAR sem nível dito usa a preferência (senão N2); nível dito é normalizado (3→N3). O prompt não deixa o LLM inventar nível. Verificado ao vivo
