@@ -10,8 +10,8 @@
 - [ ] Testes: represamento durante trajeto; liberação após resumo; isolamento
 
 ## App (Flutter)
-- [ ] Porta `FonteMovimento` + máquina de estados PARADO/EM_TRAJETO/RESUMO
-- [ ] Recusa por classe em movimento com bloco agendado (C1/C2)
+- [~] Porta `FonteMovimento` + máquina de estados PARADO/EM_TRAJETO (fonte manual, ADR-0027; RESUMO na fatia C)
+- [x] Recusa por classe em movimento com bloco agendado (C1/C2) — em trajeto, RESOLVER item grave (BLOQUEIO ou valor ≥ limite) é recusado e reservado como bloco; parado, liberado. Testado (C1/C2 + borda). Config por tenant do limite/classes ainda usa default
 - [ ] Condução: um item por vez, sequência do sistema; corte de item longo (~8s) (C6/C7)
 - [ ] Resumo de trajeto ao estacionar, com desfazer por item (C4/C5)
 - [ ] CarPlay/Android Auto, áudio em background, Live Activity durante o trajeto
