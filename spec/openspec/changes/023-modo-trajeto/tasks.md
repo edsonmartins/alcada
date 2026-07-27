@@ -2,11 +2,11 @@
 
 ## Decisão prévia (gate) — ADR-0027 (aceito)
 - [x] Fonte de detecção de movimento registrada e **ratificada** (ADR-0027 aceito): estado explícito + override manual + sinais que só ligam o modo
-- [ ] Definir a lista de classes recusáveis em movimento por tenant (default: BLOQUEIO + acima de valor-limite)
+- [x] Definir a lista de classes recusáveis em movimento por tenant (default: BLOQUEIO + acima de valor-limite) — colunas `organizacao.trajeto_classes_recusaveis` + `trajeto_valor_limite` (V26); ajustável por org
 
 ## Backend (este repo — pequeno)
 - [x] Marcar comandos como "represados" (trajeto) e liberar em lote ao encerrar; efeito externo só após liberação (INV-14) — outbox.trajeto_id (V24); worker filtra trajeto_id IS NULL; EscopoTrajeto (ThreadLocal) carimba na publicação; `POST /v1/trajeto/liberar` → Outbox.liberarTrajeto. Verificado ao vivo (represado não emite; liberar solta) + @QuarkusTest
-- [ ] Config por tenant das classes recusáveis em movimento (hoje default: BLOQUEIO + valor ≥ limite, no app)
+- [x] Config por tenant das classes recusáveis em movimento — porta `ConfigTrajeto` + `ConfigTrajetoJdbc` (lê organizacao por PK, cache); `GET /v1/trajeto/config`; o app busca ao iniciar o trajeto e aplica offline (recusa + condução). Verificado ao vivo (default/override). Nota: cache em memória — mudar a config exige restart (como o FusoTenant). Falta uma UI/admin para editar (hoje via DB)
 - [x] Testes: represamento durante trajeto; liberação; isolamento por org (@QuarkusTest)
 
 ## App (Flutter)
