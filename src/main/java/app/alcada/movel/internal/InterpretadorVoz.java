@@ -177,7 +177,8 @@ public class InterpretadorVoz {
             }
         }
         sb.append("Fala agora: \"").append(texto).append("\"\n");
-        sb.append("Regras: item=0 se nenhum/ambíguo. REPASSAR → donoNome (só o nome/apelido da pessoa) e nivel (N1/N2/N3). ");
+        sb.append("Regras: item=0 se nenhum/ambíguo. REPASSAR → donoNome (só o nome/apelido da pessoa); ");
+        sb.append("nivel (N1/N2/N3) APENAS se o gestor disser explicitamente — senão OMITA o campo, não invente. ");
         sb.append("ADIAR → quandoVoltar. REGISTRAR → tituloNovo. ");
         sb.append("CONSULTAR → reescreva a pergunta COMPLETA em \"pergunta\" usando o contexto ");
         sb.append("(ex.: follow-up \"e para a semana que vem\" → \"o que tenho para a semana que vem\").\n");
