@@ -16,7 +16,7 @@
 - [x] STT real on-device da plataforma (Android SpeechRecognizer pt-BR) — fallback ADR-0026; testado no tablet
 - [x] STT na NUVEM via gateway (`POST /v1/voz/transcrever` → OpenRouter whisper-large-v3-turbo) — verificado ao vivo (HTTP 200); só SKU Cloud
 - [x] Interpretação por LLM com memória de conversa (`POST /v1/voz/interpretar`, `InterpretadorVoz`): fala livre → UMA intenção do conjunto fechado (INV-10) + contexto dos turnos (follow-ups); app envia turnos+fila e cai no matcher local offline (INV-13). Verificado ao vivo
-- [ ] App: gravar áudio (plugin `record`) + enviar ao /v1/voz/transcrever; usar nuvem online, device offline (híbrido)
+- [x] App: gravar áudio (plugin `record`) + enviar ao /v1/voz/transcrever; usar nuvem online, device offline (híbrido) — `ApiCliente.online()` sonda o health (timeout curto); o "Segurar para falar" roteia sozinho: online → nuvem (record→transcrever), offline → STT do aparelho (INV-13). Testado
 - [ ] Whisper `small` on-device (baseline ADR-0026) — depende de disco + gate de WER
 - [x] Repassar por voz precisa de diretório de pessoas (nome → pessoa_id) — porta `identidade.Pessoas` + `PessoasJdbc` (match sem acento por prefixo); `InterpretadorVoz` resolve donoNome→pessoa_id (1 match confirma / ≥2 candidatos p/ escolha / 0 avisa); app com fluxo `EscolherPessoa`. Verificado ao vivo (3 caminhos)
 - [x] Memória durável de apelidos (fatia B) — tabela `apelido_pessoa` (V22, por org+gestor); o próprio gestor nunca é candidato; nome não reconhecido oferece a equipe e, ao confirmar o repasse, `Pessoas.aprender` grava o termo→pessoa (ignora redundantes); apelido tem prioridade na resolução. Verificado ao vivo (B1 exclusão do gestor; B2 aprende/resolve "Xandão")
