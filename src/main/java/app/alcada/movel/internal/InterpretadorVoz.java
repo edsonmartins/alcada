@@ -4,6 +4,8 @@ import java.util.List;
 
 import app.alcada.consulta.port.Consulta;
 import app.alcada.consulta.port.ResultadoConsulta;
+import app.alcada.identidade.port.Pessoas;
+import app.alcada.identidade.port.Pessoas.PessoaRef;
 import app.alcada.plataforma.gateway.port.ModelGateway;
 import app.alcada.plataforma.gateway.port.Sensibilidade;
 import app.alcada.plataforma.gateway.port.Tarefas.Extracao;
@@ -17,8 +19,11 @@ import jakarta.enterprise.context.ApplicationScoped;
  * Interpretação de fala livre por LLM (022, ADR-0014/0019): mapeia a fala do
  * gestor para UMA intenção de um conjunto fechado (INV-10 — o modelo só escolhe,
  * o código executa) e resolve o item da fila, usando o contexto da conversa para
- * follow-ups. Nenhum efeito aqui: comandos voltam para o app confirmar; consulta
- * é leitura. Sem LLM disponível, devolve NENHUMA (o app cai no matcher offline).
+ * follow-ups. No REPASSAR resolve o nome falado para um {@code pessoa_id} via o
+ * diretório de pessoas (memória durável — [[Pessoas]]); quando há mais de um
+ * candidato, devolve as opções para o app perguntar (nunca decide sozinho).
+ * Nenhum efeito aqui: comandos voltam para o app confirmar; consulta é leitura.
+ * Sem LLM disponível, devolve NENHUMA (o app cai no matcher offline).
  */
 @ApplicationScoped
 public class InterpretadorVoz {
@@ -34,21 +39,27 @@ public class InterpretadorVoz {
 
     private final ModelGateway modelo;
     private final Consulta consulta;
+    private final Pessoas pessoas;
     private final ObjectMapper json = new ObjectMapper();
 
-    public InterpretadorVoz(ModelGateway modelo, Consulta consulta) {
+    public InterpretadorVoz(ModelGateway modelo, Consulta consulta, Pessoas pessoas) {
         this.modelo = modelo;
         this.consulta = consulta;
+        this.pessoas = pessoas;
     }
 
     public record ItemFila(String id, String titulo) {
     }
 
+    public record Candidato(String id, String nome) {
+    }
+
     /** Resultado estruturado para o app: comando a confirmar, consulta respondida, ou nada. */
     public record Resultado(
             String intencao, String pendenciaId, String titulo,
-            String donoNome, String nivel, String tituloNovo,
-            String resposta, String frase, boolean precisaConfirmar) {
+            String donoId, String donoNome, String nivel, String tituloNovo,
+            String resposta, String frase, boolean precisaConfirmar,
+            List<Candidato> candidatosDono) {
     }
 
     public Resultado interpretar(OrgId org, String texto, List<String> contexto, List<ItemFila> fila) {
@@ -61,43 +72,63 @@ public class InterpretadorVoz {
             b = null;
         }
         if (b == null || b.intencao == null) {
-            return new Resultado("NENHUMA", null, null, null, null, null, null,
-                    "Não entendi. Pode repetir?", false);
+            return nada("Não entendi. Pode repetir?");
         }
         return switch (b.intencao) {
             case "CONSULTAR" -> {
                 ResultadoConsulta rc = consulta.consultar(org, vazioOu(b.pergunta, texto));
-                yield new Resultado("CONSULTAR", null, null, null, null, null, rc.resposta(), rc.resposta(), false);
+                yield new Resultado("CONSULTAR", null, null, null, null, null, null,
+                        rc.resposta(), rc.resposta(), false, List.of());
             }
             case "REGISTRAR" -> {
                 String t = vazioOu(b.tituloNovo, texto);
-                yield new Resultado("REGISTRAR", null, null, null, null, t, null,
-                        "Registrar “" + t + "”. Confirma?", true);
+                yield new Resultado("REGISTRAR", null, null, null, null, null, t, null,
+                        "Registrar “" + t + "”. Confirma?", true, List.of());
             }
             case "RESOLVER", "ADIAR" -> {
                 ItemFila alvo = item(fila, b.item);
                 if (alvo == null) {
-                    yield new Resultado("NENHUMA", null, null, null, null, null, null,
-                            "Não identifiquei o item na fila. Qual deles?", false);
+                    yield nada("Não identifiquei o item na fila. Qual deles?");
                 }
                 String verbo = b.intencao.equals("RESOLVER") ? "Resolver" : "Adiar";
-                yield new Resultado(b.intencao, alvo.id(), alvo.titulo(), null, null, null, null,
-                        verbo + " “" + alvo.titulo() + "”. Confirma?", true);
+                yield new Resultado(b.intencao, alvo.id(), alvo.titulo(), null, null, null, null, null,
+                        verbo + " “" + alvo.titulo() + "”. Confirma?", true, List.of());
             }
-            case "REPASSAR" -> {
-                ItemFila alvo = item(fila, b.item);
-                if (alvo == null) {
-                    yield new Resultado("NENHUMA", null, null, null, null, null, null,
-                            "Não identifiquei o item para repassar.", false);
-                }
-                yield new Resultado("REPASSAR", alvo.id(), alvo.titulo(), b.donoNome,
-                        b.nivel == null ? "N2" : b.nivel, null, null,
-                        "Repassar “" + alvo.titulo() + "”" + (b.donoNome != null ? " para " + b.donoNome : "")
-                                + ". Confirma?", true);
-            }
-            default -> new Resultado("NENHUMA", null, null, null, null, null, null,
-                    "Não entendi. Pode repetir?", false);
+            case "REPASSAR" -> repassar(org, b, fila);
+            default -> nada("Não entendi. Pode repetir?");
         };
+    }
+
+    /** Repasse: precisa de item + dono resolvido a partir do diretório de pessoas. */
+    private Resultado repassar(OrgId org, Bruto b, List<ItemFila> fila) {
+        ItemFila alvo = item(fila, b.item);
+        if (alvo == null) {
+            return nada("Não identifiquei o item para repassar.");
+        }
+        String nivel = b.nivel == null || b.nivel.isBlank() ? "N2" : b.nivel;
+        if (b.donoNome == null || b.donoNome.isBlank()) {
+            return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, null, nivel, null, null,
+                    "Para quem repassar “" + alvo.titulo() + "”?", false, List.of());
+        }
+        List<PessoaRef> achados = pessoas.buscarPorNome(org, b.donoNome);
+        if (achados.isEmpty()) {
+            return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, b.donoNome, nivel, null, null,
+                    "Não encontrei " + b.donoNome + " na sua equipe.", false, List.of());
+        }
+        if (achados.size() == 1) {
+            PessoaRef p = achados.get(0);
+            return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), p.id().toString(), p.nome(), nivel, null,
+                    null, "Repassar “" + alvo.titulo() + "” para " + p.nome() + ". Confirma?", true, List.of());
+        }
+        List<Candidato> opcoes = achados.stream().limit(3)
+                .map(p -> new Candidato(p.id().toString(), p.nome())).toList();
+        String nomes = opcoes.stream().limit(2).map(Candidato::nome).reduce((a, c) -> a + " ou " + c).orElse("");
+        return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, b.donoNome, nivel, null, null,
+                "Achei mais de um: " + nomes + ". Qual deles?", false, opcoes);
+    }
+
+    private static Resultado nada(String frase) {
+        return new Resultado("NENHUMA", null, null, null, null, null, null, null, frase, false, List.of());
     }
 
     // ---- prompt + parsing --------------------------------------------------
@@ -120,7 +151,7 @@ public class InterpretadorVoz {
             }
         }
         sb.append("Fala agora: \"").append(texto).append("\"\n");
-        sb.append("Regras: item=0 se nenhum/ambíguo. REPASSAR → donoNome e nivel (N1/N2/N3). ");
+        sb.append("Regras: item=0 se nenhum/ambíguo. REPASSAR → donoNome (só o nome da pessoa) e nivel (N1/N2/N3). ");
         sb.append("ADIAR → quandoVoltar. REGISTRAR → tituloNovo. ");
         sb.append("CONSULTAR → reescreva a pergunta COMPLETA em \"pergunta\" usando o contexto ");
         sb.append("(ex.: follow-up \"e para a semana que vem\" → \"o que tenho para a semana que vem\").\n");

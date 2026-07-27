@@ -16,6 +16,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         VozResource.Resp.class,
         VozResource.Problema.class,
         InterpretadorVoz.Resultado.class,
+        InterpretadorVoz.Candidato.class,
         InterpretadorVozResource.Req.class,
         InterpretadorVozResource.ItemReq.class,
         InterpretadorVozResource.Problema.class
