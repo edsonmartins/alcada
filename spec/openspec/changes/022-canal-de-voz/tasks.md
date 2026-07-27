@@ -26,4 +26,4 @@
 ## Testes
 - [x] C1/C2/C3/C4/C5/C6/C8 no cérebro da voz (7 testes; 16 no total, analyze limpo)
 - [ ] C7 (áudio offline persistido) — depende do STT real
-- [ ] Métrica: taxa de correção após confirmação (instrumentação)
+- [x] Métrica: taxa de correção após confirmação — tabela voz_confirmacao (V27, por org/ADR-0017), POST /v1/voz/feedback + GET /v1/voz/taxa-correcao; app instrumenta confirmar (CONFIRMADO) e correção/cancelar (CORRIGIDO). Verificado ao vivo (taxa 0,25)
