@@ -71,6 +71,18 @@ class InterpretadorVozTest {
     }
 
     @Test
+    void itemUnicoResolveMesmoComIndiceZero() {
+        // LLM às vezes devolve item=0; com uma fila de um só item, é ele.
+        var uid = UUID.randomUUID();
+        var r = comPessoas("{\"intencao\":\"REPASSAR\",\"item\":0,\"donoNome\":\"Executor\"}",
+                List.of(new PessoaRef(uid, "Executor Piloto")))
+                .interpretar(ORG, "manda esse pro executor", List.of(), FILA);
+        assertEquals("REPASSAR", r.intencao());
+        assertEquals("11", r.pendenciaId());
+        assertEquals(uid.toString(), r.donoId());
+    }
+
+    @Test
     void repassarSemMatchAvisaQueNaoAchou() {
         var r = comPessoas("{\"intencao\":\"REPASSAR\",\"item\":1,\"donoNome\":\"Fulano\"}", List.of())
                 .interpretar(ORG, "manda pro fulano", List.of(), FILA);

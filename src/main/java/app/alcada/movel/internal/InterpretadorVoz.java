@@ -86,7 +86,7 @@ public class InterpretadorVoz {
                         "Registrar “" + t + "”. Confirma?", true, List.of());
             }
             case "RESOLVER", "ADIAR" -> {
-                ItemFila alvo = item(fila, b.item);
+                ItemFila alvo = alvo(fila, b.item);
                 if (alvo == null) {
                     yield nada("Não identifiquei o item na fila. Qual deles?");
                 }
@@ -101,7 +101,7 @@ public class InterpretadorVoz {
 
     /** Repasse: precisa de item + dono resolvido a partir do diretório de pessoas. */
     private Resultado repassar(OrgId org, Bruto b, List<ItemFila> fila) {
-        ItemFila alvo = item(fila, b.item);
+        ItemFila alvo = alvo(fila, b.item);
         if (alvo == null) {
             return nada("Não identifiquei o item para repassar.");
         }
@@ -182,6 +182,19 @@ public class InterpretadorVoz {
 
     private static ItemFila item(List<ItemFila> fila, int idx) {
         return (fila != null && idx >= 1 && idx <= fila.size()) ? fila.get(idx - 1) : null;
+    }
+
+    /**
+     * Item alvo com fallback: se o índice não resolve mas há um único item na
+     * fila, é ele (o gestor "esse"/"o reembolso" não tem como ser ambíguo). A
+     * confirmação obrigatória (ADR-0014) segue protegendo.
+     */
+    private static ItemFila alvo(List<ItemFila> fila, int idx) {
+        ItemFila i = item(fila, idx);
+        if (i == null && fila != null && fila.size() == 1) {
+            return fila.get(0);
+        }
+        return i;
     }
 
     private static String vazioOu(String v, String padrao) {
