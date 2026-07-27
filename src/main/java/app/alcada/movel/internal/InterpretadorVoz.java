@@ -121,10 +121,9 @@ public class InterpretadorVoz {
         if (alvo == null) {
             return nada("Não identifiquei o item para repassar.");
         }
-        // Nível: o que o gestor disse; senão o hábito aprendido; senão N2 (padrão seguro).
-        String nivel = b.nivel != null && !b.nivel.isBlank()
-                ? b.nivel
-                : preferencias.nivelRepasse(org, gestorId).orElse("N2");
+        // Nível: o que o gestor disse (normalizado); senão o hábito aprendido; senão N2.
+        String dito = nivelDito(b.nivel);
+        String nivel = dito != null ? dito : preferencias.nivelRepasse(org, gestorId).orElse("N2");
         if (b.donoNome == null || b.donoNome.isBlank()) {
             return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, null, nivel, null, null,
                     "Para quem repassar “" + alvo.titulo() + "”?", false, List.of(), null);
@@ -226,6 +225,18 @@ public class InterpretadorVoz {
 
     private static String vazioOu(String v, String padrao) {
         return v == null || v.isBlank() ? padrao : v;
+    }
+
+    /** Nível dito pelo gestor, normalizado para N1/N2/N3. Aceita "n2"/"2"; inválido → null. */
+    private static String nivelDito(String s) {
+        if (s == null) {
+            return null;
+        }
+        String u = s.trim().toUpperCase().replace(" ", "");
+        if (u.matches("N?[123]")) {
+            return u.startsWith("N") ? u : "N" + u;
+        }
+        return null;
     }
 
     private static final class Bruto {

@@ -113,9 +113,10 @@ class InterpretadorVozTest {
     }
 
     @Test
-    void nivelFaladoTemPrioridadeSobreAPreferencia() {
+    void nivelFaladoTemPrioridadeSobreAPreferenciaEeNormalizado() {
         var uid = UUID.randomUUID();
-        var r = comPreferencia("{\"intencao\":\"REPASSAR\",\"item\":1,\"donoNome\":\"Executor\",\"nivel\":\"N3\"}",
+        // o LLM às vezes devolve "3" em vez de "N3" — normaliza; e vence a preferência N1.
+        var r = comPreferencia("{\"intencao\":\"REPASSAR\",\"item\":1,\"donoNome\":\"Executor\",\"nivel\":\"3\"}",
                 List.of(new PessoaRef(uid, "Executor Piloto")), List.of(), "N1")
                 .interpretar(ORG, GESTOR, "passa esse pro executor no n3", List.of(), FILA);
         assertEquals("N3", r.nivel());
