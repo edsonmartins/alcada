@@ -46,11 +46,19 @@ public class TrajetoResource {
         if (org.isEmpty()) {
             return problema(400, "org.ausente", "X-Org-Id não resolvido");
         }
-        ConfigTrajeto.Config c = config.carregar(org.get());
-        return Response.ok(new Config(c.classesRecusaveis(), c.valorLimite())).build();
+        return respostaConfig(config.carregar(org.get()));
     }
 
-    /** Ajusta a config do trajeto da org (admin). Vale sem reiniciar (invalida o cache). */
+    /**
+     * Ajusta a config do trajeto da org (admin). Vale sem reiniciar (invalida o cache
+     * pós-commit). Campo omitido (null) mantém o valor atual — atualização de um campo
+     * só não zera o outro.
+     *
+     * <p>ATENÇÃO (segurança): não há checagem de papel aqui — no piloto (%demo, sem OIDC)
+     * o tenant vem por header. Como isto reescreve a config de SEGURANÇA do trajeto de
+     * toda a org, em %prod (OIDC) precisa ser restrito a um papel admin. Amarrado ao
+     * endurecimento demo→prod (OIDC).
+     */
     @PUT
     @Path("/config")
     @Transactional
@@ -62,8 +70,13 @@ public class TrajetoResource {
         if (body == null) {
             return problema(400, "requisicao.invalida", "corpo é obrigatório");
         }
-        config.salvar(org.get(), body.classesRecusaveis(), body.valorLimite());
-        ConfigTrajeto.Config c = config.carregar(org.get());
+        ConfigTrajeto.Config atual = config.carregar(org.get());
+        var classes = body.classesRecusaveis() != null ? body.classesRecusaveis() : atual.classesRecusaveis();
+        var limite = body.valorLimite() != null ? body.valorLimite() : atual.valorLimite();
+        return respostaConfig(config.salvar(org.get(), classes, limite));
+    }
+
+    private static Response respostaConfig(ConfigTrajeto.Config c) {
         return Response.ok(new Config(c.classesRecusaveis(), c.valorLimite())).build();
     }
 

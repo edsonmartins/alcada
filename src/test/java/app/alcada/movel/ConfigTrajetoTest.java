@@ -66,6 +66,24 @@ class ConfigTrajetoTest {
         assertEquals(0, new BigDecimal("50000").compareTo(c.valorLimite()), "valor negativo → padrão");
     }
 
+    @Test
+    void rollbackNaoEnvenenaOCache() {
+        OrgId org = novaOrg();
+        config.carregar(org); // popula o cache com o default
+        try {
+            QuarkusTransaction.requiringNew().run(() -> {
+                config.salvar(org, java.util.List.of("DECISAO"), new BigDecimal("9000"));
+                throw new IllegalStateException("força rollback");
+            });
+        } catch (IllegalStateException ignored) {
+            // esperado
+        }
+        var c = config.carregar(org); // deve refletir o banco (revertido), não o valor não-commitado
+        assertTrue(c.classesRecusaveis().contains("BLOQUEIO"));
+        assertTrue(!c.classesRecusaveis().contains("DECISAO"), "rollback não vaza para o cache");
+        assertEquals(0, new BigDecimal("50000").compareTo(c.valorLimite()));
+    }
+
     private OrgId novaOrg() {
         OrgId org = new OrgId(UUID.randomUUID());
         QuarkusTransaction.requiringNew().run(() ->

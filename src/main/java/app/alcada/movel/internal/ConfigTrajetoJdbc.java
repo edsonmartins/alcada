@@ -9,6 +9,9 @@ import app.alcada.movel.port.ConfigTrajeto;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Status;
+import jakarta.transaction.Synchronization;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 
 /**
  * Lê a config de trajeto das colunas de {@code organizacao} (por PK, como o
@@ -21,10 +24,12 @@ public class ConfigTrajetoJdbc implements ConfigTrajeto {
     private static final Config PADRAO = new Config(List.of("BLOQUEIO"), new BigDecimal("50000"));
 
     private final EntityManager em;
+    private final TransactionSynchronizationRegistry tx;
     private final ConcurrentHashMap<UUID, Config> cache = new ConcurrentHashMap<>();
 
-    public ConfigTrajetoJdbc(EntityManager em) {
+    public ConfigTrajetoJdbc(EntityManager em, TransactionSynchronizationRegistry tx) {
         this.em = em;
+        this.tx = tx;
     }
 
     /** Classes válidas (whitelist) — evita gravar valor arbitrário no array. */
@@ -36,13 +41,13 @@ public class ConfigTrajetoJdbc implements ConfigTrajeto {
     }
 
     @Override
-    public void salvar(OrgId org, List<String> classes, BigDecimal valorLimite) {
+    public Config salvar(OrgId org, List<String> classes, BigDecimal valorLimite) {
+        // classes: null = deliberadamente vazia (nenhuma classe pela regra de classe);
+        // o merge de "campo omitido → mantém atual" é responsabilidade do resource.
         List<String> validas = classes == null ? List.of()
                 : classes.stream().map(c -> c == null ? "" : c.trim().toUpperCase())
                         .filter(CLASSES::contains).distinct().toList();
-        if (validas.isEmpty()) {
-            validas = PADRAO.classesRecusaveis();
-        }
+        // valor negativo é inválido → cai no padrão; 0 é aceito (limiar estrito).
         BigDecimal limite = valorLimite == null || valorLimite.signum() < 0
                 ? PADRAO.valorLimite() : valorLimite;
         String arrayLiteral = "{" + String.join(",", validas) + "}"; // classes são da whitelist
@@ -55,7 +60,34 @@ public class ConfigTrajetoJdbc implements ConfigTrajeto {
                 .setParameter(2, limite)
                 .setParameter(3, org.valor())
                 .executeUpdate();
-        cache.put(org.valor(), new Config(validas, limite)); // vale já, sem restart
+        invalidarAposCommit(org.valor()); // só após COMMIT — rollback não envenena o cache
+        return new Config(validas, limite);
+    }
+
+    /**
+     * Remove a entrada do cache APÓS o commit da transação (nunca antes): se a
+     * transação reverter, o cache não fica com valor que não existe no banco. A
+     * próxima leitura re-lê do banco. Multi-instância: só invalida esta instância
+     * (piloto é single-instance; produção horizontal precisaria de eviction distribuída).
+     */
+    private void invalidarAposCommit(UUID orgId) {
+        try {
+            tx.registerInterposedSynchronization(new Synchronization() {
+                @Override
+                public void beforeCompletion() {
+                }
+
+                @Override
+                public void afterCompletion(int status) {
+                    if (status == Status.STATUS_COMMITTED) {
+                        cache.remove(orgId);
+                    }
+                }
+            });
+        } catch (RuntimeException semTransacao) {
+            // sem transação ativa (não deveria ocorrer no endpoint @Transactional): invalida direto.
+            cache.remove(orgId);
+        }
     }
 
     private Config ler(UUID orgId) {

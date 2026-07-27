@@ -14,8 +14,11 @@ public interface ConfigTrajeto {
 
     Config carregar(OrgId org);
 
-    /** Ajusta a config da org (admin). Invalida o cache — vale sem reiniciar. */
-    void salvar(OrgId org, List<String> classesRecusaveis, BigDecimal valorLimite);
+    /**
+     * Ajusta a config da org (admin) e devolve o valor normalizado que foi gravado.
+     * Invalida o cache após o commit — vale sem reiniciar (nesta instância).
+     */
+    Config salvar(OrgId org, List<String> classesRecusaveis, BigDecimal valorLimite);
 
     record Config(List<String> classesRecusaveis, BigDecimal valorLimite) {
     }
