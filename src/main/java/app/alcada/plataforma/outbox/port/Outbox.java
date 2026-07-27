@@ -22,4 +22,11 @@ public interface Outbox {
      * estacionar + confirmar o resumo (INV-14). Escopado por org (INV-15).
      */
     void liberarTrajeto(OrgId org, UUID trajetoId);
+
+    /**
+     * Descarta o efeito externo represado de UMA pendência de um trajeto (023, C4):
+     * o "desfazer por item" no resumo ao estacionar — o terceiro nunca é
+     * comunicado. As demais pendências do trajeto seguem represadas.
+     */
+    void descartarTrajeto(OrgId org, UUID trajetoId, UUID pendenciaId);
 }

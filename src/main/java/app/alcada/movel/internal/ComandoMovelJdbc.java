@@ -84,7 +84,7 @@ public class ComandoMovelJdbc implements ComandoMovel {
         if (c.trajetoId() == null) {
             return exec.get();
         }
-        trajeto.iniciar(c.trajetoId());
+        trajeto.iniciar(c.trajetoId(), c.pendenciaId());
         try {
             return exec.get();
         } finally {

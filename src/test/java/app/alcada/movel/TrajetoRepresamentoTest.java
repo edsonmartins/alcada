@@ -48,6 +48,23 @@ class TrajetoRepresamentoTest {
     }
 
     @Test
+    void desfazerNoResumoDescartaOEfeitoDoItem() {
+        OrgId org = novaOrg();
+        UUID pend = pendencia(org);
+        UUID trajeto = UUID.randomUUID();
+
+        comandos.sincronizar(org, UUID.randomUUID(),
+                List.of(new Comando(UUID.randomUUID(), Intencao.RESOLVER, pend, null, trajeto)));
+        assertEquals(1, pendentes(org, "item.fechado"), "efeito represado existe");
+
+        QuarkusTransaction.requiringNew().run(() -> outbox.descartarTrajeto(org, trajeto, pend));
+        worker.processarLote();
+
+        assertEquals(0, pendentes(org, "item.fechado"), "descartado: não fica represado");
+        assertEquals(0, enviados(org, "item.fechado"), "e o terceiro nunca é comunicado");
+    }
+
+    @Test
     void semTrajetoEmiteNormalmente() {
         OrgId org = novaOrg();
         UUID pend = pendencia(org);

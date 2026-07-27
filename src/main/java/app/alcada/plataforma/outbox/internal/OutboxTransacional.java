@@ -21,14 +21,19 @@ import jakarta.persistence.EntityManager;
 public class OutboxTransacional implements Outbox {
 
     private static final String INSERT = """
-            INSERT INTO outbox (org_id, tipo, payload, idempotency_key, trajeto_id)
-            VALUES (?, ?, cast(? as jsonb), ?, ?)
+            INSERT INTO outbox (org_id, tipo, payload, idempotency_key, trajeto_id, pendencia_id)
+            VALUES (?, ?, cast(? as jsonb), ?, ?, ?)
             ON CONFLICT (idempotency_key) DO NOTHING
             """;
 
     private static final String LIBERAR = """
             UPDATE outbox SET trajeto_id = NULL
             WHERE org_id = ? AND trajeto_id = ?
+            """;
+
+    private static final String DESCARTAR = """
+            DELETE FROM outbox
+            WHERE org_id = ? AND trajeto_id = ? AND pendencia_id = ?
             """;
 
     private final EntityManager em;
@@ -47,6 +52,7 @@ public class OutboxTransacional implements Outbox {
                 .setParameter(3, m.payloadJson())
                 .setParameter(4, m.idempotencyKey())
                 .setParameter(5, trajeto.atual().orElse(null))
+                .setParameter(6, trajeto.pendencia().orElse(null))
                 .executeUpdate();
     }
 
@@ -55,6 +61,15 @@ public class OutboxTransacional implements Outbox {
         em.createNativeQuery(LIBERAR)
                 .setParameter(1, org.valor())
                 .setParameter(2, trajetoId)
+                .executeUpdate();
+    }
+
+    @Override
+    public void descartarTrajeto(OrgId org, UUID trajetoId, UUID pendenciaId) {
+        em.createNativeQuery(DESCARTAR)
+                .setParameter(1, org.valor())
+                .setParameter(2, trajetoId)
+                .setParameter(3, pendenciaId)
                 .executeUpdate();
     }
 }

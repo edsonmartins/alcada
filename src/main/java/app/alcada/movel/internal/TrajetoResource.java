@@ -14,11 +14,12 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 /**
- * {@code POST /v1/trajeto/liberar} (023) — libera os efeitos externos represados
- * de um trajeto ao estacionar + confirmar o resumo (INV-14). Só então terceiros
- * são comunicados. Escopo por organização (INV-15).
+ * Modo trajeto (023) — resumo ao estacionar. {@code /liberar} solta todos os
+ * efeitos represados do trajeto (o gestor confirmou o resumo → terceiros são
+ * comunicados). {@code /desfazer} descarta o efeito represado de UMA pendência (o
+ * terceiro nunca é comunicado). Só leitura/gestão do outbox, escopo por org (INV-15).
  */
-@Path("/v1/trajeto/liberar")
+@Path("/v1/trajeto")
 @Produces(MediaType.APPLICATION_JSON)
 public class TrajetoResource {
 
@@ -31,6 +32,7 @@ public class TrajetoResource {
     }
 
     @POST
+    @Path("/liberar")
     @Transactional
     public Response liberar(Req req) {
         Optional<OrgId> org = contexto.atual();
@@ -44,12 +46,29 @@ public class TrajetoResource {
         return Response.noContent().build();
     }
 
+    @POST
+    @Path("/desfazer")
+    @Transactional
+    public Response desfazer(Req req) {
+        Optional<OrgId> org = contexto.atual();
+        if (org.isEmpty()) {
+            return problema(400, "org.ausente", "X-Org-Id não resolvido");
+        }
+        if (req == null || req.trajetoId() == null || req.trajetoId().isBlank()
+                || req.pendenciaId() == null || req.pendenciaId().isBlank()) {
+            return problema(400, "requisicao.invalida", "trajetoId e pendenciaId são obrigatórios");
+        }
+        outbox.descartarTrajeto(org.get(),
+                UUID.fromString(req.trajetoId()), UUID.fromString(req.pendenciaId()));
+        return Response.noContent().build();
+    }
+
     private static Response problema(int status, String tipo, String detalhe) {
         return Response.status(status).type("application/problem+json")
                 .entity(new Problema("urn:alcada:" + tipo, detalhe, status)).build();
     }
 
-    public record Req(String trajetoId) {
+    public record Req(String trajetoId, String pendenciaId) {
     }
 
     public record Problema(String type, String detail, int status) {

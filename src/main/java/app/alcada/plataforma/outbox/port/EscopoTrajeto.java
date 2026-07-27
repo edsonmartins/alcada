@@ -11,10 +11,15 @@ import java.util.UUID;
  */
 public interface EscopoTrajeto {
 
-    void iniciar(UUID trajetoId);
+    /** Abre o escopo para um comando de trajeto sobre {@code pendenciaId} (pode ser null). */
+    void iniciar(UUID trajetoId, UUID pendenciaId);
 
     /** Sempre em {@code finally} — não pode vazar para o próximo comando. */
     void encerrar();
 
+    /** Trajeto atual, se a thread está processando um comando de trajeto. */
     Optional<UUID> atual();
+
+    /** Pendência do comando de trajeto atual (para desfazer por item). */
+    Optional<UUID> pendencia();
 }

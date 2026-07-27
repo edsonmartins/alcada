@@ -16,19 +16,27 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class ContextoTrajeto implements EscopoTrajeto {
 
     private static final ThreadLocal<UUID> ATUAL = new ThreadLocal<>();
+    private static final ThreadLocal<UUID> PENDENCIA = new ThreadLocal<>();
 
     @Override
-    public void iniciar(UUID trajetoId) {
+    public void iniciar(UUID trajetoId, UUID pendenciaId) {
         ATUAL.set(trajetoId);
+        PENDENCIA.set(pendenciaId);
     }
 
     @Override
     public void encerrar() {
         ATUAL.remove();
+        PENDENCIA.remove();
     }
 
     @Override
     public Optional<UUID> atual() {
         return Optional.ofNullable(ATUAL.get());
+    }
+
+    @Override
+    public Optional<UUID> pendencia() {
+        return Optional.ofNullable(PENDENCIA.get());
     }
 }
