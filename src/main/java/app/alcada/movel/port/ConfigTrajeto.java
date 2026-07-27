@@ -14,6 +14,9 @@ public interface ConfigTrajeto {
 
     Config carregar(OrgId org);
 
+    /** Ajusta a config da org (admin). Invalida o cache — vale sem reiniciar. */
+    void salvar(OrgId org, List<String> classesRecusaveis, BigDecimal valorLimite);
+
     record Config(List<String> classesRecusaveis, BigDecimal valorLimite) {
     }
 }

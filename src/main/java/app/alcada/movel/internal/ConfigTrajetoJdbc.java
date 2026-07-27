@@ -27,9 +27,35 @@ public class ConfigTrajetoJdbc implements ConfigTrajeto {
         this.em = em;
     }
 
+    /** Classes válidas (whitelist) — evita gravar valor arbitrário no array. */
+    private static final java.util.Set<String> CLASSES = java.util.Set.of("DECISAO", "BLOQUEIO", "ESTEIRA");
+
     @Override
     public Config carregar(OrgId org) {
         return cache.computeIfAbsent(org.valor(), this::ler);
+    }
+
+    @Override
+    public void salvar(OrgId org, List<String> classes, BigDecimal valorLimite) {
+        List<String> validas = classes == null ? List.of()
+                : classes.stream().map(c -> c == null ? "" : c.trim().toUpperCase())
+                        .filter(CLASSES::contains).distinct().toList();
+        if (validas.isEmpty()) {
+            validas = PADRAO.classesRecusaveis();
+        }
+        BigDecimal limite = valorLimite == null || valorLimite.signum() < 0
+                ? PADRAO.valorLimite() : valorLimite;
+        String arrayLiteral = "{" + String.join(",", validas) + "}"; // classes são da whitelist
+        em.createNativeQuery("""
+                UPDATE organizacao
+                SET trajeto_classes_recusaveis = CAST(? AS text[]), trajeto_valor_limite = ?
+                WHERE id = ?
+                """)
+                .setParameter(1, arrayLiteral)
+                .setParameter(2, limite)
+                .setParameter(3, org.valor())
+                .executeUpdate();
+        cache.put(org.valor(), new Config(validas, limite)); // vale já, sem restart
     }
 
     private Config ler(UUID orgId) {

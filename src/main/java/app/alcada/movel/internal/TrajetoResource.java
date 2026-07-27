@@ -12,6 +12,7 @@ import app.alcada.plataforma.outbox.port.Outbox;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
@@ -45,6 +46,23 @@ public class TrajetoResource {
         if (org.isEmpty()) {
             return problema(400, "org.ausente", "X-Org-Id não resolvido");
         }
+        ConfigTrajeto.Config c = config.carregar(org.get());
+        return Response.ok(new Config(c.classesRecusaveis(), c.valorLimite())).build();
+    }
+
+    /** Ajusta a config do trajeto da org (admin). Vale sem reiniciar (invalida o cache). */
+    @PUT
+    @Path("/config")
+    @Transactional
+    public Response salvarConfig(Config body) {
+        Optional<OrgId> org = contexto.atual();
+        if (org.isEmpty()) {
+            return problema(400, "org.ausente", "X-Org-Id não resolvido");
+        }
+        if (body == null) {
+            return problema(400, "requisicao.invalida", "corpo é obrigatório");
+        }
+        config.salvar(org.get(), body.classesRecusaveis(), body.valorLimite());
         ConfigTrajeto.Config c = config.carregar(org.get());
         return Response.ok(new Config(c.classesRecusaveis(), c.valorLimite())).build();
     }

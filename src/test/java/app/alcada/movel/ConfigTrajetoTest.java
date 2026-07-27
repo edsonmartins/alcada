@@ -42,6 +42,30 @@ class ConfigTrajetoTest {
         assertEquals(0, new BigDecimal("10000").compareTo(c.valorLimite()));
     }
 
+    @Test
+    void salvarAtualizaEInvalidaOCache() {
+        OrgId org = novaOrg();
+        // força o cache com o default
+        assertEquals(0, new BigDecimal("50000").compareTo(config.carregar(org).valorLimite()));
+        // admin ajusta
+        QuarkusTransaction.requiringNew().run(() ->
+                config.salvar(org, java.util.List.of("DECISAO", "BLOQUEIO"), new BigDecimal("8000")));
+        var c = config.carregar(org); // deve refletir sem restart (cache invalidado)
+        assertTrue(c.classesRecusaveis().contains("DECISAO"));
+        assertEquals(0, new BigDecimal("8000").compareTo(c.valorLimite()));
+    }
+
+    @Test
+    void salvarIgnoraClasseInvalidaEValorNegativo() {
+        OrgId org = novaOrg();
+        QuarkusTransaction.requiringNew().run(() ->
+                config.salvar(org, java.util.List.of("DECISAO", "XPTO"), new BigDecimal("-5")));
+        var c = config.carregar(org);
+        assertTrue(c.classesRecusaveis().contains("DECISAO"));
+        assertTrue(!c.classesRecusaveis().contains("XPTO"));
+        assertEquals(0, new BigDecimal("50000").compareTo(c.valorLimite()), "valor negativo → padrão");
+    }
+
     private OrgId novaOrg() {
         OrgId org = new OrgId(UUID.randomUUID());
         QuarkusTransaction.requiringNew().run(() ->
