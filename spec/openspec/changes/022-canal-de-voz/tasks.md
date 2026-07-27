@@ -15,9 +15,10 @@
 - [x] Superfície (TelaVoz) rodando em device real (Galaxy Tab SM X115)
 - [x] STT real on-device da plataforma (Android SpeechRecognizer pt-BR) — fallback ADR-0026; testado no tablet
 - [x] STT na NUVEM via gateway (`POST /v1/voz/transcrever` → OpenRouter whisper-large-v3-turbo) — verificado ao vivo (HTTP 200); só SKU Cloud
+- [x] Interpretação por LLM com memória de conversa (`POST /v1/voz/interpretar`, `InterpretadorVoz`): fala livre → UMA intenção do conjunto fechado (INV-10) + contexto dos turnos (follow-ups); app envia turnos+fila e cai no matcher local offline (INV-13). Verificado ao vivo
 - [ ] App: gravar áudio (plugin `record`) + enviar ao /v1/voz/transcrever; usar nuvem online, device offline (híbrido)
 - [ ] Whisper `small` on-device (baseline ADR-0026) — depende de disco + gate de WER
-- [ ] Repassar por voz precisa de diretório de pessoas (nome → pessoa_id)
+- [x] Repassar por voz precisa de diretório de pessoas (nome → pessoa_id) — porta `identidade.Pessoas` + `PessoasJdbc` (match sem acento por prefixo); `InterpretadorVoz` resolve donoNome→pessoa_id (1 match confirma / ≥2 candidatos p/ escolha / 0 avisa); app com fluxo `EscolherPessoa`. Verificado ao vivo (3 caminhos). Refinamento pendente: excluir o próprio gestor dos candidatos e apelidos ("Xandão"→pessoa) — fatia B
 
 ## Testes
 - [x] C1/C2/C3/C4/C5/C6/C8 no cérebro da voz (7 testes; 16 no total, analyze limpo)
