@@ -1,12 +1,16 @@
 package app.alcada.movel.internal;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import app.alcada.movel.port.ConfigTrajeto;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import app.alcada.plataforma.outbox.port.Outbox;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -25,10 +29,24 @@ public class TrajetoResource {
 
     private final Outbox outbox;
     private final ContextoTenant contexto;
+    private final ConfigTrajeto config;
 
-    public TrajetoResource(Outbox outbox, ContextoTenant contexto) {
+    public TrajetoResource(Outbox outbox, ContextoTenant contexto, ConfigTrajeto config) {
         this.outbox = outbox;
         this.contexto = contexto;
+        this.config = config;
+    }
+
+    /** Config por tenant das classes/limiar recusáveis em movimento — o app aplica offline. */
+    @GET
+    @Path("/config")
+    public Response config() {
+        Optional<OrgId> org = contexto.atual();
+        if (org.isEmpty()) {
+            return problema(400, "org.ausente", "X-Org-Id não resolvido");
+        }
+        ConfigTrajeto.Config c = config.carregar(org.get());
+        return Response.ok(new Config(c.classesRecusaveis(), c.valorLimite())).build();
     }
 
     @POST
@@ -69,6 +87,9 @@ public class TrajetoResource {
     }
 
     public record Req(String trajetoId, String pendenciaId) {
+    }
+
+    public record Config(List<String> classesRecusaveis, BigDecimal valorLimite) {
     }
 
     public record Problema(String type, String detail, int status) {
