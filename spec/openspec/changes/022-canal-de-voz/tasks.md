@@ -18,7 +18,8 @@
 - [x] Interpretação por LLM com memória de conversa (`POST /v1/voz/interpretar`, `InterpretadorVoz`): fala livre → UMA intenção do conjunto fechado (INV-10) + contexto dos turnos (follow-ups); app envia turnos+fila e cai no matcher local offline (INV-13). Verificado ao vivo
 - [ ] App: gravar áudio (plugin `record`) + enviar ao /v1/voz/transcrever; usar nuvem online, device offline (híbrido)
 - [ ] Whisper `small` on-device (baseline ADR-0026) — depende de disco + gate de WER
-- [x] Repassar por voz precisa de diretório de pessoas (nome → pessoa_id) — porta `identidade.Pessoas` + `PessoasJdbc` (match sem acento por prefixo); `InterpretadorVoz` resolve donoNome→pessoa_id (1 match confirma / ≥2 candidatos p/ escolha / 0 avisa); app com fluxo `EscolherPessoa`. Verificado ao vivo (3 caminhos). Refinamento pendente: excluir o próprio gestor dos candidatos e apelidos ("Xandão"→pessoa) — fatia B
+- [x] Repassar por voz precisa de diretório de pessoas (nome → pessoa_id) — porta `identidade.Pessoas` + `PessoasJdbc` (match sem acento por prefixo); `InterpretadorVoz` resolve donoNome→pessoa_id (1 match confirma / ≥2 candidatos p/ escolha / 0 avisa); app com fluxo `EscolherPessoa`. Verificado ao vivo (3 caminhos)
+- [x] Memória durável de apelidos (fatia B) — tabela `apelido_pessoa` (V22, por org+gestor); o próprio gestor nunca é candidato; nome não reconhecido oferece a equipe e, ao confirmar o repasse, `Pessoas.aprender` grava o termo→pessoa (ignora redundantes); apelido tem prioridade na resolução. Verificado ao vivo (B1 exclusão do gestor; B2 aprende/resolve "Xandão"). Pendente fatia C: preferências (nível padrão) e "o que decidi ontem"
 
 ## Testes
 - [x] C1/C2/C3/C4/C5/C6/C8 no cérebro da voz (7 testes; 16 no total, analyze limpo)
