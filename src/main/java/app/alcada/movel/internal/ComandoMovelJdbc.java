@@ -10,6 +10,7 @@ import app.alcada.autonomia.port.Autonomia;
 import app.alcada.captura.port.EscapeCaptura;
 import app.alcada.consulta.port.Consulta;
 import app.alcada.consulta.port.ResultadoConsulta;
+import app.alcada.identidade.port.Pessoas;
 import app.alcada.movel.port.Comando;
 import app.alcada.movel.port.ComandoMovel;
 import app.alcada.movel.port.ResultadoComando;
@@ -35,14 +36,16 @@ public class ComandoMovelJdbc implements ComandoMovel {
     private final Autonomia autonomia;
     private final EscapeCaptura escape;
     private final Consulta consulta;
+    private final Pessoas pessoas;
 
     public ComandoMovelJdbc(EntityManager em, Triagem triagem, Autonomia autonomia,
-                            EscapeCaptura escape, Consulta consulta) {
+                            EscapeCaptura escape, Consulta consulta, Pessoas pessoas) {
         this.em = em;
         this.triagem = triagem;
         this.autonomia = autonomia;
         this.escape = escape;
         this.consulta = consulta;
+        this.pessoas = pessoas;
     }
 
     @Override
@@ -101,6 +104,11 @@ public class ComandoMovelJdbc implements ComandoMovel {
                         return ResultadoComando.erro(c.comandoId(), "REPASSAR exige dono e nível");
                     }
                     autonomia.delegar(org, c.pendenciaId(), f.dono(), f.nivel(), prazoOu(f.prazo(), 2), pessoa);
+                    // Memória durável (022): o termo falado vira apelido do dono (no-op se
+                    // já casava pelo nome). Aprender é do gestor que despacha.
+                    if (f.aliasFalado() != null) {
+                        pessoas.aprender(org, pessoa, f.aliasFalado(), f.dono());
+                    }
                 }
                 default -> { /* REGISTRAR/CONSULTAR tratados em executar */ }
             }
@@ -150,6 +158,6 @@ public class ComandoMovelJdbc implements ComandoMovel {
     }
 
     private static Comando.Campos vazio() {
-        return new Comando.Campos(null, null, null, null, null, null, null, null, null, null, null);
+        return new Comando.Campos(null, null, null, null, null, null, null, null, null, null, null, null);
     }
 }

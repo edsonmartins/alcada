@@ -144,17 +144,19 @@ class ComandoMovelTest {
     /** Builder enxuto para o record de campos (muitos nulos). */
     static final class CamposBuilder {
         private UUID dono;
-        private String nivel, prazo, voltaEm, oQueFalta, nota, titulo, quemEspera, oQueTrava, classe, pergunta;
+        private String nivel, prazo, voltaEm, oQueFalta, nota, titulo, quemEspera, oQueTrava, classe,
+                pergunta, aliasFalado;
 
         CamposBuilder dono(UUID v) { this.dono = v; return this; }
         CamposBuilder nivel(String v) { this.nivel = v; return this; }
         CamposBuilder prazo(String v) { this.prazo = v; return this; }
         CamposBuilder pergunta(String v) { this.pergunta = v; return this; }
         CamposBuilder titulo(String v) { this.titulo = v; return this; }
+        CamposBuilder aliasFalado(String v) { this.aliasFalado = v; return this; }
 
         Campos build() {
             return new Campos(dono, nivel, prazo, voltaEm, oQueFalta, nota, titulo, quemEspera,
-                    oQueTrava, classe, pergunta);
+                    oQueTrava, classe, pergunta, aliasFalado);
         }
     }
 

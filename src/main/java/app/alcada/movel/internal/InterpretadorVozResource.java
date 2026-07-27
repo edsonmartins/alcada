@@ -2,10 +2,12 @@ package app.alcada.movel.internal;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import app.alcada.movel.internal.InterpretadorVoz.ItemFila;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -31,11 +33,12 @@ public class InterpretadorVozResource {
     }
 
     @POST
-    public Response interpretar(Req req) {
+    public Response interpretar(@HeaderParam("X-Pessoa-Id") String pessoa, Req req) {
         Optional<OrgId> org = contexto.atual();
-        if (org.isEmpty()) {
+        if (org.isEmpty() || pessoa == null) {
             return Response.status(400).type("application/problem+json")
-                    .entity(new Problema("urn:alcada:org.ausente", "X-Org-Id não resolvido", 400)).build();
+                    .entity(new Problema("urn:alcada:requisicao.invalida",
+                            "X-Org-Id e X-Pessoa-Id são obrigatórios", 400)).build();
         }
         if (req == null || req.texto() == null || req.texto().isBlank()) {
             return Response.status(400).type("application/problem+json")
@@ -43,7 +46,7 @@ public class InterpretadorVozResource {
         }
         List<ItemFila> fila = req.itens() == null ? List.of()
                 : req.itens().stream().map(i -> new ItemFila(i.id(), i.titulo())).toList();
-        var r = interpretador.interpretar(org.get(), req.texto(),
+        var r = interpretador.interpretar(org.get(), UUID.fromString(pessoa), req.texto(),
                 req.contexto() == null ? List.of() : req.contexto(), fila);
         return Response.ok(r).build();
     }

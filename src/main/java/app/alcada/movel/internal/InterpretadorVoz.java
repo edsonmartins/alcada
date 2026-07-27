@@ -1,6 +1,7 @@
 package app.alcada.movel.internal;
 
 import java.util.List;
+import java.util.UUID;
 
 import app.alcada.consulta.port.Consulta;
 import app.alcada.consulta.port.ResultadoConsulta;
@@ -20,10 +21,12 @@ import jakarta.enterprise.context.ApplicationScoped;
  * gestor para UMA intenção de um conjunto fechado (INV-10 — o modelo só escolhe,
  * o código executa) e resolve o item da fila, usando o contexto da conversa para
  * follow-ups. No REPASSAR resolve o nome falado para um {@code pessoa_id} via o
- * diretório de pessoas (memória durável — [[Pessoas]]); quando há mais de um
- * candidato, devolve as opções para o app perguntar (nunca decide sozinho).
- * Nenhum efeito aqui: comandos voltam para o app confirmar; consulta é leitura.
- * Sem LLM disponível, devolve NENHUMA (o app cai no matcher offline).
+ * diretório de pessoas ([[Pessoas]]), com memória de apelidos por gestor: quando
+ * não reconhece o nome, oferece a lista para o gestor escolher e {@code aprende}
+ * o termo dali em diante. Quando há mais de um candidato, devolve as opções para
+ * o app perguntar (nunca decide sozinho). Nenhum efeito aqui: comandos voltam
+ * para o app confirmar; consulta é leitura. Sem LLM, devolve NENHUMA (o app cai
+ * no matcher offline).
  */
 @ApplicationScoped
 public class InterpretadorVoz {
@@ -52,17 +55,26 @@ public class InterpretadorVoz {
     }
 
     public record Candidato(String id, String nome) {
+        static Candidato de(PessoaRef p) {
+            return new Candidato(p.id().toString(), p.nome());
+        }
     }
 
-    /** Resultado estruturado para o app: comando a confirmar, consulta respondida, ou nada. */
+    /**
+     * Resultado estruturado para o app: comando a confirmar, consulta respondida,
+     * ou nada. {@code termoFalado} != null (com {@code candidatosDono}) sinaliza
+     * que o nome não foi reconhecido: se o gestor escolher da lista, o app pede
+     * para aprender o apelido (termo→pessoa).
+     */
     public record Resultado(
             String intencao, String pendenciaId, String titulo,
             String donoId, String donoNome, String nivel, String tituloNovo,
             String resposta, String frase, boolean precisaConfirmar,
-            List<Candidato> candidatosDono) {
+            List<Candidato> candidatosDono, String termoFalado) {
     }
 
-    public Resultado interpretar(OrgId org, String texto, List<String> contexto, List<ItemFila> fila) {
+    public Resultado interpretar(OrgId org, UUID gestorId, String texto, List<String> contexto,
+            List<ItemFila> fila) {
         Bruto b;
         try {
             Extracao<Bruto> ex = modelo.extrair(new TarefaExtracao<>(
@@ -78,12 +90,12 @@ public class InterpretadorVoz {
             case "CONSULTAR" -> {
                 ResultadoConsulta rc = consulta.consultar(org, vazioOu(b.pergunta, texto));
                 yield new Resultado("CONSULTAR", null, null, null, null, null, null,
-                        rc.resposta(), rc.resposta(), false, List.of());
+                        rc.resposta(), rc.resposta(), false, List.of(), null);
             }
             case "REGISTRAR" -> {
                 String t = vazioOu(b.tituloNovo, texto);
                 yield new Resultado("REGISTRAR", null, null, null, null, null, t, null,
-                        "Registrar “" + t + "”. Confirma?", true, List.of());
+                        "Registrar “" + t + "”. Confirma?", true, List.of(), null);
             }
             case "RESOLVER", "ADIAR" -> {
                 ItemFila alvo = alvo(fila, b.item);
@@ -92,15 +104,15 @@ public class InterpretadorVoz {
                 }
                 String verbo = b.intencao.equals("RESOLVER") ? "Resolver" : "Adiar";
                 yield new Resultado(b.intencao, alvo.id(), alvo.titulo(), null, null, null, null, null,
-                        verbo + " “" + alvo.titulo() + "”. Confirma?", true, List.of());
+                        verbo + " “" + alvo.titulo() + "”. Confirma?", true, List.of(), null);
             }
-            case "REPASSAR" -> repassar(org, b, fila);
+            case "REPASSAR" -> repassar(org, gestorId, b, fila);
             default -> nada("Não entendi. Pode repetir?");
         };
     }
 
     /** Repasse: precisa de item + dono resolvido a partir do diretório de pessoas. */
-    private Resultado repassar(OrgId org, Bruto b, List<ItemFila> fila) {
+    private Resultado repassar(OrgId org, UUID gestorId, Bruto b, List<ItemFila> fila) {
         ItemFila alvo = alvo(fila, b.item);
         if (alvo == null) {
             return nada("Não identifiquei o item para repassar.");
@@ -108,27 +120,34 @@ public class InterpretadorVoz {
         String nivel = b.nivel == null || b.nivel.isBlank() ? "N2" : b.nivel;
         if (b.donoNome == null || b.donoNome.isBlank()) {
             return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, null, nivel, null, null,
-                    "Para quem repassar “" + alvo.titulo() + "”?", false, List.of());
+                    "Para quem repassar “" + alvo.titulo() + "”?", false, List.of(), null);
         }
-        List<PessoaRef> achados = pessoas.buscarPorNome(org, b.donoNome);
-        if (achados.isEmpty()) {
-            return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, b.donoNome, nivel, null, null,
-                    "Não encontrei " + b.donoNome + " na sua equipe.", false, List.of());
-        }
+        List<PessoaRef> achados = pessoas.buscarPorNome(org, gestorId, b.donoNome);
         if (achados.size() == 1) {
             PessoaRef p = achados.get(0);
             return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), p.id().toString(), p.nome(), nivel, null,
-                    null, "Repassar “" + alvo.titulo() + "” para " + p.nome() + ". Confirma?", true, List.of());
+                    null, "Repassar “" + alvo.titulo() + "” para " + p.nome() + ". Confirma?",
+                    true, List.of(), null);
         }
-        List<Candidato> opcoes = achados.stream().limit(3)
-                .map(p -> new Candidato(p.id().toString(), p.nome())).toList();
-        String nomes = opcoes.stream().limit(2).map(Candidato::nome).reduce((a, c) -> a + " ou " + c).orElse("");
+        if (achados.size() > 1) {
+            List<Candidato> opcoes = achados.stream().limit(3).map(Candidato::de).toList();
+            String nomes = opcoes.stream().limit(2).map(Candidato::nome).reduce((a, c) -> a + " ou " + c).orElse("");
+            return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, b.donoNome, nivel, null, null,
+                    "Achei mais de um: " + nomes + ". Qual deles?", false, opcoes, null);
+        }
+        // Nome não reconhecido: oferece a lista e aprende ao escolher (termoFalado != null).
+        List<PessoaRef> equipe = pessoas.listar(org, gestorId);
+        if (equipe.isEmpty()) {
+            return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, b.donoNome, nivel, null, null,
+                    "Não encontrei " + b.donoNome + " na sua equipe.", false, List.of(), null);
+        }
         return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, b.donoNome, nivel, null, null,
-                "Achei mais de um: " + nomes + ". Qual deles?", false, opcoes);
+                "Não reconheci “" + b.donoNome + "”. Para quem repassar “" + alvo.titulo() + "”?",
+                false, equipe.stream().map(Candidato::de).toList(), b.donoNome);
     }
 
     private static Resultado nada(String frase) {
-        return new Resultado("NENHUMA", null, null, null, null, null, null, null, frase, false, List.of());
+        return new Resultado("NENHUMA", null, null, null, null, null, null, null, frase, false, List.of(), null);
     }
 
     // ---- prompt + parsing --------------------------------------------------
@@ -151,7 +170,7 @@ public class InterpretadorVoz {
             }
         }
         sb.append("Fala agora: \"").append(texto).append("\"\n");
-        sb.append("Regras: item=0 se nenhum/ambíguo. REPASSAR → donoNome (só o nome da pessoa) e nivel (N1/N2/N3). ");
+        sb.append("Regras: item=0 se nenhum/ambíguo. REPASSAR → donoNome (só o nome/apelido da pessoa) e nivel (N1/N2/N3). ");
         sb.append("ADIAR → quandoVoltar. REGISTRAR → tituloNovo. ");
         sb.append("CONSULTAR → reescreva a pergunta COMPLETA em \"pergunta\" usando o contexto ");
         sb.append("(ex.: follow-up \"e para a semana que vem\" → \"o que tenho para a semana que vem\").\n");

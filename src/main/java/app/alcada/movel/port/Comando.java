@@ -18,13 +18,16 @@ public record Comando(
     }
 
     /**
-     * Campos por intenção (os não usados ficam nulos): REPASSAR {dono, nivel, prazo};
-     * RESERVAR {prazo}; REPOUSAR/ADIAR {voltaEm, oQueFalta}; RESOLVER {nota};
-     * REGISTRAR {titulo, quemEspera, oQueTrava, classe}; CONSULTAR {pergunta}.
+     * Campos por intenção (os não usados ficam nulos): REPASSAR {dono, nivel, prazo,
+     * aliasFalado}; RESERVAR {prazo}; REPOUSAR/ADIAR {voltaEm, oQueFalta};
+     * RESOLVER {nota}; REGISTRAR {titulo, quemEspera, oQueTrava, classe};
+     * CONSULTAR {pergunta}. {@code aliasFalado} é o termo que o gestor falou para o
+     * dono quando o nome não foi reconhecido — o repasse confirmado o aprende como
+     * apelido (022, memória durável).
      */
     public record Campos(
             UUID dono, String nivel, String prazo, String voltaEm, String oQueFalta,
             String nota, String titulo, String quemEspera, String oQueTrava, String classe,
-            String pergunta) {
+            String pergunta, String aliasFalado) {
     }
 }
