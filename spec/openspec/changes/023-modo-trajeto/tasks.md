@@ -5,9 +5,9 @@
 - [ ] Definir a lista de classes recusáveis em movimento por tenant (default: BLOQUEIO + acima de valor-limite)
 
 ## Backend (este repo — pequeno)
-- [ ] Marcar comandos como "represados" (trajeto) e liberar em lote ao encerrar; efeito externo só após liberação (INV-14)
-- [ ] Config por tenant das classes recusáveis em movimento
-- [ ] Testes: represamento durante trajeto; liberação após resumo; isolamento
+- [x] Marcar comandos como "represados" (trajeto) e liberar em lote ao encerrar; efeito externo só após liberação (INV-14) — outbox.trajeto_id (V24); worker filtra trajeto_id IS NULL; EscopoTrajeto (ThreadLocal) carimba na publicação; `POST /v1/trajeto/liberar` → Outbox.liberarTrajeto. Verificado ao vivo (represado não emite; liberar solta) + @QuarkusTest
+- [ ] Config por tenant das classes recusáveis em movimento (hoje default: BLOQUEIO + valor ≥ limite, no app)
+- [x] Testes: represamento durante trajeto; liberação; isolamento por org (@QuarkusTest)
 
 ## App (Flutter)
 - [~] Porta `FonteMovimento` + máquina de estados PARADO/EM_TRAJETO (fonte manual, ADR-0027; RESUMO na fatia C)
