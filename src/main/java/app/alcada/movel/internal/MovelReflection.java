@@ -22,7 +22,9 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         InterpretadorVozResource.Problema.class,
         TrajetoResource.Req.class,
         TrajetoResource.Config.class,
-        TrajetoResource.Problema.class
+        TrajetoResource.Problema.class,
+        PessoasResource.Pessoa.class,
+        PessoasResource.Problema.class
 })
 public final class MovelReflection {
     private MovelReflection() {
