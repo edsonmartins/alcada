@@ -18,6 +18,6 @@
 - [x] Sessão por org_id/pessoa_id (piloto), limpeza de aspas + validação UUID; ganchos para OIDC
 - [x] Lista da fila por pull + despacho de 1 toque (resolver) e registrar; sem push de "novo item"
 - [x] Testes: enfileira offline → sincroniza sem duplicar; ERRO segue pendente (7 testes, analyze limpo)
-- [ ] Repassar com dono/nível (seletor de pessoa) — próxima fatia
-- [ ] Sync em background + retry agendado — próxima fatia
-- [ ] Rodar em device/emulador (build iOS/Android) — depende de ambiente
+- [x] Repassar com dono/nível (seletor de pessoa) — folha de repasse por nome (GET /v1/pessoas, avatar) + voz com diretório/apelidos
+- [x] Sync em background + retry agendado — workmanager (WorkManager/BGTask): tarefa periódica (15min) com constraint de rede + backoff exponencial; isolate reconstrói fila+sessão+api e drena (INV-13). Foreground (timer/resume) mantido. iOS precisa de Info.plist/AppDelegate (a fazer)
+- [x] Rodar em device/emulador — validado no Galaxy Tab (Android) ponta a ponta (voz, trajeto, UI)
