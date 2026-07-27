@@ -11,7 +11,13 @@ public record Comando(
         UUID comandoId,
         Intencao intencao,
         UUID pendenciaId,
-        Campos campos) {
+        Campos campos,
+        UUID trajetoId) {
+
+    /** Comando fora de trajeto (a maioria). */
+    public Comando(UUID comandoId, Intencao intencao, UUID pendenciaId, Campos campos) {
+        this(comandoId, intencao, pendenciaId, campos, null);
+    }
 
     public enum Intencao {
         RESOLVER, REPASSAR, RESERVAR, REPOUSAR, ADIAR, REGISTRAR, CONSULTAR

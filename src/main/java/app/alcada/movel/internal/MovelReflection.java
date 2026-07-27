@@ -19,7 +19,9 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         InterpretadorVoz.Candidato.class,
         InterpretadorVozResource.Req.class,
         InterpretadorVozResource.ItemReq.class,
-        InterpretadorVozResource.Problema.class
+        InterpretadorVozResource.Problema.class,
+        TrajetoResource.Req.class,
+        TrajetoResource.Problema.class
 })
 public final class MovelReflection {
     private MovelReflection() {

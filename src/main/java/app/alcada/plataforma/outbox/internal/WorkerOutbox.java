@@ -31,7 +31,7 @@ public class WorkerOutbox {
     private static final String CLAIM = """
             SELECT id, org_id, tipo, payload::text, idempotency_key, tentativas
             FROM outbox
-            WHERE status = 'PENDENTE' AND disponivel_em <= now()
+            WHERE status = 'PENDENTE' AND disponivel_em <= now() AND trajeto_id IS NULL
             ORDER BY disponivel_em
             FOR UPDATE SKIP LOCKED
             LIMIT ?

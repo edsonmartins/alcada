@@ -17,6 +17,7 @@ import app.alcada.movel.port.ComandoMovel;
 import app.alcada.movel.port.ResultadoComando;
 import app.alcada.movel.port.ResultadoComando.Status;
 import app.alcada.plataforma.multitenancy.port.OrgId;
+import app.alcada.plataforma.outbox.port.EscopoTrajeto;
 import app.alcada.triagem.port.Triagem;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -39,10 +40,11 @@ public class ComandoMovelJdbc implements ComandoMovel {
     private final Consulta consulta;
     private final Pessoas pessoas;
     private final Preferencias preferencias;
+    private final EscopoTrajeto trajeto;
 
     public ComandoMovelJdbc(EntityManager em, Triagem triagem, Autonomia autonomia,
                             EscapeCaptura escape, Consulta consulta, Pessoas pessoas,
-                            Preferencias preferencias) {
+                            Preferencias preferencias, EscopoTrajeto trajeto) {
         this.em = em;
         this.triagem = triagem;
         this.autonomia = autonomia;
@@ -50,6 +52,7 @@ public class ComandoMovelJdbc implements ComandoMovel {
         this.consulta = consulta;
         this.pessoas = pessoas;
         this.preferencias = preferencias;
+        this.trajeto = trajeto;
     }
 
     @Override
@@ -71,9 +74,22 @@ public class ComandoMovelJdbc implements ComandoMovel {
             UUID pend = gravado[1] == null ? null : UUID.fromString(gravado[1]);
             return new ResultadoComando(c.comandoId(), Status.valueOf(gravado[0]), gravado[2], pend, rc);
         }
-        ResultadoComando r = executar(org, pessoa, c);
+        ResultadoComando r = comEscopoTrajeto(c, () -> executar(org, pessoa, c));
         gravar(org, c, r);
         return r;
+    }
+
+    /** Se o comando foi ditado em trajeto, represa os efeitos externos gerados aqui (023). */
+    private ResultadoComando comEscopoTrajeto(Comando c, java.util.function.Supplier<ResultadoComando> exec) {
+        if (c.trajetoId() == null) {
+            return exec.get();
+        }
+        trajeto.iniciar(c.trajetoId());
+        try {
+            return exec.get();
+        } finally {
+            trajeto.encerrar();
+        }
     }
 
     private ResultadoComando executar(OrgId org, UUID pessoa, Comando c) {
