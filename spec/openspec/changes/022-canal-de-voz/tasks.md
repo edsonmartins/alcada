@@ -19,7 +19,9 @@
 - [ ] App: gravar áudio (plugin `record`) + enviar ao /v1/voz/transcrever; usar nuvem online, device offline (híbrido)
 - [ ] Whisper `small` on-device (baseline ADR-0026) — depende de disco + gate de WER
 - [x] Repassar por voz precisa de diretório de pessoas (nome → pessoa_id) — porta `identidade.Pessoas` + `PessoasJdbc` (match sem acento por prefixo); `InterpretadorVoz` resolve donoNome→pessoa_id (1 match confirma / ≥2 candidatos p/ escolha / 0 avisa); app com fluxo `EscolherPessoa`. Verificado ao vivo (3 caminhos)
-- [x] Memória durável de apelidos (fatia B) — tabela `apelido_pessoa` (V22, por org+gestor); o próprio gestor nunca é candidato; nome não reconhecido oferece a equipe e, ao confirmar o repasse, `Pessoas.aprender` grava o termo→pessoa (ignora redundantes); apelido tem prioridade na resolução. Verificado ao vivo (B1 exclusão do gestor; B2 aprende/resolve "Xandão"). Pendente fatia C: preferências (nível padrão) e "o que decidi ontem"
+- [x] Memória durável de apelidos (fatia B) — tabela `apelido_pessoa` (V22, por org+gestor); o próprio gestor nunca é candidato; nome não reconhecido oferece a equipe e, ao confirmar o repasse, `Pessoas.aprender` grava o termo→pessoa (ignora redundantes); apelido tem prioridade na resolução. Verificado ao vivo (B1 exclusão do gestor; B2 aprende/resolve "Xandão")
+- [x] Preferências do gestor (fatia C1) — tabela `preferencia_gestor` (V23); nível de repasse habitual aprendido do uso (`Preferencias`); REPASSAR sem nível dito usa a preferência (senão N2); nível dito é normalizado (3→N3). O prompt não deixa o LLM inventar nível. Verificado ao vivo
+- [x] "O que eu decidi ontem/esta semana" (fatia C2) — template `DECISOES_RECENTES` lê a trilha filtrada por ator (HUMANO:gestor) + tipo de decisão + período (ONTEM/HOJE/SEMANA/TRIMESTRE, fuso do tenant); `Consulta.consultar` ganha sobrecarga com gestor; `/v1/consulta` lê X-Pessoa-Id. Verificado ao vivo
 
 ## Testes
 - [x] C1/C2/C3/C4/C5/C6/C8 no cérebro da voz (7 testes; 16 no total, analyze limpo)
