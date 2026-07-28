@@ -1,13 +1,16 @@
-import { orgId, pessoaId } from "./config";
+import { accessToken, orgId, pessoaId } from "./config";
 import { ProblemaError } from "./types";
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const bearer = accessToken();
   const res = await fetch(path, {
     ...init,
     headers: {
       "Content-Type": "application/json",
       "X-Org-Id": orgId(),
       "X-Pessoa-Id": pessoaId(),
+      // Ponte: no %demo o backend usa os headers; em %prod lê do Bearer.
+      ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
       ...(init?.headers ?? {}),
     },
   });

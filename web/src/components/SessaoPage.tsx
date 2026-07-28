@@ -1,7 +1,8 @@
-import { Button, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Button, Divider, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { definirSessao, limparId, RE_UUID } from "../api/config";
+import { entrarOidc, oidcHabilitado } from "../api/oidc";
 import logoVertical from "../assets/logo-vertical.png";
 
 /**
@@ -62,6 +63,17 @@ export function SessaoPage() {
         </div>
         <div style={{ padding: "24px" }}>
         <Title order={3} ta="center">Entrar</Title>
+        {oidcHabilitado && (
+          <Stack gap={6} mt="md">
+            <Button onClick={() => void entrarOidc()} size="md">
+              Entrar com ArchGuard
+            </Button>
+            <Text size="xs" c="dimmed" ta="center">
+              Login seguro do gestor. Sem digitar identificadores.
+            </Text>
+            <Divider label="ou acesso do piloto" labelPosition="center" my="xs" />
+          </Stack>
+        )}
         <Text size="sm" c="dimmed" mt={4} mb="md">
           Piloto sem login: informe sua organização e sua pessoa. A fila é sempre
           escopada por organização.

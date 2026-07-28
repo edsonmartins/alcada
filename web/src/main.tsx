@@ -22,10 +22,12 @@ import {
 } from "@tanstack/react-router";
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { limparSessao, pessoaId, rotuloSessao, temSessao } from "./api/config";
+import { pessoaId, rotuloSessao, temSessao } from "./api/config";
+import { sairOidc } from "./api/oidc";
 import logoHorizontal from "./assets/logo-horizontal.png";
 import { AlcadasPage } from "./components/AlcadasPage";
 import { BlocoPage } from "./components/BlocoPage";
+import { CallbackPage } from "./components/CallbackPage";
 import { EntradaPage } from "./components/EntradaPage";
 import { EsteiraPage } from "./components/EsteiraPage";
 import { ExecutorPage } from "./components/ExecutorPage";
@@ -61,8 +63,7 @@ function Sidebar() {
   const quem = rotuloSessao() || (pessoaId() ? pessoaId().slice(0, 8) + "…" : "");
   const iniciais = (quem || "?").trim().slice(0, 2).toUpperCase();
   const sair = () => {
-    limparSessao();
-    navigate({ to: "/entrar" });
+    void sairOidc().finally(() => navigate({ to: "/entrar" }));
   };
   return (
     <aside style={{ width: 236, background: "#131a2b", color: "#fff", display: "flex", flexDirection: "column", flex: "none" }}>
@@ -105,16 +106,17 @@ function Layout() {
   const navigate = useNavigate();
   const rota = useRouterState({ select: (s) => s.location.pathname });
   const naSessao = rota === "/entrar";
+  const noCallback = rota === "/callback"; // retorno do OIDC: sem login/chrome
   const portalPublico = rota.startsWith("/portal"); // portal externo: sem login, sem chrome interno
 
   useEffect(() => {
-    if (!naSessao && !portalPublico && !temSessao()) {
+    if (!naSessao && !noCallback && !portalPublico && !temSessao()) {
       navigate({ to: "/entrar" });
     }
-  }, [naSessao, portalPublico, rota, navigate]);
+  }, [naSessao, noCallback, portalPublico, rota, navigate]);
 
-  // Portal público e tela de sessão: sem sidebar (centralizados, sem chrome interno).
-  if (portalPublico || naSessao) {
+  // Portal público, tela de sessão e callback: sem sidebar (centralizados).
+  if (portalPublico || naSessao || noCallback) {
     return <Outlet />;
   }
 
@@ -141,10 +143,11 @@ const blocoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/bloco/
 const portalInstanciaRoute = createRoute({ getParentRoute: () => rootRoute, path: "/portal/instancia/$token", component: PortalInstanciaPage });
 const sextaRoute = createRoute({ getParentRoute: () => rootRoute, path: "/sexta", component: SextaPage });
 const sessaoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/entrar", component: SessaoPage });
+const callbackRoute = createRoute({ getParentRoute: () => rootRoute, path: "/callback", component: CallbackPage });
 const router = createRouter({
   routeTree: rootRoute.addChildren([
     indexRoute, hojeRoute, executorRoute, radarRoute, alcadasRoute, esteiraRoute, blocoRoute,
-    portalInstanciaRoute, sextaRoute, sessaoRoute,
+    portalInstanciaRoute, sextaRoute, sessaoRoute, callbackRoute,
   ]),
 });
 

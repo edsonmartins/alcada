@@ -6,6 +6,7 @@
 const CHAVE_ORG = "alcada.orgId";
 const CHAVE_PESSOA = "alcada.pessoaId";
 const CHAVE_ROTULO = "alcada.rotulo"; // nome amigável, só para exibir
+const CHAVE_TOKEN = "alcada.accessToken"; // Bearer OIDC (quando logado via ArchGuard)
 
 export function orgId(): string {
   return localStorage.getItem(CHAVE_ORG) ?? "";
@@ -13,6 +14,23 @@ export function orgId(): string {
 
 export function pessoaId(): string {
   return localStorage.getItem(CHAVE_PESSOA) ?? "";
+}
+
+/**
+ * Access token OIDC. Quando presente, vai como `Authorization: Bearer` junto com
+ * os headers de tenant: no piloto (%demo, OIDC off) o backend usa os headers; em
+ * %prod ele lê org_id/pessoa_id do próprio Bearer. Vazio = acesso manual/offline.
+ */
+export function accessToken(): string {
+  return localStorage.getItem(CHAVE_TOKEN) ?? "";
+}
+
+export function definirAccessToken(token: string | undefined): void {
+  if (token && token.trim()) {
+    localStorage.setItem(CHAVE_TOKEN, token);
+  } else {
+    localStorage.removeItem(CHAVE_TOKEN);
+  }
 }
 
 export function rotuloSessao(): string {
@@ -49,4 +67,5 @@ export function limparSessao(): void {
   localStorage.removeItem(CHAVE_ORG);
   localStorage.removeItem(CHAVE_PESSOA);
   localStorage.removeItem(CHAVE_ROTULO);
+  localStorage.removeItem(CHAVE_TOKEN);
 }
