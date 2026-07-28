@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import app.alcada.plataforma.multitenancy.port.ContextoPessoa;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import app.alcada.plataforma.trilha.port.Ator;
@@ -16,7 +17,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -35,13 +35,15 @@ public class PendenciaResource {
 
     private final EntityManager em;
     private final ContextoTenant contexto;
+    private final ContextoPessoa contextoPessoa;
     private final Trilha trilha;
     private final app.alcada.captura.port.EscapeCaptura escape;
 
-    public PendenciaResource(EntityManager em, ContextoTenant contexto, Trilha trilha,
-                             app.alcada.captura.port.EscapeCaptura escape) {
+    public PendenciaResource(EntityManager em, ContextoTenant contexto, ContextoPessoa contextoPessoa,
+                             Trilha trilha, app.alcada.captura.port.EscapeCaptura escape) {
         this.em = em;
         this.contexto = contexto;
+        this.contextoPessoa = contextoPessoa;
         this.trilha = trilha;
         this.escape = escape;
     }
@@ -54,9 +56,10 @@ public class PendenciaResource {
      */
     @POST
     @Transactional
-    public Response criar(@HeaderParam("X-Pessoa-Id") String pessoa, EscapeRequest req) {
+    public Response criar(EscapeRequest req) {
         Optional<OrgId> org = contexto.atual();
-        if (org.isEmpty() || pessoa == null) {
+        Optional<UUID> pessoa = contextoPessoa.atual();
+        if (org.isEmpty() || pessoa.isEmpty()) {
             return problema(400, "requisicao.invalida", "X-Org-Id e X-Pessoa-Id são obrigatórios");
         }
         if (req == null || req.titulo() == null || req.titulo().isBlank()) {
@@ -64,7 +67,7 @@ public class PendenciaResource {
         }
         try {
             UUID id = escape.registrar(org.get(), req.titulo(), req.quemEspera(), req.oQueTrava(),
-                    req.classe(), UUID.fromString(pessoa));
+                    req.classe(), pessoa.get());
             return Response.status(201).entity(new EscapeCriada(id.toString())).build();
         } catch (IllegalArgumentException e) {
             return problema(422, "classe.invalida", e.getMessage());
@@ -109,12 +112,12 @@ public class PendenciaResource {
     @Path("/{id}/desfundir")
     @Transactional
     public Response desfundir(@PathParam("id") String pendenciaId,
-                              @HeaderParam("X-Pessoa-Id") String pessoaId,
                               DesfundirRequest req) {
         Optional<OrgId> orgOpt = contexto.atual();
         if (orgOpt.isEmpty()) {
             return problema(400, "org.ausente", "X-Org-Id não resolvido");
         }
+        UUID pessoaId = contextoPessoa.atual().orElse(null);
         if (req == null || req.cobrancaId() == null) {
             return problema(400, "desfundir.sem_cobranca", "cobranca_id é obrigatório");
         }
@@ -153,7 +156,7 @@ public class PendenciaResource {
                 .setParameter(3, resumo(texto)).executeUpdate();
 
         // trilha em ambos os itens
-        Ator ator = pessoaId != null ? Ator.humano(UUID.fromString(pessoaId)) : Ator.sistemaMotor("captura");
+        Ator ator = pessoaId != null ? Ator.humano(pessoaId) : Ator.sistemaMotor("captura");
         String carga = "{\"cobranca_id\":\"" + cobrancaId + "\",\"nova_pendencia_id\":\"" + nova + "\"}";
         trilha.registrar(new EventoTrilha(org, original, TipoEvento.DESFUNDIDA, ator, null, null, null, carga));
         trilha.registrar(new EventoTrilha(org, nova, TipoEvento.CAPTADA, ator, null, "ENTRADA",

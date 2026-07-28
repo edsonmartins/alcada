@@ -2,6 +2,8 @@ package app.alcada.plataforma.multitenancy.internal;
 
 import java.util.UUID;
 
+import org.eclipse.microprofile.jwt.JsonWebToken;
+
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.inject.Instance;
@@ -61,6 +63,9 @@ public class ResolucaoPessoa implements ContainerRequestFilter {
             return null;
         }
         Object claim = id.getAttribute("pessoa_id");
+        if (claim == null && id.getPrincipal() instanceof JsonWebToken jwt) {
+            claim = jwt.getClaim("pessoa_id");
+        }
         return claim == null ? null : UUID.fromString(claim.toString());
     }
 }

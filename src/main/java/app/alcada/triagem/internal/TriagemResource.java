@@ -4,9 +4,9 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+import app.alcada.plataforma.multitenancy.port.ContextoPessoa;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -28,17 +28,18 @@ public class TriagemResource {
 
     private final TriagemService triagem;
     private final ContextoTenant contexto;
+    private final ContextoPessoa contextoPessoa;
 
-    public TriagemResource(TriagemService triagem, ContextoTenant contexto) {
+    public TriagemResource(TriagemService triagem, ContextoTenant contexto, ContextoPessoa contextoPessoa) {
         this.triagem = triagem;
         this.contexto = contexto;
+        this.contextoPessoa = contextoPessoa;
     }
 
     @POST
     @Path("/{id}/resolver")
-    public Response resolver(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa,
-                             ResolverRequest req) {
-        return comContexto(pessoa, (org, gestor) -> {
+    public Response resolver(@PathParam("id") String id, ResolverRequest req) {
+        return comContexto((org, gestor) -> {
             triagem.resolver(org, UUID.fromString(id), req == null ? null : req.nota(), gestor);
             return Response.noContent().build();
         });
@@ -46,8 +47,8 @@ public class TriagemResource {
 
     @POST
     @Path("/{id}/descartar")
-    public Response descartar(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa) {
-        return comContexto(pessoa, (org, gestor) -> {
+    public Response descartar(@PathParam("id") String id) {
+        return comContexto((org, gestor) -> {
             triagem.descartar(org, UUID.fromString(id), gestor);
             return Response.noContent().build();
         });
@@ -55,12 +56,11 @@ public class TriagemResource {
 
     @POST
     @Path("/{id}/reservar")
-    public Response reservar(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa,
-                             ReservarRequest req) {
+    public Response reservar(@PathParam("id") String id, ReservarRequest req) {
         if (req == null || req.agendadoPara() == null) {
             return problema(400, "reservar.invalido", "agendado_para é obrigatório");
         }
-        return comContexto(pessoa, (org, gestor) -> {
+        return comContexto((org, gestor) -> {
             triagem.reservar(org, UUID.fromString(id), OffsetDateTime.parse(req.agendadoPara()), gestor);
             return Response.noContent().build();
         });
@@ -68,12 +68,11 @@ public class TriagemResource {
 
     @POST
     @Path("/{id}/repousar")
-    public Response repousar(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa,
-                             RepousarRequest req) {
+    public Response repousar(@PathParam("id") String id, RepousarRequest req) {
         if (req == null || req.voltaEm() == null) {
             return problema(400, "repousar.invalido", "volta_em é obrigatório");
         }
-        return comContexto(pessoa, (org, gestor) -> {
+        return comContexto((org, gestor) -> {
             triagem.repousar(org, UUID.fromString(id), OffsetDateTime.parse(req.voltaEm()), gestor);
             return Response.noContent().build();
         });
@@ -81,15 +80,14 @@ public class TriagemResource {
 
     @POST
     @Path("/{id}/adiar")
-    public Response adiar(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa,
-                          AdiarRequest req) {
+    public Response adiar(@PathParam("id") String id, AdiarRequest req) {
         if (req == null || req.voltaEm() == null) {
             return problema(400, "adiar.sem_data", "volta_em é obrigatório (\"depois\" não é aceito)");
         }
         if (req.oQueFalta() == null) {
             return problema(400, "adiar.sem_motivo", "o_que_falta é obrigatório");
         }
-        return comContexto(pessoa, (org, gestor) -> {
+        return comContexto((org, gestor) -> {
             try {
                 String oferta = triagem.adiar(org, UUID.fromString(id),
                         OffsetDateTime.parse(req.voltaEm()), req.oQueFalta(), gestor);
@@ -106,13 +104,14 @@ public class TriagemResource {
         Response executar(OrgId org, UUID gestor);
     }
 
-    private Response comContexto(String pessoa, Acao acao) {
+    private Response comContexto(Acao acao) {
         Optional<OrgId> org = contexto.atual();
-        if (org.isEmpty() || pessoa == null) {
+        Optional<UUID> pessoa = contextoPessoa.atual();
+        if (org.isEmpty() || pessoa.isEmpty()) {
             return problema(400, "requisicao.invalida", "X-Org-Id e X-Pessoa-Id são obrigatórios");
         }
         try {
-            return acao.executar(org.get(), UUID.fromString(pessoa));
+            return acao.executar(org.get(), pessoa.get());
         } catch (FalhasTriagem.EstadoInvalido e) {
             return problema(409, "pendencia.estado_invalido", e.getMessage());
         }

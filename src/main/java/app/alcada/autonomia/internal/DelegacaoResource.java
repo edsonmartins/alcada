@@ -5,12 +5,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import app.alcada.plataforma.multitenancy.port.ContextoPessoa;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -29,54 +29,57 @@ public class DelegacaoResource {
 
     private final MotorAutonomia motor;
     private final ContextoTenant contexto;
+    private final ContextoPessoa contextoPessoa;
     private final EntityManager em;
 
-    public DelegacaoResource(MotorAutonomia motor, ContextoTenant contexto, EntityManager em) {
+    public DelegacaoResource(MotorAutonomia motor, ContextoTenant contexto, ContextoPessoa contextoPessoa,
+                             EntityManager em) {
         this.motor = motor;
         this.contexto = contexto;
+        this.contextoPessoa = contextoPessoa;
         this.em = em;
     }
 
     @POST
     @Path("/{id}/propor")
-    public Response propor(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa,
-                           ProporRequest req) {
+    public Response propor(@PathParam("id") String id, ProporRequest req) {
         Optional<OrgId> org = contexto.atual();
-        if (org.isEmpty() || pessoa == null) {
+        Optional<UUID> pessoa = contextoPessoa.atual();
+        if (org.isEmpty() || pessoa.isEmpty()) {
             return problema(400, "requisicao.invalida", "X-Org-Id e X-Pessoa-Id são obrigatórios");
         }
         if (req == null || req.proposta() == null) {
             return problema(400, "propor.invalido", "proposta é obrigatória");
         }
-        return executar(pessoa, () ->
-                motor.propor(org.get(), UUID.fromString(id), req.proposta(), UUID.fromString(pessoa)));
+        return executar(pessoa.get(), () ->
+                motor.propor(org.get(), UUID.fromString(id), req.proposta(), pessoa.get()));
     }
 
     @POST
     @Path("/{id}/concluir")
-    public Response concluir(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa,
-                             ConcluirRequest req) {
+    public Response concluir(@PathParam("id") String id, ConcluirRequest req) {
         Optional<OrgId> org = contexto.atual();
-        if (org.isEmpty() || pessoa == null) {
+        Optional<UUID> pessoa = contextoPessoa.atual();
+        if (org.isEmpty() || pessoa.isEmpty()) {
             return problema(400, "requisicao.invalida", "X-Org-Id e X-Pessoa-Id são obrigatórios");
         }
-        return executar(pessoa, () -> motor.concluir(org.get(), UUID.fromString(id),
-                req == null ? null : req.resultado(), UUID.fromString(pessoa)));
+        return executar(pessoa.get(), () -> motor.concluir(org.get(), UUID.fromString(id),
+                req == null ? null : req.resultado(), pessoa.get()));
     }
 
     @POST
     @Path("/{id}/devolver")
-    public Response devolver(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa,
-                             DevolverRequest req) {
+    public Response devolver(@PathParam("id") String id, DevolverRequest req) {
         Optional<OrgId> org = contexto.atual();
-        if (org.isEmpty() || pessoa == null) {
+        Optional<UUID> pessoa = contextoPessoa.atual();
+        if (org.isEmpty() || pessoa.isEmpty()) {
             return problema(400, "requisicao.invalida", "X-Org-Id e X-Pessoa-Id são obrigatórios");
         }
         if (req == null || req.motivo() == null) {
             return problema(400, "devolver.sem_motivo", "motivo é obrigatório");
         }
-        return executar(pessoa, () ->
-                motor.devolver(org.get(), UUID.fromString(id), req.motivo(), UUID.fromString(pessoa)));
+        return executar(pessoa.get(), () ->
+                motor.devolver(org.get(), UUID.fromString(id), req.motivo(), pessoa.get()));
     }
 
     /**
@@ -86,9 +89,10 @@ public class DelegacaoResource {
      */
     @GET
     @Transactional
-    public Response listar(@HeaderParam("X-Pessoa-Id") String pessoa, @QueryParam("status") String status) {
+    public Response listar(@QueryParam("status") String status) {
         Optional<OrgId> org = contexto.atual();
-        if (org.isEmpty() || pessoa == null) {
+        Optional<UUID> pessoa = contextoPessoa.atual();
+        if (org.isEmpty() || pessoa.isEmpty()) {
             return problema(400, "requisicao.invalida", "X-Org-Id e X-Pessoa-Id são obrigatórios");
         }
         StringBuilder sql = new StringBuilder("""
@@ -105,7 +109,7 @@ public class DelegacaoResource {
         sql.append(" ORDER BY d.criada_em DESC");
 
         var q = em.createNativeQuery(sql.toString())
-                .setParameter(1, org.get().valor()).setParameter(2, UUID.fromString(pessoa));
+                .setParameter(1, org.get().valor()).setParameter(2, pessoa.get());
         if (status != null) {
             q.setParameter(3, status);
         }
@@ -126,7 +130,7 @@ public class DelegacaoResource {
         void run();
     }
 
-    private Response executar(String pessoa, Acao acao) {
+    private Response executar(UUID pessoa, Acao acao) {
         if (pessoa == null) {
             return problema(400, "pessoa.ausente", "X-Pessoa-Id é obrigatório");
         }

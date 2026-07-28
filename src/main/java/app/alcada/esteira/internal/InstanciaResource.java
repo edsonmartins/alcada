@@ -12,10 +12,10 @@ import app.alcada.esteira.port.EntradasEsteira.ApontamentoItem;
 import app.alcada.esteira.port.EntradasEsteira.ResultadoItem;
 import app.alcada.esteira.port.Esteiras;
 import app.alcada.esteira.port.PortalInstancia;
+import app.alcada.plataforma.multitenancy.port.ContextoPessoa;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -34,13 +34,15 @@ public class InstanciaResource {
     private final Esteiras esteiras;
     private final PortalInstancia portal;
     private final ContextoTenant contexto;
+    private final ContextoPessoa contextoPessoa;
 
     public InstanciaResource(Avaliacoes avaliacoes, Esteiras esteiras, PortalInstancia portal,
-                             ContextoTenant contexto) {
+                             ContextoTenant contexto, ContextoPessoa contextoPessoa) {
         this.avaliacoes = avaliacoes;
         this.esteiras = esteiras;
         this.portal = portal;
         this.contexto = contexto;
+        this.contextoPessoa = contextoPessoa;
     }
 
     @POST
@@ -71,14 +73,14 @@ public class InstanciaResource {
     @POST
     @Path("/{id}/avaliar")
     @Transactional
-    public Response avaliar(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa, AvaliarReq req) {
+    public Response avaliar(@PathParam("id") String id, AvaliarReq req) {
         Optional<OrgId> org = contexto.atual();
         if (org.isEmpty()) {
             return erro(400, "org.ausente", "X-Org-Id não resolvido");
         }
         List<ResultadoItem> resultados = req == null || req.resultados() == null ? List.of() : req.resultados();
         List<ApontamentoItem> apontamentos = req == null || req.apontamentos() == null ? List.of() : req.apontamentos();
-        UUID avaliador = pessoa == null ? null : UUID.fromString(pessoa);
+        UUID avaliador = contextoPessoa.atual().orElse(null);
         try {
             var r = avaliacoes.avaliar(org.get(), UUID.fromString(id), resultados, apontamentos, avaliador);
             return Response.ok(r).build();

@@ -6,11 +6,11 @@ import java.util.UUID;
 
 import app.alcada.assistente.port.Bloco;
 import app.alcada.assistente.port.Dossie;
+import app.alcada.plataforma.multitenancy.port.ContextoPessoa;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -29,11 +29,13 @@ public class BlocoResource {
     private final Bloco bloco;
     private final Dossie dossie;
     private final ContextoTenant contexto;
+    private final ContextoPessoa contextoPessoa;
 
-    public BlocoResource(Bloco bloco, Dossie dossie, ContextoTenant contexto) {
+    public BlocoResource(Bloco bloco, Dossie dossie, ContextoTenant contexto, ContextoPessoa contextoPessoa) {
         this.bloco = bloco;
         this.dossie = dossie;
         this.contexto = contexto;
+        this.contextoPessoa = contextoPessoa;
     }
 
     @GET
@@ -73,7 +75,7 @@ public class BlocoResource {
     @POST
     @Path("/decidir")
     @Transactional
-    public Response decidir(@PathParam("id") String id, @HeaderParam("X-Pessoa-Id") String pessoa, DecidirReq req) {
+    public Response decidir(@PathParam("id") String id, DecidirReq req) {
         Optional<OrgId> org = contexto.atual();
         if (org.isEmpty()) {
             return erro(400, "org.ausente", "X-Org-Id não resolvido");
@@ -81,7 +83,7 @@ public class BlocoResource {
         if (req == null || req.opcao() == null) {
             return erro(400, "decidir.invalido", "opcao é obrigatória");
         }
-        UUID por = pessoa == null ? null : UUID.fromString(pessoa);
+        UUID por = contextoPessoa.atual().orElse(null);
         try {
             bloco.decidir(org.get(), UUID.fromString(id), req.opcao(), req.texto(), por);
             return Response.noContent().build();

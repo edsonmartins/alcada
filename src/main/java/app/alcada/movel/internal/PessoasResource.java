@@ -5,10 +5,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import app.alcada.identidade.port.Pessoas;
+import app.alcada.plataforma.multitenancy.port.ContextoPessoa;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
@@ -25,21 +25,25 @@ public class PessoasResource {
 
     private final Pessoas pessoas;
     private final ContextoTenant contexto;
+    private final ContextoPessoa contextoPessoa;
 
-    public PessoasResource(Pessoas pessoas, ContextoTenant contexto) {
+    public PessoasResource(Pessoas pessoas, ContextoTenant contexto, ContextoPessoa contextoPessoa) {
         this.pessoas = pessoas;
         this.contexto = contexto;
+        this.contextoPessoa = contextoPessoa;
     }
 
     @GET
-    public Response listar(@HeaderParam("X-Pessoa-Id") String pessoa) {
+    public Response listar() {
         Optional<OrgId> org = contexto.atual();
-        if (org.isEmpty() || pessoa == null) {
+        Optional<UUID> pessoa = contextoPessoa.atual();
+        if (org.isEmpty() || pessoa.isEmpty()) {
             return Response.status(400).type("application/problem+json")
                     .entity(new Problema("urn:alcada:requisicao.invalida",
-                            "X-Org-Id e X-Pessoa-Id são obrigatórios", 400)).build();
+                            "org e pessoa são obrigatórios (token OIDC ou headers X-Org-Id/X-Pessoa-Id)", 400))
+                    .build();
         }
-        List<Pessoa> lista = pessoas.listar(org.get(), UUID.fromString(pessoa)).stream()
+        List<Pessoa> lista = pessoas.listar(org.get(), pessoa.get()).stream()
                 .map(p -> new Pessoa(p.id().toString(), p.nome())).toList();
         return Response.ok(lista).build();
     }

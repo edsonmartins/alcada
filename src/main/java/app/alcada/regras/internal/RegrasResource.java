@@ -5,13 +5,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import app.alcada.plataforma.multitenancy.port.ContextoPessoa;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import app.alcada.regras.port.Mineracao;
 import app.alcada.regras.port.Regras;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -34,11 +34,14 @@ public class RegrasResource {
     private final Mineracao mineracao;
     private final Regras regras;
     private final ContextoTenant contexto;
+    private final ContextoPessoa contextoPessoa;
 
-    public RegrasResource(Mineracao mineracao, Regras regras, ContextoTenant contexto) {
+    public RegrasResource(Mineracao mineracao, Regras regras, ContextoTenant contexto,
+                          ContextoPessoa contextoPessoa) {
         this.mineracao = mineracao;
         this.regras = regras;
         this.contexto = contexto;
+        this.contextoPessoa = contextoPessoa;
     }
 
     @GET
@@ -92,7 +95,7 @@ public class RegrasResource {
     @POST
     @Path("/propostas/silenciar")
     @Transactional
-    public Response silenciar(@HeaderParam("X-Pessoa-Id") String pessoa, SilenciarRegra req) {
+    public Response silenciar(SilenciarRegra req) {
         Optional<OrgId> org = contexto.atual();
         if (org.isEmpty()) {
             return problema(400, "org.ausente", "X-Org-Id não resolvido");
@@ -100,7 +103,7 @@ public class RegrasResource {
         if (req == null || req.classe() == null) {
             return problema(400, "silenciar.sem_classe", "classe é obrigatória");
         }
-        UUID por = pessoa == null ? null : UUID.fromString(pessoa);
+        UUID por = contextoPessoa.atual().orElse(null);
         regras.silenciar(org.get(), req.classe(), por);
         return Response.noContent().build();
     }

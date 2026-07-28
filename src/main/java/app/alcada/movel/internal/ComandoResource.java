@@ -7,9 +7,9 @@ import java.util.UUID;
 import app.alcada.movel.port.Comando;
 import app.alcada.movel.port.ComandoMovel;
 import app.alcada.movel.port.ResultadoComando;
+import app.alcada.plataforma.multitenancy.port.ContextoPessoa;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -26,22 +26,25 @@ public class ComandoResource {
 
     private final ComandoMovel comandos;
     private final ContextoTenant contexto;
+    private final ContextoPessoa contextoPessoa;
 
-    public ComandoResource(ComandoMovel comandos, ContextoTenant contexto) {
+    public ComandoResource(ComandoMovel comandos, ContextoTenant contexto, ContextoPessoa contextoPessoa) {
         this.comandos = comandos;
         this.contexto = contexto;
+        this.contextoPessoa = contextoPessoa;
     }
 
     @POST
-    public Response sincronizar(@HeaderParam("X-Pessoa-Id") String pessoa, Lote lote) {
+    public Response sincronizar(Lote lote) {
         Optional<OrgId> org = contexto.atual();
-        if (org.isEmpty() || pessoa == null) {
+        Optional<UUID> pessoa = contextoPessoa.atual();
+        if (org.isEmpty() || pessoa.isEmpty()) {
             return erro(400, "requisicao.invalida", "X-Org-Id e X-Pessoa-Id são obrigatórios");
         }
         if (lote == null || lote.comandos() == null || lote.comandos().isEmpty()) {
             return erro(400, "lote.vazio", "comandos é obrigatório");
         }
-        List<ResultadoComando> r = comandos.sincronizar(org.get(), UUID.fromString(pessoa), lote.comandos());
+        List<ResultadoComando> r = comandos.sincronizar(org.get(), pessoa.get(), lote.comandos());
         return Response.ok(new Resposta(r)).build();
     }
 

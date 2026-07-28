@@ -4,13 +4,13 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
+import app.alcada.plataforma.multitenancy.port.ContextoPessoa;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import app.alcada.regras.port.Aprendizado;
 import app.alcada.regras.port.Resposta;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -28,10 +28,12 @@ public class AprendizadoResource {
 
     private final Aprendizado aprendizado;
     private final ContextoTenant contexto;
+    private final ContextoPessoa contextoPessoa;
 
-    public AprendizadoResource(Aprendizado aprendizado, ContextoTenant contexto) {
+    public AprendizadoResource(Aprendizado aprendizado, ContextoTenant contexto, ContextoPessoa contextoPessoa) {
         this.aprendizado = aprendizado;
         this.contexto = contexto;
+        this.contextoPessoa = contextoPessoa;
     }
 
     @GET
@@ -48,7 +50,6 @@ public class AprendizadoResource {
     @Path("/{id}/responder")
     @Transactional
     public Response responder(@PathParam("id") String id,
-                             @HeaderParam("X-Pessoa-Id") String pessoa,
                              RespostaReq req) {
         Optional<OrgId> org = contexto.atual();
         if (org.isEmpty()) {
@@ -63,7 +64,7 @@ public class AprendizadoResource {
         } catch (IllegalArgumentException e) {
             return problema(422, "resposta.invalida", "resposta deve ser SIM, AGORA_NAO ou NAO_PERGUNTAR");
         }
-        UUID por = pessoa == null ? null : UUID.fromString(pessoa);
+        UUID por = contextoPessoa.atual().orElse(null);
         try {
             aprendizado.responder(org.get(), UUID.fromString(id), r, por);
         } catch (NoSuchElementException e) {

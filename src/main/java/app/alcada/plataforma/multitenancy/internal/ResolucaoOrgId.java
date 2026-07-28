@@ -2,6 +2,8 @@ package app.alcada.plataforma.multitenancy.internal;
 
 import java.util.UUID;
 
+import org.eclipse.microprofile.jwt.JsonWebToken;
+
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.Priority;
@@ -60,7 +62,12 @@ public class ResolucaoOrgId implements ContainerRequestFilter {
         if (id == null || id.isAnonymous()) {
             return null;
         }
+        // Claims custom do JWT ficam no principal (JsonWebToken.getClaim), não no
+        // getAttribute do SecurityIdentity — o Quarkus OIDC não as expõe por lá.
         Object claim = id.getAttribute("org_id");
+        if (claim == null && id.getPrincipal() instanceof JsonWebToken jwt) {
+            claim = jwt.getClaim("org_id");
+        }
         return claim == null ? null : UUID.fromString(claim.toString());
     }
 }
