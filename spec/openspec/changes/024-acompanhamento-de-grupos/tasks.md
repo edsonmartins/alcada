@@ -49,13 +49,17 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
       (tipo no conjunto fechado), reprocesso 1× e indisponibilidade → vazio (INV-10).
       `Compromisso` (dependeDoGestor, tipo, assunto, quemPede, quando, ação, feito, conf).
 - [x] Teste com gateway fake no caso C1 (reunião do Marcello) + não-depende + indisponível.
-- [ ] Scheduler persistente (sem timer em memória): debounce + janela N + poll;
-      marca `avaliado_ate_seq` avançada dentro da transação/outbox.
+- [x] Scheduler persistente (sem timer em memória): `WorkerGrupos` @Scheduled(30s) →
+      reserva grupos assentados (`ultimo_visto` além do debounce) com conteúdo novo
+      (`ultimo_visto > avaliado_em`) via `FOR UPDATE SKIP LOCKED`, marca `avaliado_em`
+      na mesma transação (V30). Reserva e processamento em txs separadas (o modelo não
+      segura o lock do lote). Testes: assentado→avaliado; ainda quente→ignorado.
 - [x] `ProcessadorGrupo`: monta a janela do grupo (evento_bruto, remetente por linha),
       minimiza (ADR-0020 §3, re-hidrata), chama `ExtratorGrupo`, e se `dependeDoGestor`
       → cria/funde pendência (ator `ASSISTENTE:` na trilha); cobrança esquenta+funde (não duplica).
       Testes: janela→Entrada, não-depende→nada, 2ª janela→cobrança (temperatura++).
-- [ ] Ingestao de grupo agenda extração por janela (debounce), não PROCESSAR_CAPTURA por msg.
+- [x] Ingestao de grupo NÃO agenda PROCESSAR_CAPTURA por mensagem: a unidade é a janela,
+      que o `WorkerGrupos` varre por debounce. Só 1:1 segue por PROCESSAR_CAPTURA.
 
 ## F3 — superfície, cobrança, aprendizado
 - [ ] Criar/fundir `Pendencia` a partir do compromisso (INV-10; ator `ASSISTENTE:` na trilha).

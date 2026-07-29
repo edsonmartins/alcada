@@ -81,10 +81,15 @@ public class Ingestao {
             return null; // reentrega: já ingerido (ADR-0021 dedup por mensagem_id)
         }
 
-        agenda.agendar(new TarefaAgendada(
-                org, TiposJob.PROCESSAR_CAPTURA, id.toString(),
-                OffsetDateTime.now(ZoneOffset.UTC),
-                "{\"evento_bruto_id\":\"" + id + "\"}"));
+        // Grupo (024 F2): não se processa mensagem a mensagem — a unidade é a JANELA.
+        // O WorkerGrupos varre por debounce (ultimo_visto de grupo_acompanhado) e
+        // extrai o compromisso da conversa inteira. Só 1:1 vai por PROCESSAR_CAPTURA.
+        if (!m.grupo()) {
+            agenda.agendar(new TarefaAgendada(
+                    org, TiposJob.PROCESSAR_CAPTURA, id.toString(),
+                    OffsetDateTime.now(ZoneOffset.UTC),
+                    "{\"evento_bruto_id\":\"" + id + "\"}"));
+        }
         return id;
     }
 }
