@@ -1,5 +1,6 @@
 package app.alcada.notificacao.port;
 
+import app.alcada.captura.port.EnviarAvisoGrupo;
 import app.alcada.captura.port.EnviarMensagem;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 
@@ -15,6 +16,16 @@ public interface Canal {
      * @throws CanalIndisponivel quando a entrega falha (o outbox reprocessa).
      */
     boolean enviar(OrgId org, EnviarMensagem mensagem);
+
+    /**
+     * Publica um aviso num GRUPO (024 C6, bot visível). Endereça o grupo pelo
+     * chat_jid via o canal do Linktor, não por conversa 1:1.
+     *
+     * @return {@code true} se publicou agora; {@code false} se já publicado
+     *         (idempotente por {@code idempotencyKey}).
+     * @throws CanalIndisponivel quando a entrega falha (o outbox reprocessa).
+     */
+    boolean enviarAvisoGrupo(OrgId org, EnviarAvisoGrupo aviso);
 
     /** Falha de entrega — o efeito volta para retentativa no outbox. */
     class CanalIndisponivel extends RuntimeException {

@@ -9,6 +9,7 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import app.alcada.captura.port.EnviarAvisoGrupo;
 import app.alcada.captura.port.EnviarMensagem;
 import app.alcada.notificacao.port.Canal;
 import app.alcada.plataforma.multitenancy.port.OrgId;
@@ -80,6 +81,46 @@ public class LinktorHttp implements Canal {
         } catch (Exception e) {
             throw new CanalIndisponivel("Linktor indisponível: " + e.getMessage());
         }
+    }
+
+    @Override
+    public boolean enviarAvisoGrupo(OrgId org, EnviarAvisoGrupo a) {
+        if (apiKey.isEmpty()) {
+            throw new CanalIndisponivel("Linktor sem API key configurada");
+        }
+        if (a.channelId() == null || a.channelId().isBlank()
+                || a.grupoId() == null || a.grupoId().isBlank()) {
+            throw new CanalIndisponivel("aviso de grupo sem canal ou grupo");
+        }
+        // Envio direto ao JID do grupo (024 C6): endpoint canal-escopado do Linktor
+        // que endereça o grupo pelo chat_jid, sem resolução por contato.
+        String url = baseUrl + "/api/v1/channels/" + enc(a.channelId())
+                + "/groups/" + enc(a.grupoId()) + "/messages";
+        ObjectNode raiz = json.createObjectNode();
+        raiz.put("text", a.texto());
+        ObjectNode meta = raiz.putObject("metadata");
+        meta.put("source", "alcada");
+        meta.put("idempotency_key", a.idempotencyKey());
+        try {
+            HttpResponse<String> r = http.send(HttpRequest.newBuilder(URI.create(url))
+                    .header("X-API-Key", apiKey.get())
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(30))
+                    .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(raiz)))
+                    .build(), HttpResponse.BodyHandlers.ofString());
+            if (r.statusCode() / 100 == 2) {
+                return true;
+            }
+            throw new CanalIndisponivel("Linktor respondeu " + r.statusCode());
+        } catch (CanalIndisponivel e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CanalIndisponivel("Linktor indisponível: " + e.getMessage());
+        }
+    }
+
+    private static String enc(String s) {
+        return java.net.URLEncoder.encode(s, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     private String montarCorpo(EnviarMensagem m) {

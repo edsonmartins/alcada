@@ -4,6 +4,8 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import app.alcada.captura.port.AvisoGrupo;
+import app.alcada.captura.port.EnviarAvisoGrupo;
 import app.alcada.captura.port.EnviarMensagem;
 import app.alcada.notificacao.port.Canal;
 import app.alcada.plataforma.multitenancy.port.OrgId;
@@ -32,12 +34,14 @@ public class DespachanteCanal implements Despachante {
     private final EntityManager em;
     private final Canal canal;
     private final Trilha trilha;
+    private final AvisoGrupo avisoGrupo;
     private final ObjectMapper json = new ObjectMapper();
 
-    public DespachanteCanal(EntityManager em, Canal canal, Trilha trilha) {
+    public DespachanteCanal(EntityManager em, Canal canal, Trilha trilha, AvisoGrupo avisoGrupo) {
         this.em = em;
         this.canal = canal;
         this.trilha = trilha;
+        this.avisoGrupo = avisoGrupo;
     }
 
     @Override
@@ -45,6 +49,7 @@ public class DespachanteCanal implements Despachante {
         switch (m.tipo()) {
             case "item.fechado" -> entregarFechamento(m);
             case "canal.resposta" -> entregarResposta(m);
+            case "grupo.aviso" -> entregarAvisoGrupo(m);
             default -> {
                 // eventos internos (delegacao.executada/escalada/devolvida, …): sem saída ao solicitante
             }
@@ -74,6 +79,20 @@ public class DespachanteCanal implements Despachante {
                 conversationId, m.idempotencyKey()));
         if (novo) {
             comunicada(m.org(), pendenciaId, canalNome);
+        }
+    }
+
+    /**
+     * Publica o aviso de bot visível no grupo (024 C6, ADR-0011 §2). Ao confirmar
+     * o envio, marca aviso_em (via porta de captura) — só então o grupo é capturado.
+     */
+    private void entregarAvisoGrupo(MensagemOutbox m) {
+        String p = m.payloadJson();
+        String grupoId = campo(p, "grupo_id");
+        boolean novo = canal.enviarAvisoGrupo(m.org(), new EnviarAvisoGrupo(
+                campo(p, "channel_id"), grupoId, campo(p, "texto"), m.idempotencyKey()));
+        if (novo) {
+            avisoGrupo.marcarPublicado(m.org(), grupoId);
         }
     }
 

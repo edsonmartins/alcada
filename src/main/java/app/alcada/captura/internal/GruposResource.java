@@ -5,7 +5,10 @@ import java.util.Optional;
 
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
+import app.alcada.plataforma.outbox.port.MensagemOutbox;
+import app.alcada.plataforma.outbox.port.Outbox;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -28,10 +31,12 @@ public class GruposResource {
 
     private final ContextoTenant contexto;
     private final EntityManager em;
+    private final Outbox outbox;
 
-    public GruposResource(ContextoTenant contexto, EntityManager em) {
+    public GruposResource(ContextoTenant contexto, EntityManager em, Outbox outbox) {
         this.contexto = contexto;
         this.em = em;
+        this.outbox = outbox;
     }
 
     /** Grupos que o bot já viu nesta org, com o estado de acompanhamento. */
@@ -76,7 +81,48 @@ public class GruposResource {
         if (n == 0) {
             return problema(404, "grupo.desconhecido", "grupo ainda não visto pelo bot nesta org");
         }
+        if (ativa) {
+            publicarAvisoSeNecessario(org.get(), grupoId, ajuste == null ? null : ajuste.finalidade());
+        }
         return Response.noContent().build();
+    }
+
+    /**
+     * Bot visível (024 C6, ADR-0011 §2): ao ativar, publica UMA vez o aviso no
+     * grupo pelo outbox. Só depois de o Linktor confirmar (aviso_em) o conteúdo é
+     * capturado. Idempotente por (aviso:grupo) e só enfileira se ainda sem aviso.
+     */
+    private void publicarAvisoSeNecessario(OrgId org, String grupoId, String finalidade) {
+        Object[] r;
+        try {
+            r = (Object[]) em.createNativeQuery("""
+                    SELECT f.linktor_channel_id, g.aviso_em
+                    FROM grupo_acompanhado g JOIN fonte f ON f.id = g.fonte_id
+                    WHERE g.org_id = ? AND g.grupo_id = ?
+                    """).setParameter(1, org.valor()).setParameter(2, grupoId).getSingleResult();
+        } catch (NoResultException e) {
+            return;
+        }
+        String channelId = (String) r[0];
+        if (r[1] != null || channelId == null) {
+            return; // aviso já publicado, ou fonte sem canal Linktor (nada a fazer)
+        }
+        outbox.publicar(new MensagemOutbox(org, "grupo.aviso",
+                payloadAviso(channelId, grupoId, finalidade), "aviso:" + grupoId));
+    }
+
+    private static String payloadAviso(String channelId, String grupoId, String finalidade) {
+        String texto = "🔔 A partir de agora este grupo conta com o assistente Alçada, que ajuda o "
+                + "responsável a não perder pedidos de decisão. Só itens que dependem de uma decisão "
+                + "dele são registrados; o restante da conversa não é guardado."
+                + (finalidade == null || finalidade.isBlank() ? "" : " Finalidade: " + finalidade + ".");
+        // JSON simples; escapa aspas do texto/finalidade
+        return "{\"channel_id\":\"" + esc(channelId) + "\",\"grupo_id\":\"" + esc(grupoId)
+                + "\",\"texto\":\"" + esc(texto) + "\"}";
+    }
+
+    private static String esc(String s) {
+        return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static Response problema(int status, String tipo, String detalhe) {

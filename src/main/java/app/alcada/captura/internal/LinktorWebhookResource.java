@@ -149,12 +149,14 @@ public class LinktorWebhookResource {
                 .setParameter(3, grupoId)
                 .setParameter(4, nome == null || nome.isBlank() ? null : nome)
                 .executeUpdate();
-        Boolean ativa = (Boolean) em.createNativeQuery(
-                "SELECT ativa FROM grupo_acompanhado WHERE fonte_id = ? AND grupo_id = ?")
+        // Bot visível é pré-condição (ADR-0011 §2, C6): só ingere se o gestor
+        // selecionou (ativa) E o aviso já foi publicado no grupo (aviso_em).
+        Boolean capturar = (Boolean) em.createNativeQuery(
+                "SELECT ativa AND aviso_em IS NOT NULL FROM grupo_acompanhado WHERE fonte_id = ? AND grupo_id = ?")
                 .setParameter(1, fonte.id())
                 .setParameter(2, grupoId)
                 .getSingleResult();
-        return Boolean.TRUE.equals(ativa);
+        return Boolean.TRUE.equals(capturar);
     }
 
     /** Registra que houve menção no grupo agora → o worker fura o debounce (C5). */

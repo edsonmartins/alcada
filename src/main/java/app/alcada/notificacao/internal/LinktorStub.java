@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import app.alcada.captura.port.EnviarAvisoGrupo;
 import app.alcada.captura.port.EnviarMensagem;
 import app.alcada.notificacao.port.Canal;
 import app.alcada.plataforma.multitenancy.port.OrgId;
@@ -31,6 +32,7 @@ public class LinktorStub implements Canal {
     private final Set<String> entregues = ConcurrentHashMap.newKeySet();
     private final Set<String> destinosQueFalham = ConcurrentHashMap.newKeySet();
     private final List<EnviarMensagem> enviadas = new CopyOnWriteArrayList<>();
+    private final List<EnviarAvisoGrupo> avisos = new CopyOnWriteArrayList<>();
 
     @Override
     public boolean enviar(OrgId org, EnviarMensagem m) {
@@ -45,8 +47,25 @@ public class LinktorStub implements Canal {
         return true;
     }
 
+    @Override
+    public boolean enviarAvisoGrupo(OrgId org, EnviarAvisoGrupo a) {
+        if (destinosQueFalham.contains(a.grupoId())) {
+            throw new CanalIndisponivel("canal indisponível para grupo " + a.grupoId());
+        }
+        if (!entregues.add(a.idempotencyKey())) {
+            return false; // já publicado — idempotente
+        }
+        avisos.add(a);
+        LOG.debugf("Linktor(stub) aviso → grupo %s [%s]: %s", a.grupoId(), a.channelId(), a.texto());
+        return true;
+    }
+
     public List<EnviarMensagem> enviadas() {
         return enviadas;
+    }
+
+    public List<EnviarAvisoGrupo> avisos() {
+        return avisos;
     }
 
     // ---- controle para testes / operação ----------------------------------

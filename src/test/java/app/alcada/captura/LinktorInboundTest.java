@@ -133,6 +133,27 @@ class LinktorInboundTest {
                 "menção marca o grupo para avaliação imediata (C5)");
     }
 
+    // C6 — bot visível é pré-condição: grupo ativo mas sem aviso publicado não captura.
+    @Test
+    void grupo_ativo_sem_aviso_publicado_nao_captura() {
+        OrgId org = novaOrg();
+        criarFonteLinktor(org, "CH-GRP-NOAVISO");
+        String grupoId = "120363222222222222@g.us";
+        ativarSemAviso(org, grupoId); // opt-in feito, mas o aviso ainda não saiu
+        String body = envelopeGrupo("MSG-NA", grupoId);
+        long ts = Instant.now().getEpochSecond();
+
+        given().header("X-Linktor-Signature", hmac(SEGREDO, ts + "." + body))
+                .header("X-Linktor-Timestamp", String.valueOf(ts))
+                .contentType("application/json").body(body)
+        .when().post("/v1/captura/linktor")
+        .then().statusCode(200);
+
+        assertEquals(0L, contar(org,
+                "SELECT count(*) FROM evento_bruto WHERE org_id = ? AND mensagem_id = 'MSG-NA'"),
+                "sem aviso publicado (bot invisível) → nada é capturado (C6, ADR-0011 §2)");
+    }
+
     // C13 — só grupos selecionados são acompanhados (opt-in, ADR-0011 §1).
     @Test
     void grupo_nao_selecionado_e_descartado_mas_descoberto() {
@@ -198,11 +219,23 @@ class LinktorInboundTest {
                 .setParameter(3, SEGREDO).setParameter(4, channelId).executeUpdate());
     }
 
+    /** Ativo E com aviso publicado (bot visível) — a captura pode ocorrer (C6). */
     private void ativarGrupo(OrgId org, String grupoId) {
+        QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery("""
+                INSERT INTO grupo_acompanhado (org_id, fonte_id, grupo_id, ativa, aviso_em)
+                SELECT ?, id, ?, true, now() FROM fonte WHERE linktor_channel_id = ?
+                ON CONFLICT (fonte_id, grupo_id) DO UPDATE SET ativa = true, aviso_em = now()
+                """)
+                .setParameter(1, org.valor()).setParameter(2, grupoId)
+                .setParameter(3, canalDoTeste).executeUpdate());
+    }
+
+    /** Ativo mas SEM aviso publicado ainda — a captura não deve ocorrer (C6). */
+    private void ativarSemAviso(OrgId org, String grupoId) {
         QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery("""
                 INSERT INTO grupo_acompanhado (org_id, fonte_id, grupo_id, ativa)
                 SELECT ?, id, ?, true FROM fonte WHERE linktor_channel_id = ?
-                ON CONFLICT (fonte_id, grupo_id) DO UPDATE SET ativa = true
+                ON CONFLICT (fonte_id, grupo_id) DO UPDATE SET ativa = true, aviso_em = NULL
                 """)
                 .setParameter(1, org.valor()).setParameter(2, grupoId)
                 .setParameter(3, canalDoTeste).executeUpdate());
