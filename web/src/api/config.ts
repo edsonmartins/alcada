@@ -45,6 +45,13 @@ export function temSessao(): boolean {
 export const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
+ * Modo demo do login: quando ligado (VITE_LOGIN_DEMO=true), a tela de entrada
+ * também oferece a entrada manual de org_id/pessoa_id — o único caminho num
+ * deploy SEM OIDC (ex. %demo). Desligado por padrão: login só pelo ArchGuard.
+ */
+export const loginDemo = import.meta.env.VITE_LOGIN_DEMO === "true";
+
+/**
  * Remove espaços e aspas que costumam vir coladas ao copiar de um `.env`
  * (o padrão da casa guarda valores entre aspas: ALCADA_ORG_ID="…"). Sem isto o
  * header vira um UUID inválido e a API responde 500 ("UUID string too large").
