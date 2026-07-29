@@ -79,6 +79,6 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 - [x] C1 reunião do Marcello → 1 compromisso estruturado (ExtratorGrupoTest + ProcessadorGrupoTest)
 - [x] C2 ruído não vai ao modelo (PreFiltroGrupoTest + ProcessadorGrupoTest: 0 chamadas) · [x] C3 não-depende-dele não entra
 - [x] C4 cobrança funde+escala (ProcessadorGrupoTest) · [ ] C5 menção fura debounce (depende de mentions)
-- [ ] C6 bot invisível → sem captura · [ ] C7 minimizador sem vazamento
-- [ ] C8 identidade mínima (1º nome / contato só quando é a ação)
-- [ ] C9 idempotência · [ ] C10 isolamento tenant · [ ] C11 retenção ≤30d · [x] C12 ator na trilha (ProcessadorGrupoTest)
+- [ ] C6 bot invisível → sem captura · [x] C7 minimizador sem vazamento (GruposInvariantesTest)
+- [x] C8 identidade mínima — 1º nome (GruposInvariantesTest; `ProcessadorGrupo.primeiroNome`)
+- [ ] C9 idempotência · [x] C10 isolamento tenant · [x] C11 retenção ≤30d · [x] C12 ator na trilha

@@ -139,11 +139,26 @@ public class ProcessadorGrupo {
                 VALUES (?, ?, ?, ?, ?, cast(? as timestamptz), 'DECISAO', ?, 'ENTRADA', ?, false, 'WHATSAPP', ?)
                 """)
                 .setParameter(1, id).setParameter(2, org.valor())
-                .setParameter(3, k.assunto()).setParameter(4, k.quemPede()).setParameter(5, k.acaoPendente())
+                .setParameter(3, k.assunto()).setParameter(4, primeiroNome(k.quemPede()))
+                .setParameter(5, k.acaoPendente())
                 .setParameter(6, k.quandoResolvido()).setParameter(7, horizonte(k.quandoResolvido()))
                 .setParameter(8, k.confianca()).setParameter(9, grupoId)
                 .executeUpdate();
         return id;
+    }
+
+    /**
+     * Identidade mínima por finalidade (emenda ADR-0011, C8): o DONO é mostrado ao
+     * gestor pelo <b>primeiro nome</b>. O contato completo, quando é a própria ação
+     * ("mandar invite para fulano@..."), fica em {@code acaoPendente} — não aqui.
+     */
+    static String primeiroNome(String nome) {
+        if (nome == null || nome.isBlank()) {
+            return nome;
+        }
+        String t = nome.trim();
+        int sp = t.indexOf(' ');
+        return sp < 0 ? t : t.substring(0, sp);
     }
 
     /** Incrementa o contador auditável por fonte: toda janela vista, e as processadas. */
