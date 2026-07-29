@@ -160,6 +160,8 @@ POST   /v1/fontes/{id}/desativar
 `POST /v1/captura/linktor` (024): quando a mensagem veio de grupo, o envelope traz
 `data.group.id` (chat_jid; ausente em 1:1) e `data.message.senderId` = o indivíduo
 que falou. Só grupos **selecionados** têm o conteúdo ingerido (ver Grupos).
+`data.message.mentions` (JIDs mencionados; ausente sem menção): menção num grupo
+acompanhado faz o worker avaliar a janela na hora, sem esperar o debounce (C5).
 
 ### Grupos (pacote 024 — seleção/opt-in, ADR-0011 §1)
 ```

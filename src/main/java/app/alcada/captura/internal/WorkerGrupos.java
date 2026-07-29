@@ -37,8 +37,9 @@ public class WorkerGrupos {
     private static final String RESERVAR = """
             SELECT org_id, grupo_id FROM grupo_acompanhado
             WHERE ativa
-              AND ultimo_visto <= now() - (? * interval '1 second')
               AND (avaliado_em IS NULL OR ultimo_visto > avaliado_em)
+              AND (ultimo_visto <= now() - (? * interval '1 second')
+                   OR (mencao_em IS NOT NULL AND (avaliado_em IS NULL OR mencao_em > avaliado_em)))
             ORDER BY ultimo_visto
             FOR UPDATE SKIP LOCKED
             LIMIT ?

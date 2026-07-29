@@ -19,7 +19,8 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 - [x] Propagar `group{id}` no `message.received` (envelope + dispatcher + produtor);
       `senderId` do indivíduo mantido; ausente em 1:1. Testes verdes. (branch feat pendente de push)
 - [ ] `GET /channels/{id}/groups` (listar grupos do canal) — para a seleção (F1b).
-- [ ] `mentions[]` no envelope (sinal "gestor foi marcado") — enhancement.
+- [x] `mentions[]` no envelope (`data.message.mentions`): whatsmeow → Metadata → outbox →
+      dispatcher → envelope; consumido pela Alçada para furar o debounce (C5).
 
 ## F1 — captura ciente de grupo (Alçada)
 - [x] `MensagemRecebida` += `grupo`, `grupoId`; webhook mapeia `data.group.id`,
@@ -81,7 +82,7 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 ## Testes (cada cenário do spec.md)
 - [x] C1 reunião do Marcello → 1 compromisso estruturado (ExtratorGrupoTest + ProcessadorGrupoTest)
 - [x] C2 ruído não vai ao modelo (PreFiltroGrupoTest + ProcessadorGrupoTest: 0 chamadas) · [x] C3 não-depende-dele não entra
-- [x] C4 cobrança funde+escala (ProcessadorGrupoTest) · [ ] C5 menção fura debounce (depende de mentions)
+- [x] C4 cobrança funde+escala (ProcessadorGrupoTest) · [x] C5 menção fura debounce (Linktor mentions + V32 mencao_em + WorkerGrupos bypass)
 - [ ] C6 bot invisível → sem captura · [x] C7 minimizador sem vazamento (GruposInvariantesTest)
 - [x] C8 identidade mínima — 1º nome (GruposInvariantesTest; `ProcessadorGrupo.primeiroNome`)
 - [x] C9 idempotência (ProcessadorGrupoTest: reprocesso funde) · [x] C10 isolamento tenant · [x] C11 retenção ≤30d · [x] C12 ator na trilha

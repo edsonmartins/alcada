@@ -73,7 +73,30 @@ class WorkerGruposTest {
                 "conversa não assentou → não processa ainda");
     }
 
+    @Test
+    void grupo_quente_com_mencao_fura_o_debounce() {
+        OrgId org = novaOrg();
+        UUID fonte = criarFonte(org);
+        String g = "G-worker-3@g.us";
+        ativarGrupo(org, fonte, g, "0 seconds"); // conversa NÃO assentou
+        marcarMencao(org, g); // mas alguém foi mencionado agora (C5)
+        seed(org, fonte, g, "5512999", "@gestor decide isso pf?");
+        transporte.programar(Status.OK, COMPROMISSO);
+
+        worker.varrer();
+
+        assertEquals(1L, contar(org,
+                "SELECT count(*) FROM pendencia WHERE org_id = ? AND origem_thread = '" + g + "'"),
+                "menção direta avalia na hora, sem esperar o debounce");
+    }
+
     // ---- helpers -----------------------------------------------------------
+
+    private void marcarMencao(OrgId org, String grupoId) {
+        QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery(
+                "UPDATE grupo_acompanhado SET mencao_em = now() WHERE org_id = ? AND grupo_id = ?")
+                .setParameter(1, org.valor()).setParameter(2, grupoId).executeUpdate());
+    }
 
     private OrgId novaOrg() {
         OrgId org = new OrgId(UUID.randomUUID());

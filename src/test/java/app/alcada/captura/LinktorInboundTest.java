@@ -111,6 +111,28 @@ class LinktorInboundTest {
                 "grupo selecionado: ingere, marca grupo e thread pelo grupo (chat_jid)");
     }
 
+    // C5 — menção direta num grupo selecionado marca o grupo (fura o debounce).
+    @Test
+    void mencao_em_grupo_selecionado_marca_o_grupo() {
+        OrgId org = novaOrg();
+        criarFonteLinktor(org, "CH-GRP-MEN");
+        String grupoId = "120363111111111111@g.us";
+        ativarGrupo(org, grupoId);
+        String body = envelopeGrupoComMencao("MSG-GM", grupoId);
+        long ts = Instant.now().getEpochSecond();
+
+        given().header("X-Linktor-Signature", hmac(SEGREDO, ts + "." + body))
+                .header("X-Linktor-Timestamp", String.valueOf(ts))
+                .contentType("application/json").body(body)
+        .when().post("/v1/captura/linktor")
+        .then().statusCode(200);
+
+        assertEquals(1L, contar(org,
+                "SELECT count(*) FROM grupo_acompanhado WHERE org_id = ? AND grupo_id = '" + grupoId
+                        + "' AND mencao_em IS NOT NULL"),
+                "menção marca o grupo para avaliação imediata (C5)");
+    }
+
     // C13 — só grupos selecionados são acompanhados (opt-in, ADR-0011 §1).
     @Test
     void grupo_nao_selecionado_e_descartado_mas_descoberto() {
@@ -151,6 +173,16 @@ class LinktorInboundTest {
                 + "\"conversationId\":\"conv-g\",\"contactId\":\"c1\","
                 + "\"group\":{\"id\":\"" + grupoId + "\"},"
                 + "\"message\":{\"id\":\"" + messageId + "\",\"content\":{\"text\":\"vamos marcar reunião?\"},"
+                + "\"metadata\":{\"phone\":\"5544\"},\"senderId\":\"s1\"}}}";
+    }
+
+    private static String envelopeGrupoComMencao(String messageId, String grupoId) {
+        return "{\"id\":\"evt\",\"type\":\"message.received\",\"tenantId\":\"t\",\"environment\":\"prod\","
+                + "\"data\":{\"channelId\":\"" + canalDoTeste + "\",\"channelType\":\"whatsapp\","
+                + "\"conversationId\":\"conv-g\",\"contactId\":\"c1\","
+                + "\"group\":{\"id\":\"" + grupoId + "\"},"
+                + "\"message\":{\"id\":\"" + messageId + "\",\"content\":{\"text\":\"@gestor decide isso pf?\"},"
+                + "\"mentions\":[\"5511777777777@s.whatsapp.net\"],"
                 + "\"metadata\":{\"phone\":\"5544\"},\"senderId\":\"s1\"}}}";
     }
 

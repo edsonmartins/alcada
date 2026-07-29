@@ -95,6 +95,12 @@ public class LinktorWebhookResource {
             return Response.ok().build();
         }
 
+        // Menção direta (024 C5): se a mensagem menciona alguém, marca o grupo para o
+        // WorkerGrupos avaliar a janela na hora, sem esperar o debounce.
+        if (grupo && msg.path("mentions").isArray() && msg.path("mentions").size() > 0) {
+            marcarMencao(fonte, grupoId);
+        }
+
         MensagemRecebida m = new MensagemRecebida(
                 upper(texto(data, "channelType")),
                 fonte.id.toString(),
@@ -149,6 +155,13 @@ public class LinktorWebhookResource {
                 .setParameter(2, grupoId)
                 .getSingleResult();
         return Boolean.TRUE.equals(ativa);
+    }
+
+    /** Registra que houve menção no grupo agora → o worker fura o debounce (C5). */
+    private void marcarMencao(Fonte fonte, String grupoId) {
+        em.createNativeQuery(
+                "UPDATE grupo_acompanhado SET mencao_em = now() WHERE fonte_id = ? AND grupo_id = ?")
+                .setParameter(1, fonte.id()).setParameter(2, grupoId).executeUpdate();
     }
 
     private static String autor(JsonNode data, JsonNode msg) {
