@@ -34,6 +34,8 @@ export function pendencia(over: Partial<Pendencia> & { id: string; titulo: strin
     valorEmJogo: null,
     prazoImplicito: null,
     criadaEm: null,
+    origemGrupo: null,
+    cobrancas: 0,
     ...over,
   };
 }

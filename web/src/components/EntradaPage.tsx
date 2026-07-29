@@ -177,12 +177,17 @@ export function EntradaPage() {
                 <Badge size="xs" variant="light" color={corClasse(p.classe)}>
                   {ROTULO_CLASSE[p.classe]}
                 </Badge>
+                {p.origemGrupo && (
+                  <Badge size="xs" color="grape" variant="light">
+                    grupo: {p.origemGrupo}
+                  </Badge>
+                )}
                 {p.quemEspera && (
                   <Text size="xs" c="dimmed">espera: {p.quemEspera}</Text>
                 )}
-                {p.temperatura > 0 && (
+                {p.cobrancas > 0 && (
                   <Badge size="xs" color="orange" variant="light">
-                    {p.temperatura} {p.temperatura === 1 ? "cobrança" : "cobranças"}
+                    já te cobraram {p.cobrancas}×
                   </Badge>
                 )}
                 {p.baixaConfianca && (

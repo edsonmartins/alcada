@@ -20,6 +20,8 @@ export interface Pendencia {
   valorEmJogo: number | null;
   prazoImplicito: string | null; // ISO-8601
   criadaEm: string | null; // ISO-8601
+  origemGrupo: string | null; // nome do grupo de WhatsApp, quando veio de grupo (024)
+  cobrancas: number; // quantas vezes já cobraram (024)
 }
 
 export interface ItemHoje {
