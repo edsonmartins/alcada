@@ -44,14 +44,17 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 - [ ] Tela de seleção de grupos (web/mobile).
 
 ## F2 — extrator por janela
+- [x] `ExtratorGrupo`: chamada ao gateway (`Sensibilidade.INTERNA` + `json_schema`
+      estrito de compromisso), instrução "depende dele?" no texto, parse/validação
+      (tipo no conjunto fechado), reprocesso 1× e indisponibilidade → vazio (INV-10).
+      `Compromisso` (dependeDoGestor, tipo, assunto, quemPede, quando, ação, feito, conf).
+- [x] Teste com gateway fake no caso C1 (reunião do Marcello) + não-depende + indisponível.
 - [ ] Scheduler persistente (sem timer em memória): debounce + janela N + poll;
       marca `avaliado_ate_seq` avançada dentro da transação/outbox.
-- [ ] Minimizador (ADR-0020 §3) da janela; re-hidratação local; teste de vazamento.
-- [ ] Chamada ao gateway com `Sensibilidade` + `json_schema` estrito (falha se o
-      provedor não suportar; nunca degrada — CLAUDE.md §7).
-- [ ] Schema de saída (compromisso) + validação/normalização (data no fuso do tenant;
-      tipo no conjunto fechado); `dependeDoGestor=false`/baixa confiança → descarta.
-- [ ] Stub em dev/test (não bate no provedor); real só com o gateway ligado.
+- [ ] `ProcessadorGrupo`: monta a janela do grupo (evento_bruto, remetente por linha),
+      minimiza (ADR-0020 §3, re-hidrata), chama `ExtratorGrupo`, e se `dependeDoGestor`
+      → cria/funde pendência (ator `ASSISTENTE:` na trilha); cobrança → ESCALADA.
+- [ ] Ingestao de grupo agenda extração por janela (debounce), não PROCESSAR_CAPTURA por msg.
 
 ## F3 — superfície, cobrança, aprendizado
 - [ ] Criar/fundir `Pendencia` a partir do compromisso (INV-10; ator `ASSISTENTE:` na trilha).
