@@ -31,3 +31,29 @@ Regime de captura mínima:
 
 ## Pendência
 DPIA/RIPD formal antes do primeiro cliente em produção.
+
+## Emenda 2026-07 (via change 024 — acompanhamento de grupos)
+Refina §3 e §5 para viabilizar acompanhar grupos sem afrouxar o regime:
+
+1. **Captura seletiva de grupo por padrão de decisão.** A "captura seletiva" (§3)
+   inclui, para uma fonte-grupo declarada com finalidade, um **pré-filtro
+   determinístico** que só admite como candidato o trecho que: menciona o
+   bot/gestor, responde/segue um item já rastreado, **ou** casa com padrão de
+   pedido/decisão/prazo/agendamento. Ruído é descartado **antes** de qualquer
+   chamada de modelo. Continua valendo: **varredura completa proibida** e **log
+   auditável da proporção processada** por fonte. Não altera §2 (bot visível, aviso
+   fixado — pré-condição da captura).
+
+2. **Identificação mínima por finalidade** (refina §5, "anonimização de
+   terceiros"). Anonimizar tudo inviabiliza a decisão ("quem pede?"). A regra passa
+   a ser **o mínimo de identidade necessário para o gestor agir**:
+   - **primeiro nome por padrão** (suficiente para reconhecer);
+   - **contato completo** (e-mail/telefone) só quando **é a própria ação** — ex.: o
+     e-mail que o terceiro deu no fio para receber o invite;
+   - **supressão** para terceiro que é apenas contexto (não vira identidade);
+   - sem nome disponível (só número) → usa o número ou o papel; **nunca inventar nome**.
+
+   Não conflita com o minimizador (ADR-0020 §3): ao **modelo** vai pseudonimizado;
+   a re-hidratação para 1º nome é **local**, só na superfície do gestor. E não
+   conflita com ADR-0017: o alvo é a **decisão do gestor**, nunca métrica de
+   comportamento dos membros do grupo.
