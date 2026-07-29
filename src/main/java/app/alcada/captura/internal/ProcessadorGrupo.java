@@ -46,12 +46,15 @@ public class ProcessadorGrupo {
 
     private final EntityManager em;
     private final Minimizador minimizador;
+    private final PreFiltroGrupo preFiltro;
     private final ExtratorGrupo extrator;
     private final Trilha trilha;
 
-    public ProcessadorGrupo(EntityManager em, Minimizador minimizador, ExtratorGrupo extrator, Trilha trilha) {
+    public ProcessadorGrupo(EntityManager em, Minimizador minimizador, PreFiltroGrupo preFiltro,
+                            ExtratorGrupo extrator, Trilha trilha) {
         this.em = em;
         this.minimizador = minimizador;
+        this.preFiltro = preFiltro;
         this.extrator = extrator;
         this.trilha = trilha;
     }
@@ -60,7 +63,7 @@ public class ProcessadorGrupo {
     public void processar(OrgId org, String grupoId) {
         @SuppressWarnings("unchecked")
         List<Object[]> msgs = em.createNativeQuery("""
-                SELECT id, autor_ext, texto FROM evento_bruto
+                SELECT id, autor_ext, texto, fonte_id FROM evento_bruto
                 WHERE org_id = ? AND grupo AND thread_ref = ?
                 ORDER BY recebido_em DESC LIMIT ?
                 """)
@@ -71,11 +74,22 @@ public class ProcessadorGrupo {
         }
         Collections.reverse(msgs); // ordem cronológica
         UUID ultimoId = (UUID) msgs.get(msgs.size() - 1)[0];
+        UUID fonteId = (UUID) msgs.get(0)[3];
 
         StringBuilder janela = new StringBuilder();
         for (Object[] m : msgs) {
             janela.append(m[1] == null ? "?" : m[1]).append(": ")
                     .append(m[2] == null ? "" : m[2]).append('\n');
+        }
+
+        // Pré-filtro determinístico ANTES do modelo (ADR-0011 §3): ruído puro é
+        // descartado sem chamar o gateway; a proporção processadas/vistas fica
+        // registrada por fonte como evidência de captura seletiva.
+        Optional<UUID> existente = pendenciaAbertaDoGrupo(org, grupoId);
+        boolean candidata = preFiltro.candidata(janela.toString(), existente.isPresent());
+        registrarProporcao(org, fonteId, candidata);
+        if (!candidata) {
+            return; // C2: ruído não vira nada e não vai ao modelo
         }
 
         List<String> pessoas = new ArrayList<>();
@@ -92,7 +106,6 @@ public class ProcessadorGrupo {
             return; // não é do gestor / baixa confiança → não cria item
         }
 
-        Optional<UUID> existente = pendenciaAbertaDoGrupo(org, grupoId);
         if (existente.isPresent()) {
             UUID pid = existente.get();
             // Cobrança: não duplica — funde na pendência aberta, registra a cobrança
@@ -131,6 +144,21 @@ public class ProcessadorGrupo {
                 .setParameter(8, k.confianca()).setParameter(9, grupoId)
                 .executeUpdate();
         return id;
+    }
+
+    /** Incrementa o contador auditável por fonte: toda janela vista, e as processadas. */
+    private void registrarProporcao(OrgId org, UUID fonteId, boolean processada) {
+        em.createNativeQuery("""
+                INSERT INTO captura_proporcao (org_id, fonte_id, janelas_vistas, janelas_processadas)
+                VALUES (?, ?, 1, ?)
+                ON CONFLICT (org_id, fonte_id) DO UPDATE
+                    SET janelas_vistas = captura_proporcao.janelas_vistas + 1,
+                        janelas_processadas = captura_proporcao.janelas_processadas + ?,
+                        atualizado_em = now()
+                """)
+                .setParameter(1, org.valor()).setParameter(2, fonteId)
+                .setParameter(3, processada ? 1 : 0).setParameter(4, processada ? 1 : 0)
+                .executeUpdate();
     }
 
     private long contarCobrancas(OrgId org, UUID pendenciaId) {

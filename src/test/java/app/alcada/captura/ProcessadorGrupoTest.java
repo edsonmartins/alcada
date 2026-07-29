@@ -94,6 +94,29 @@ class ProcessadorGrupoTest {
     }
 
     @Test
+    void ruido_puro_nao_vai_ao_modelo_e_a_proporcao_e_auditada() {
+        OrgId org = novaOrg();
+        UUID fonte = criarFonte(org);
+        String g = "G-ruido@g.us";
+        seed(org, fonte, g, "5512999", "Bom dia!");
+        seed(org, fonte, g, "5512888", "obrigada 🙏");
+        // transporte NÃO programado com compromisso — e não deve nem ser chamado
+
+        processador.processar(org, g);
+
+        assertEquals(0, transporte.chamadas(), "ruído puro não chega ao modelo (C2)");
+        assertEquals(0L, contar(org,
+                "SELECT count(*) FROM pendencia WHERE org_id = ? AND origem_thread = '" + g + "'"),
+                "nada na Entrada");
+        assertEquals(1L, contar(org,
+                "SELECT janelas_vistas FROM captura_proporcao WHERE org_id = ?"),
+                "a janela foi vista");
+        assertEquals(0L, contar(org,
+                "SELECT janelas_processadas FROM captura_proporcao WHERE org_id = ?"),
+                "mas não processada — proporção auditável (ADR-0011 §3)");
+    }
+
+    @Test
     void cobranca_repetida_escala_apos_o_limiar() {
         OrgId org = novaOrg();
         UUID fonte = criarFonte(org);

@@ -26,8 +26,11 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
       threadeia pelo grupo, `autor_ext` = indivíduo. (mentions: pendente com F0)
 - [x] Migration `V28`: `evento_bruto.grupo` + índice `(org_id, thread_ref) where grupo`.
 - [x] Teste: envelope com `group.id` → `evento_bruto.grupo` + thread pelo grupo.
-- [ ] Pré-filtro determinístico (menção / resposta a item / padrão de decisão);
-      **log auditável da proporção processada** (ADR-0011 §3).
+- [x] Pré-filtro determinístico (`PreFiltroGrupo`): candidata se há item aberto do
+      grupo, pergunta direcionada ("?"), ou casa com o léxico de decisão (radical, sem
+      acento; configurável por `grupos.prefiltro.lexico`). Ruído puro é descartado antes
+      do modelo (C2). **Log auditável da proporção** por fonte em `captura_proporcao`
+      (V31): `janelas_vistas` vs `janelas_processadas`. (menção via `mentions` → com F0.)
 - [ ] `docs/API.md` atualizado (novo formato do webhook com `group`).
 
 ## F1b — seleção de grupos (o gestor escolhe o que controlar)
@@ -74,7 +77,7 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 
 ## Testes (cada cenário do spec.md)
 - [x] C1 reunião do Marcello → 1 compromisso estruturado (ExtratorGrupoTest + ProcessadorGrupoTest)
-- [ ] C2 ruído não vai ao modelo (depende do pré-filtro, F1) · [x] C3 não-depende-dele não entra
+- [x] C2 ruído não vai ao modelo (PreFiltroGrupoTest + ProcessadorGrupoTest: 0 chamadas) · [x] C3 não-depende-dele não entra
 - [x] C4 cobrança funde+escala (ProcessadorGrupoTest) · [ ] C5 menção fura debounce (depende de mentions)
 - [ ] C6 bot invisível → sem captura · [ ] C7 minimizador sem vazamento
 - [ ] C8 identidade mínima (1º nome / contato só quando é a ação)
