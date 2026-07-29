@@ -117,6 +117,21 @@ class ProcessadorGrupoTest {
     }
 
     @Test
+    void c9_reprocessar_a_mesma_janela_nao_duplica() {
+        OrgId org = novaOrg();
+        UUID fonte = criarFonte(org);
+        String g = "G-c9@g.us";
+        seed(org, fonte, g, "5512999", "decide aí, aprova?");
+        transporte.programar(Status.OK, COMPROMISSO);
+        processador.processar(org, g);
+        processador.processar(org, g); // reprocesso da MESMA janela (sem conteúdo novo)
+
+        assertEquals(1L, contar(org,
+                "SELECT count(*) FROM pendencia WHERE org_id = ? AND origem_thread = '" + g + "'"),
+                "reprocesso funde na pendência aberta, não cria segundo item (C9)");
+    }
+
+    @Test
     void cobranca_repetida_escala_apos_o_limiar() {
         OrgId org = novaOrg();
         UUID fonte = criarFonte(org);

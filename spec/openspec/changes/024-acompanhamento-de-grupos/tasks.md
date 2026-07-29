@@ -81,4 +81,4 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 - [x] C4 cobrança funde+escala (ProcessadorGrupoTest) · [ ] C5 menção fura debounce (depende de mentions)
 - [ ] C6 bot invisível → sem captura · [x] C7 minimizador sem vazamento (GruposInvariantesTest)
 - [x] C8 identidade mínima — 1º nome (GruposInvariantesTest; `ProcessadorGrupo.primeiroNome`)
-- [ ] C9 idempotência · [x] C10 isolamento tenant · [x] C11 retenção ≤30d · [x] C12 ator na trilha
+- [x] C9 idempotência (ProcessadorGrupoTest: reprocesso funde) · [x] C10 isolamento tenant · [x] C11 retenção ≤30d · [x] C12 ator na trilha
