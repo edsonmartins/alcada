@@ -51,9 +51,10 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 - [x] Teste com gateway fake no caso C1 (reunião do Marcello) + não-depende + indisponível.
 - [ ] Scheduler persistente (sem timer em memória): debounce + janela N + poll;
       marca `avaliado_ate_seq` avançada dentro da transação/outbox.
-- [ ] `ProcessadorGrupo`: monta a janela do grupo (evento_bruto, remetente por linha),
+- [x] `ProcessadorGrupo`: monta a janela do grupo (evento_bruto, remetente por linha),
       minimiza (ADR-0020 §3, re-hidrata), chama `ExtratorGrupo`, e se `dependeDoGestor`
-      → cria/funde pendência (ator `ASSISTENTE:` na trilha); cobrança → ESCALADA.
+      → cria/funde pendência (ator `ASSISTENTE:` na trilha); cobrança esquenta+funde (não duplica).
+      Testes: janela→Entrada, não-depende→nada, 2ª janela→cobrança (temperatura++).
 - [ ] Ingestao de grupo agenda extração por janela (debounce), não PROCESSAR_CAPTURA por msg.
 
 ## F3 — superfície, cobrança, aprendizado
