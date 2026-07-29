@@ -15,14 +15,28 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 - [ ] Endpoint/evento sob demanda para participantes (`GET group/{id}` ou `group.info`).
 - [ ] Garantir `ignore_groups=false` no canal do cliente; doc do envelope atualizada.
 
+## F0 — contrato de grupo no Linktor (repo linktor, Go)
+- [x] Propagar `group{id}` no `message.received` (envelope + dispatcher + produtor);
+      `senderId` do indivíduo mantido; ausente em 1:1. Testes verdes. (branch feat pendente de push)
+- [ ] `GET /channels/{id}/groups` (listar grupos do canal) — para a seleção (F1b).
+- [ ] `mentions[]` no envelope (sinal "gestor foi marcado") — enhancement.
+
 ## F1 — captura ciente de grupo (Alçada)
-- [ ] `MensagemRecebida` += `grupo`, `grupoId`; webhook mapeia `group`/`sender`/`mentions`.
-- [ ] `fonte` += `grupo`, `grupoId`; cadastro de fonte-grupo com finalidade (ADR-0011 §1).
-- [ ] Bot visível: publicar/validar **aviso fixado** no grupo antes de capturar (ADR-0011 §2).
+- [x] `MensagemRecebida` += `grupo`, `grupoId`; webhook mapeia `data.group.id`,
+      threadeia pelo grupo, `autor_ext` = indivíduo. (mentions: pendente com F0)
+- [x] Migration `V28`: `evento_bruto.grupo` + índice `(org_id, thread_ref) where grupo`.
+- [x] Teste: envelope com `group.id` → `evento_bruto.grupo` + thread pelo grupo.
 - [ ] Pré-filtro determinístico (menção / resposta a item / padrão de decisão);
       **log auditável da proporção processada** (ADR-0011 §3).
-- [ ] Migration: colunas de grupo em `fonte`; tabela de conversa de grupo + `avaliado_ate_seq`.
-- [ ] `docs/API.md` atualizado (novo formato do webhook).
+- [ ] `docs/API.md` atualizado (novo formato do webhook com `group`).
+
+## F1b — seleção de grupos (o gestor escolhe o que controlar)
+- [ ] `fonte` += `grupo`, `grupo_id`; migration.
+- [ ] `GET /v1/grupos` (grupos disponíveis, via Linktor) + `PUT /v1/grupos/{id}`
+      (ativar/desativar acompanhamento, com finalidade — ADR-0011 §1).
+- [ ] Webhook resolve fonte por `(channel_id, group_id)`; grupo não selecionado → descartado.
+- [ ] Bot visível: publicar **aviso fixado** ao ativar; captura só após isso (ADR-0011 §2).
+- [ ] Tela de seleção de grupos (web/mobile).
 
 ## F2 — extrator por janela
 - [ ] Scheduler persistente (sem timer em memória): debounce + janela N + poll;

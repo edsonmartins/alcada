@@ -65,3 +65,9 @@
 - **WHEN** o extrator cria/funde uma pendência
 - **THEN** o evento da trilha tem ator `ASSISTENTE:{modelo,versão}` e é append-only
   (correção só por compensação).
+
+## C13 — só grupos selecionados são acompanhados (opt-in, ADR-0011 §1)
+- **WHEN** chega uma mensagem de um grupo que o gestor **não** selecionou (sem
+  fonte-grupo ativa)
+- **THEN** ela é **descartada** (não vira evento bruto, não é processada) — só os
+  grupos que ele escolheu controlar entram.

@@ -45,6 +45,26 @@ dispatcher do webhook (`inboundMetadata`/`InboundData`) só propaga
   direcionada). Ruído puro é descartado **antes** do modelo. Log auditável da
   proporção processada por fonte.
 
+## F1b — seleção de grupos (o gestor escolhe o que controlar)
+O gestor participa de muitos grupos; ele **escolhe quais** o Alçada acompanha
+(opt-in explícito = fonte declarada, ADR-0011 §1). Não se captura nada de um grupo
+não selecionado.
+- **Listar grupos disponíveis (dependência do Linktor):** um endpoint no Linktor
+  para enumerar os grupos em que o canal participa (`GET /channels/{id}/groups` →
+  `[{id: chat_jid, name, participantsCount}]`). O adaptador WhatsApp já tem
+  `GroupInfo{JID,Name,Participants}`; falta expor. É o par do F0.
+- **Cadastro/opt-in:** cada grupo escolhido vira uma **fonte-grupo**
+  (`fonte.grupo=true`, `fonte.grupo_id=chat_jid`, finalidade registrada). Ligar/
+  desligar o acompanhamento é ligar/desligar a fonte (`ativa`).
+- **Bot visível (ADR-0011 §2):** ao ativar, publicar o **aviso fixado** no grupo;
+  a captura só começa depois disso (ver C6).
+- **Superfície:** endpoint `GET /v1/grupos` (grupos disponíveis, do Linktor) +
+  `PUT /v1/grupos/{id}` (ativar/desativar com finalidade) — admin/gestor. Tela de
+  seleção no web/mobile (fora deste corte de código; contrato definido aqui).
+- **Resolução da fonte no webhook:** hoje o webhook resolve a fonte por
+  `linktor_channel_id`. Com fonte-por-grupo, resolver por `(channel_id, group_id)`:
+  mensagem de grupo não selecionado → **descartada** (não é fonte declarada).
+
 ## F2 — extrator por janela (padrão do `SentimentWindowScheduler` do vendax)
 - **Gatilho:** apareceu candidato E a conversa do grupo "esfriou" por
   `grupos.debounce-seconds` (default 90s), avaliada em poll persistente
