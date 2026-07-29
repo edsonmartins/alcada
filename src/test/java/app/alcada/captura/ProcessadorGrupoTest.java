@@ -1,5 +1,7 @@
 package app.alcada.captura;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.UUID;
@@ -91,6 +93,48 @@ class ProcessadorGrupoTest {
                 "cobrança esquenta o item");
     }
 
+    @Test
+    void cobranca_repetida_escala_apos_o_limiar() {
+        OrgId org = novaOrg();
+        UUID fonte = criarFonte(org);
+        String g = "G-esc@g.us";
+        seed(org, fonte, g, "5512999", "decide aí?");
+        transporte.programar(Status.OK, COMPROMISSO);
+        processador.processar(org, g);                       // cria
+        seed(org, fonte, g, "5512999", "e aí, decidiu?");
+        processador.processar(org, g);                       // cobrança 1
+        seed(org, fonte, g, "5512999", "seguimos parados esperando");
+        processador.processar(org, g);                       // cobrança 2 → escala
+
+        assertEquals(2L, contar(org, """
+                SELECT count(*) FROM cobranca c JOIN pendencia p ON p.id = c.pendencia_id
+                WHERE c.org_id = ? AND p.origem_thread = '""" + g + "'"),
+                "duas cobranças registradas");
+        assertEquals(1L, contar(org, """
+                SELECT count(*) FROM trilha t JOIN pendencia p ON p.id = t.pendencia_id
+                WHERE t.org_id = ? AND p.origem_thread = '""" + g
+                + "' AND t.tipo = 'ESCALADA' AND t.ator LIKE 'ASSISTENTE:%'"),
+                "escalou uma vez ao cruzar o limiar, com ator do assistente (INV-11)");
+    }
+
+    @Test
+    void a_entrada_mostra_origem_do_grupo_e_o_contador_de_cobranca() {
+        OrgId org = novaOrg();
+        UUID fonte = criarFonte(org);
+        String g = "G-surf@g.us";
+        nomearGrupo(org, fonte, g, "Projeto Rio");
+        seed(org, fonte, g, "5512999", "decide aí, pf?");
+        transporte.programar(Status.OK, COMPROMISSO);
+        processador.processar(org, g);                       // cria
+        seed(org, fonte, g, "5512999", "e aí, decidiu?");
+        processador.processar(org, g);                       // 1 cobrança
+
+        given().header("X-Org-Id", org.valor().toString())
+        .when().get("/v1/pendencias?status=ENTRADA")
+        .then().statusCode(200)
+                .body("find { it.origemGrupo == 'Projeto Rio' }.cobrancas", is(1));
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private OrgId novaOrg() {
@@ -108,6 +152,14 @@ class ProcessadorGrupoTest {
                 VALUES (?, ?, 'WHATSAPP', 'grupo', 's')
                 """).setParameter(1, id).setParameter(2, org.valor()).executeUpdate());
         return id;
+    }
+
+    private void nomearGrupo(OrgId org, UUID fonte, String grupoId, String nome) {
+        QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery("""
+                INSERT INTO grupo_acompanhado (org_id, fonte_id, grupo_id, nome, ativa)
+                VALUES (?, ?, ?, ?, true)
+                """).setParameter(1, org.valor()).setParameter(2, fonte)
+                .setParameter(3, grupoId).setParameter(4, nome).executeUpdate());
     }
 
     private void seed(OrgId org, UUID fonte, String grupoId, String autor, String texto) {

@@ -62,15 +62,20 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
       que o `WorkerGrupos` varre por debounce. Só 1:1 segue por PROCESSAR_CAPTURA.
 
 ## F3 — superfície, cobrança, aprendizado
-- [ ] Criar/fundir `Pendencia` a partir do compromisso (INV-10; ator `ASSISTENTE:` na trilha).
-- [ ] Cobrança: fundir por assunto/thread + contador; limiar → ESCALADA + rótulo "Nx".
+- [x] Criar/fundir `Pendencia` a partir do compromisso (INV-10; ator `ASSISTENTE:` na trilha).
+      (feito no `ProcessadorGrupo`, F2.)
+- [x] Cobrança: funde na pendência do grupo, grava `cobranca` (contador + desfundir),
+      `temperatura++`; ao cruzar `grupos.cobranca-escala` (default 2) → evento `ESCALADA`
+      na trilha (uma vez). Read-model expõe `cobrancas` para o rótulo "Nx".
 - [ ] Descarte realimenta o pré-filtro por grupo (011).
-- [ ] Entrada mostra origem "grupo X" e o dono por 1º nome.
+- [x] Entrada mostra origem "grupo X" (`origemGrupo`, join `grupo_acompanhado.nome`) e o
+      dono por 1º nome (`quemEspera` já re-hidratado). `GET /v1/pendencias` estendido; API.md.
+      UI web/mobile: pendente.
 
 ## Testes (cada cenário do spec.md)
-- [ ] C1 reunião do Marcello → 1 compromisso estruturado (caso de aceite)
-- [ ] C2 ruído não vai ao modelo · C3 não-depende-dele não entra
-- [ ] C4 cobrança funde+escala · C5 menção fura debounce
-- [ ] C6 bot invisível → sem captura · C7 minimizador sem vazamento
+- [x] C1 reunião do Marcello → 1 compromisso estruturado (ExtratorGrupoTest + ProcessadorGrupoTest)
+- [ ] C2 ruído não vai ao modelo (depende do pré-filtro, F1) · [x] C3 não-depende-dele não entra
+- [x] C4 cobrança funde+escala (ProcessadorGrupoTest) · [ ] C5 menção fura debounce (depende de mentions)
+- [ ] C6 bot invisível → sem captura · [ ] C7 minimizador sem vazamento
 - [ ] C8 identidade mínima (1º nome / contato só quando é a ação)
-- [ ] C9 idempotência · C10 isolamento tenant · C11 retenção ≤30d · C12 ator na trilha
+- [ ] C9 idempotência · [ ] C10 isolamento tenant · [ ] C11 retenção ≤30d · [x] C12 ator na trilha (ProcessadorGrupoTest)

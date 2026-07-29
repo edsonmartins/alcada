@@ -41,6 +41,9 @@ public class ProcessadorGrupo {
     @ConfigProperty(name = "grupos.confianca-min", defaultValue = "0.4")
     double confMin;
 
+    @ConfigProperty(name = "grupos.cobranca-escala", defaultValue = "2")
+    long limiarEscala;
+
     private final EntityManager em;
     private final Minimizador minimizador;
     private final ExtratorGrupo extrator;
@@ -91,10 +94,21 @@ public class ProcessadorGrupo {
 
         Optional<UUID> existente = pendenciaAbertaDoGrupo(org, grupoId);
         if (existente.isPresent()) {
+            UUID pid = existente.get();
+            // Cobrança: não duplica — funde na pendência aberta, registra a cobrança
+            // (rastro/contador e permite desfundir) e esquenta o item.
+            em.createNativeQuery(
+                    "INSERT INTO cobranca (org_id, pendencia_id, evento_bruto_id) VALUES (?, ?, ?)")
+                    .setParameter(1, org.valor()).setParameter(2, pid).setParameter(3, ultimoId).executeUpdate();
             em.createNativeQuery("UPDATE pendencia SET temperatura = temperatura + 1 WHERE org_id = ? AND id = ?")
-                    .setParameter(1, org.valor()).setParameter(2, existente.get()).executeUpdate();
-            trilha.registrar(new EventoTrilha(org, existente.get(), TipoEvento.FUNDIDA,
+                    .setParameter(1, org.valor()).setParameter(2, pid).executeUpdate();
+            trilha.registrar(new EventoTrilha(org, pid, TipoEvento.FUNDIDA,
                     Ator.assistente(MODELO, VERSAO), null, null, origem(grupoId, ultimoId), null));
+            // Ao cruzar o limiar, escala uma única vez (o evento marca a transição).
+            if (contarCobrancas(org, pid) == limiarEscala) {
+                trilha.registrar(new EventoTrilha(org, pid, TipoEvento.ESCALADA,
+                        Ator.assistente(MODELO, VERSAO), null, null, origem(grupoId, ultimoId), null));
+            }
             return;
         }
 
@@ -117,6 +131,12 @@ public class ProcessadorGrupo {
                 .setParameter(8, k.confianca()).setParameter(9, grupoId)
                 .executeUpdate();
         return id;
+    }
+
+    private long contarCobrancas(OrgId org, UUID pendenciaId) {
+        return ((Number) em.createNativeQuery(
+                "SELECT count(*) FROM cobranca WHERE org_id = ? AND pendencia_id = ?")
+                .setParameter(1, org.valor()).setParameter(2, pendenciaId).getSingleResult()).longValue();
     }
 
     /** Pendência aberta cuja origem é este grupo — para cobrança/dedup. */

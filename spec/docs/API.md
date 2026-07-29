@@ -39,7 +39,10 @@ decidir é ação do gestor, nunca inferência; `409` se já fechada).
 
 `GET /v1/pendencias` devolve, por item:
 `id, titulo, classe, horizonte, status, quemEspera, temperatura, baixaConfianca,`
-`oQueTrava, valorEmJogo (número|null), prazoImplicito (ISO|null), criadaEm (ISO)`.
+`oQueTrava, valorEmJogo (número|null), prazoImplicito (ISO|null), criadaEm (ISO),`
+`origemGrupo (nome do grupo|null quando não veio de grupo), cobrancas (int)`.
+`origemGrupo` alimenta o rótulo "grupo X" na Entrada; `cobrancas` alimenta
+"já te cobraram Nx" (024). `quemEspera` já vem por primeiro nome (ADR-0011 emenda).
 
 ### Hoje e fila
 ```

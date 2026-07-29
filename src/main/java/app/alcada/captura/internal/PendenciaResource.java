@@ -82,14 +82,20 @@ public class PendenciaResource {
             return problema(400, "org.ausente", "X-Org-Id não resolvido");
         }
         StringBuilder sql = new StringBuilder("""
-                SELECT id, titulo, classe, horizonte, status, quem_espera, temperatura, baixa_confianca,
-                       o_que_trava, valor_em_jogo, prazo_implicito, criada_em
-                FROM pendencia WHERE org_id = ?
+                SELECT p.id, p.titulo, p.classe, p.horizonte, p.status, p.quem_espera, p.temperatura,
+                       p.baixa_confianca, p.o_que_trava, p.valor_em_jogo, p.prazo_implicito, p.criada_em,
+                       g.nome AS origem_grupo,
+                       (SELECT count(*) FROM cobranca c
+                          WHERE c.org_id = p.org_id AND c.pendencia_id = p.id) AS cobrancas
+                FROM pendencia p
+                LEFT JOIN grupo_acompanhado g
+                       ON g.org_id = p.org_id AND g.grupo_id = p.origem_thread
+                WHERE p.org_id = ?
                 """);
         if (status != null && !status.isBlank()) {
-            sql.append(" AND status = ?");
+            sql.append(" AND p.status = ?");
         }
-        sql.append(" ORDER BY criada_em DESC");
+        sql.append(" ORDER BY p.criada_em DESC");
 
         var q = em.createNativeQuery(sql.toString()).setParameter(1, org.get().valor());
         if (status != null && !status.isBlank()) {
@@ -103,7 +109,8 @@ public class PendenciaResource {
             fila.add(new PendenciaResumo(l[0].toString(), (String) l[1], (String) l[2], (String) l[3],
                     (String) l[4], (String) l[5], ((Number) l[6]).intValue(), (Boolean) l[7],
                     (String) l[8], l[9] == null ? null : ((Number) l[9]).doubleValue(),
-                    toOdt(l[10]), toOdt(l[11])));
+                    toOdt(l[10]), toOdt(l[11]),
+                    (String) l[12], ((Number) l[13]).intValue()));
         }
         return Response.ok(fila).build();
     }
@@ -182,7 +189,8 @@ public class PendenciaResource {
     public record PendenciaResumo(String id, String titulo, String classe, String horizonte,
                                   String status, String quemEspera, int temperatura, boolean baixaConfianca,
                                   String oQueTrava, Double valorEmJogo,
-                                  OffsetDateTime prazoImplicito, OffsetDateTime criadaEm) {
+                                  OffsetDateTime prazoImplicito, OffsetDateTime criadaEm,
+                                  String origemGrupo, int cobrancas) {
     }
 
     /** timestamptz volta como Instant/Timestamp/OffsetDateTime conforme o driver; normaliza. */
