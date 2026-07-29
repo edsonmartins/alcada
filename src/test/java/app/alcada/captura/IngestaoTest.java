@@ -33,7 +33,7 @@ class IngestaoTest {
         UUID fonte = criarOrgEFonte(org);
         String mensagemId = "msg-" + UUID.randomUUID();
         MensagemRecebida m = new MensagemRecebida(
-                "canal", fonte.toString(), "joao", "t", "@alcada oi", List.of(), mensagemId);
+                "canal", fonte.toString(), "joao", "t", "@alcada oi", List.of(), mensagemId, false, null);
 
         UUID primeiro = ingestao.ingerir(org, m);
         UUID segundo = ingestao.ingerir(org, m); // reentrega

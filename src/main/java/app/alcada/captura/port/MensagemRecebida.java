@@ -10,9 +10,11 @@ import java.util.List;
 public record MensagemRecebida(
         String canal,          // WHATSAPP | EMAIL | WEBHOOK
         String fonteId,        // fonte declarada (ADR-0011)
-        String autorExt,       // autor no canal (para e-mail: remetente da mensagem)
-        String threadRef,
+        String autorExt,       // autor no canal — em grupo, o INDIVÍDUO que falou
+        String threadRef,      // fio; em grupo = grupoId (thread pelo grupo)
         String texto,          // trecho novo já isolado
         List<String> anexosRef,
-        String mensagemId) {   // referência ao bruto no Linktor; idempotência
+        String mensagemId,     // referência ao bruto no Linktor; idempotência
+        boolean grupo,         // 024: veio de conversa de grupo?
+        String grupoId) {      // 024: id do grupo (chat_jid); null em 1:1
 }

@@ -222,7 +222,8 @@ class CapturaPipelineTest {
 
     private UUID ingerir(OrgId org, UUID fonte, String texto, String autor) {
         return ingestao.ingerir(org, new MensagemRecebida(
-                "canal", fonte.toString(), autor, "thread-1", texto, List.of(), UUID.randomUUID().toString()));
+                "canal", fonte.toString(), autor, "thread-1", texto, List.of(), UUID.randomUUID().toString(),
+                false, null));
     }
 
     private static String extracao(String titulo, String quem, String trava, String classe, double conf) {

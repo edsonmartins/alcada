@@ -90,6 +90,26 @@ class LinktorInboundTest {
         assertEquals(1L, contar(org, "SELECT count(*) FROM evento_bruto WHERE org_id = ? AND mensagem_id = 'MSG-4'"));
     }
 
+    @Test
+    void mensagem_de_grupo_marca_grupo_e_threadeia_pelo_grupo() {
+        OrgId org = novaOrg();
+        criarFonteLinktor(org, "CH-GRP");
+        String grupoId = "120363000000000000@g.us";
+        String body = envelopeGrupo("MSG-G", grupoId);
+        long ts = Instant.now().getEpochSecond();
+
+        given().header("X-Linktor-Signature", hmac(SEGREDO, ts + "." + body))
+                .header("X-Linktor-Timestamp", String.valueOf(ts))
+                .contentType("application/json").body(body)
+        .when().post("/v1/captura/linktor")
+        .then().statusCode(200);
+
+        assertEquals(1L, contar(org,
+                "SELECT count(*) FROM evento_bruto WHERE org_id = ? AND mensagem_id = 'MSG-G'"
+                        + " AND grupo AND thread_ref = '" + grupoId + "'"),
+                "grupo marcado e thread pelo grupo (chat_jid)");
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private static String envelope(String messageId, String conversationId) {
@@ -97,6 +117,15 @@ class LinktorInboundTest {
                 + "\"data\":{\"channelId\":\"" + canalDoTeste + "\",\"channelType\":\"whatsapp\","
                 + "\"conversationId\":\"" + conversationId + "\",\"contactId\":\"c1\","
                 + "\"message\":{\"id\":\"" + messageId + "\",\"content\":{\"text\":\"@alcada aprovar\"},"
+                + "\"metadata\":{\"phone\":\"5544\"},\"senderId\":\"s1\"}}}";
+    }
+
+    private static String envelopeGrupo(String messageId, String grupoId) {
+        return "{\"id\":\"evt\",\"type\":\"message.received\",\"tenantId\":\"t\",\"environment\":\"prod\","
+                + "\"data\":{\"channelId\":\"" + canalDoTeste + "\",\"channelType\":\"whatsapp\","
+                + "\"conversationId\":\"conv-g\",\"contactId\":\"c1\","
+                + "\"group\":{\"id\":\"" + grupoId + "\"},"
+                + "\"message\":{\"id\":\"" + messageId + "\",\"content\":{\"text\":\"vamos marcar reunião?\"},"
                 + "\"metadata\":{\"phone\":\"5544\"},\"senderId\":\"s1\"}}}";
     }
 

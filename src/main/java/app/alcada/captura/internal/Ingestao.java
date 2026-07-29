@@ -61,8 +61,8 @@ public class Ingestao {
 
         int inseridos = em.createNativeQuery("""
                 INSERT INTO evento_bruto
-                    (id, org_id, fonte_id, mensagem_id, autor_ext, texto, anexos_ref, thread_ref, expira_em)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (id, org_id, fonte_id, mensagem_id, autor_ext, texto, anexos_ref, thread_ref, expira_em, grupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (fonte_id, mensagem_id) DO NOTHING
                 """)
                 .setParameter(1, id)
@@ -74,6 +74,7 @@ public class Ingestao {
                 .setParameter(7, m.anexosRef() == null ? null : String.join(",", m.anexosRef()))
                 .setParameter(8, m.threadRef())
                 .setParameter(9, expira)
+                .setParameter(10, m.grupo())
                 .executeUpdate();
 
         if (inseridos == 0) {

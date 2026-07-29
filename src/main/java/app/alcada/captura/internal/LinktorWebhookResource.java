@@ -81,14 +81,23 @@ public class LinktorWebhookResource {
             return Response.status(400).build(); // sem id não há idempotência
         }
 
+        // Grupo (024): o Linktor envia `data.group.id` quando a mensagem veio de um
+        // grupo (ausente em 1:1). Threadeamos pelo grupo; autor segue o indivíduo.
+        JsonNode grupoNode = data.path("group");
+        String grupoId = grupoNode.isMissingNode() || grupoNode.isNull() ? null : texto(grupoNode, "id");
+        boolean grupo = grupoId != null && !grupoId.isBlank();
+        String threadRef = grupo ? grupoId : texto(data, "conversationId");
+
         MensagemRecebida m = new MensagemRecebida(
                 upper(texto(data, "channelType")),
                 fonte.id.toString(),
                 autor(data, msg),
-                texto(data, "conversationId"),   // threadRef = conversationId (para o outbound)
+                threadRef,
                 textoMensagem(msg),
                 List.of(),
-                mensagemId);
+                mensagemId,
+                grupo,
+                grupoId);
 
         // idempotente: reentrega do mesmo message.id → no-op limpo (não 500)
         ingestao.ingerir(new OrgId(fonte.orgId), m);
