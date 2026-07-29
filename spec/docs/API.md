@@ -162,6 +162,9 @@ POST   /v1/fontes/{id}/desativar
 que falou. Só grupos **selecionados** têm o conteúdo ingerido (ver Grupos).
 `data.message.mentions` (JIDs mencionados; ausente sem menção): menção num grupo
 acompanhado faz o worker avaliar a janela na hora, sem esperar o debounce (C5).
+Ao ativar um grupo (`PUT /v1/grupos/{id}` ativa=true), a Alçada publica um aviso
+no grupo via Linktor (`POST /channels/{channelId}/groups/{groupId}/messages`);
+só depois de publicado (bot visível, ADR-0011 §2) o conteúdo do grupo é capturado (C6).
 
 ### Grupos (pacote 024 — seleção/opt-in, ADR-0011 §1)
 ```

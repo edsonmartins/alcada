@@ -18,7 +18,9 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 ## F0 — contrato de grupo no Linktor (repo linktor, Go)
 - [x] Propagar `group{id}` no `message.received` (envelope + dispatcher + produtor);
       `senderId` do indivíduo mantido; ausente em 1:1. Testes verdes. (branch feat pendente de push)
-- [ ] `GET /channels/{id}/groups` (listar grupos do canal) — para a seleção (F1b).
+- [x] `POST /channels/{id}/groups/{groupId}/messages` (enviar ao JID do grupo, bypass de
+      contato) — usado pela Alçada para publicar o aviso de bot visível (C6).
+- [ ] `GET /channels/{id}/groups` (listar grupos do canal) — para a seleção (F1b), ainda pendente.
 - [x] `mentions[]` no envelope (`data.message.mentions`): whatsmeow → Metadata → outbox →
       dispatcher → envelope; consumido pela Alçada para furar o debounce (C5).
 
@@ -42,7 +44,9 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 - [x] `GET /v1/grupos` (grupos vistos, com `ativa`) + `PUT /v1/grupos/{grupoId}`
       (ativar/desativar com finalidade — ADR-0011 §1). `docs/API.md` atualizado.
 - [x] Testes: C13 (não selecionado descartado mas descoberto) + GruposResourceTest (GET/PUT/404).
-- [ ] Bot visível: publicar **aviso fixado** no grupo ao ativar (ADR-0011 §2) — via Canal/outbox.
+- [x] Bot visível: publicar aviso no grupo ao ativar (ADR-0011 §2) — via outbox/Canal
+      (`grupo.aviso` → LinktorHttp → endpoint send-to-group). **Publicado, não fixado**:
+      fixar a mensagem (whatsmeow pin) fica como enhancement.
 - [ ] `GET /channels/{id}/groups` no Linktor + `GET /v1/grupos` também popular de lá
       (hoje lista só o que o bot já viu por mensagem).
 - [ ] Tela de seleção de grupos (web/mobile).
@@ -83,6 +87,6 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 - [x] C1 reunião do Marcello → 1 compromisso estruturado (ExtratorGrupoTest + ProcessadorGrupoTest)
 - [x] C2 ruído não vai ao modelo (PreFiltroGrupoTest + ProcessadorGrupoTest: 0 chamadas) · [x] C3 não-depende-dele não entra
 - [x] C4 cobrança funde+escala (ProcessadorGrupoTest) · [x] C5 menção fura debounce (Linktor mentions + V32 mencao_em + WorkerGrupos bypass)
-- [ ] C6 bot invisível → sem captura · [x] C7 minimizador sem vazamento (GruposInvariantesTest)
+- [x] C6 bot invisível → sem captura (LinktorInboundTest: ativo sem aviso não captura; C6AvisoGrupoTest: ativar publica o aviso e habilita) · [x] C7 minimizador sem vazamento (GruposInvariantesTest)
 - [x] C8 identidade mínima — 1º nome (GruposInvariantesTest; `ProcessadorGrupo.primeiroNome`)
 - [x] C9 idempotência (ProcessadorGrupoTest: reprocesso funde) · [x] C10 isolamento tenant · [x] C11 retenção ≤30d · [x] C12 ator na trilha
