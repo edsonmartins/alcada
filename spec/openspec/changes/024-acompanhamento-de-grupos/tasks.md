@@ -31,11 +31,16 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 - [ ] `docs/API.md` atualizado (novo formato do webhook com `group`).
 
 ## F1b — seleção de grupos (o gestor escolhe o que controlar)
-- [ ] `fonte` += `grupo`, `grupo_id`; migration.
-- [ ] `GET /v1/grupos` (grupos disponíveis, via Linktor) + `PUT /v1/grupos/{id}`
-      (ativar/desativar acompanhamento, com finalidade — ADR-0011 §1).
-- [ ] Webhook resolve fonte por `(channel_id, group_id)`; grupo não selecionado → descartado.
-- [ ] Bot visível: publicar **aviso fixado** ao ativar; captura só após isso (ADR-0011 §2).
+- [x] Migration `V29` `grupo_acompanhado` (segredo é por CANAL; seleção por GRUPO —
+      modelo revisado vs colunas em `fonte`). UNIQUE (fonte_id, grupo_id).
+- [x] Descoberta no webhook: grupo visto → upsert de metadados (id/nome/último visto),
+      sem conteúdo; só ingere se `ativa` (opt-in). Grupo não selecionado → descartado.
+- [x] `GET /v1/grupos` (grupos vistos, com `ativa`) + `PUT /v1/grupos/{grupoId}`
+      (ativar/desativar com finalidade — ADR-0011 §1). `docs/API.md` atualizado.
+- [x] Testes: C13 (não selecionado descartado mas descoberto) + GruposResourceTest (GET/PUT/404).
+- [ ] Bot visível: publicar **aviso fixado** no grupo ao ativar (ADR-0011 §2) — via Canal/outbox.
+- [ ] `GET /channels/{id}/groups` no Linktor + `GET /v1/grupos` também popular de lá
+      (hoje lista só o que o bot já viu por mensagem).
 - [ ] Tela de seleção de grupos (web/mobile).
 
 ## F2 — extrator por janela

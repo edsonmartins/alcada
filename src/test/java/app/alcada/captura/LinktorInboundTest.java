@@ -91,10 +91,11 @@ class LinktorInboundTest {
     }
 
     @Test
-    void mensagem_de_grupo_marca_grupo_e_threadeia_pelo_grupo() {
+    void grupo_selecionado_ingere_marca_grupo_e_threadeia_pelo_grupo() {
         OrgId org = novaOrg();
         criarFonteLinktor(org, "CH-GRP");
         String grupoId = "120363000000000000@g.us";
+        ativarGrupo(org, grupoId); // opt-in: o gestor selecionou este grupo
         String body = envelopeGrupo("MSG-G", grupoId);
         long ts = Instant.now().getEpochSecond();
 
@@ -107,7 +108,31 @@ class LinktorInboundTest {
         assertEquals(1L, contar(org,
                 "SELECT count(*) FROM evento_bruto WHERE org_id = ? AND mensagem_id = 'MSG-G'"
                         + " AND grupo AND thread_ref = '" + grupoId + "'"),
-                "grupo marcado e thread pelo grupo (chat_jid)");
+                "grupo selecionado: ingere, marca grupo e thread pelo grupo (chat_jid)");
+    }
+
+    // C13 — só grupos selecionados são acompanhados (opt-in, ADR-0011 §1).
+    @Test
+    void grupo_nao_selecionado_e_descartado_mas_descoberto() {
+        OrgId org = novaOrg();
+        criarFonteLinktor(org, "CH-GRP2");
+        String grupoId = "120363999999999999@g.us";
+        String body = envelopeGrupo("MSG-G2", grupoId);
+        long ts = Instant.now().getEpochSecond();
+
+        given().header("X-Linktor-Signature", hmac(SEGREDO, ts + "." + body))
+                .header("X-Linktor-Timestamp", String.valueOf(ts))
+                .contentType("application/json").body(body)
+        .when().post("/v1/captura/linktor")
+        .then().statusCode(200);
+
+        assertEquals(0L, contar(org,
+                "SELECT count(*) FROM evento_bruto WHERE org_id = ? AND mensagem_id = 'MSG-G2'"),
+                "grupo não selecionado: conteúdo NÃO é ingerido");
+        assertEquals(1L, contar(org,
+                "SELECT count(*) FROM grupo_acompanhado WHERE org_id = ? AND grupo_id = '" + grupoId
+                        + "' AND NOT ativa"),
+                "mas o grupo é descoberto (inativo) para o gestor poder selecionar");
     }
 
     // ---- helpers -----------------------------------------------------------
@@ -139,6 +164,16 @@ class LinktorInboundTest {
                 """)
                 .setParameter(1, UUID.randomUUID()).setParameter(2, org.valor())
                 .setParameter(3, SEGREDO).setParameter(4, channelId).executeUpdate());
+    }
+
+    private void ativarGrupo(OrgId org, String grupoId) {
+        QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery("""
+                INSERT INTO grupo_acompanhado (org_id, fonte_id, grupo_id, ativa)
+                SELECT ?, id, ?, true FROM fonte WHERE linktor_channel_id = ?
+                ON CONFLICT (fonte_id, grupo_id) DO UPDATE SET ativa = true
+                """)
+                .setParameter(1, org.valor()).setParameter(2, grupoId)
+                .setParameter(3, canalDoTeste).executeUpdate());
     }
 
     private OrgId novaOrg() {

@@ -154,6 +154,17 @@ GET    /v1/fontes
 POST   /v1/fontes                          # declaração de canal (ADR-0011)
 POST   /v1/fontes/{id}/desativar
 ```
+`POST /v1/captura/linktor` (024): quando a mensagem veio de grupo, o envelope traz
+`data.group.id` (chat_jid; ausente em 1:1) e `data.message.senderId` = o indivíduo
+que falou. Só grupos **selecionados** têm o conteúdo ingerido (ver Grupos).
+
+### Grupos (pacote 024 — seleção/opt-in, ADR-0011 §1)
+```
+GET    /v1/grupos                          # grupos que o bot viu, com {grupoId, nome, ativa, ultimoVisto}
+PUT    /v1/grupos/{grupoId}                { ativa, finalidade? }   # opt-in: escolher controlar
+```
+Grupo não selecionado (`ativa=false`) é **descartado** no webhook — só é registrado
+(id/nome) para o gestor poder escolher; o conteúdo não é ingerido.
 
 ### Comandos (voz e mobile)
 ```

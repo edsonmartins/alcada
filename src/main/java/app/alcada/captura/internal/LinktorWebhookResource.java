@@ -88,6 +88,13 @@ public class LinktorWebhookResource {
         boolean grupo = grupoId != null && !grupoId.isBlank();
         String threadRef = grupo ? grupoId : texto(data, "conversationId");
 
+        // Seleção de grupos (024 F1b, ADR-0011 §1): descobre o grupo (só metadados:
+        // id/nome) e só ingere o conteúdo se o gestor o selecionou (ativa). Grupo não
+        // selecionado → descarta (200, sem evento_bruto).
+        if (grupo && !grupoAtivo(fonte, grupoId, texto(grupoNode, "name"))) {
+            return Response.ok().build();
+        }
+
         MensagemRecebida m = new MensagemRecebida(
                 upper(texto(data, "channelType")),
                 fonte.id.toString(),
@@ -116,6 +123,32 @@ public class LinktorWebhookResource {
         } catch (NoResultException e) {
             return null;
         }
+    }
+
+    /**
+     * Descobre o grupo (upsert de metadados — id/nome/último visto, sem conteúdo) e
+     * diz se está SELECIONADO (ativa). Opt-in do gestor (ADR-0011 §1): grupo novo
+     * nasce inativo; o conteúdo só é ingerido quando ele ativa em /v1/grupos.
+     */
+    private boolean grupoAtivo(Fonte fonte, String grupoId, String nome) {
+        em.createNativeQuery("""
+                INSERT INTO grupo_acompanhado (org_id, fonte_id, grupo_id, nome, ultimo_visto)
+                VALUES (?, ?, ?, ?, now())
+                ON CONFLICT (fonte_id, grupo_id) DO UPDATE
+                    SET ultimo_visto = now(),
+                        nome = COALESCE(EXCLUDED.nome, grupo_acompanhado.nome)
+                """)
+                .setParameter(1, fonte.orgId())
+                .setParameter(2, fonte.id())
+                .setParameter(3, grupoId)
+                .setParameter(4, nome == null || nome.isBlank() ? null : nome)
+                .executeUpdate();
+        Boolean ativa = (Boolean) em.createNativeQuery(
+                "SELECT ativa FROM grupo_acompanhado WHERE fonte_id = ? AND grupo_id = ?")
+                .setParameter(1, fonte.id())
+                .setParameter(2, grupoId)
+                .getSingleResult();
+        return Boolean.TRUE.equals(ativa);
     }
 
     private static String autor(JsonNode data, JsonNode msg) {
