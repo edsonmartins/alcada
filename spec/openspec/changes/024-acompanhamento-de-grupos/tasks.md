@@ -70,7 +70,7 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 - [ ] Descarte realimenta o pré-filtro por grupo (011).
 - [x] Entrada mostra origem "grupo X" (`origemGrupo`, join `grupo_acompanhado.nome`) e o
       dono por 1º nome (`quemEspera` já re-hidratado). `GET /v1/pendencias` estendido; API.md.
-      UI web/mobile: pendente.
+      UI: web (EntradaPage, selo grape + "já te cobraram Nx") e mobile (chips na fila).
 
 ## Testes (cada cenário do spec.md)
 - [x] C1 reunião do Marcello → 1 compromisso estruturado (ExtratorGrupoTest + ProcessadorGrupoTest)
