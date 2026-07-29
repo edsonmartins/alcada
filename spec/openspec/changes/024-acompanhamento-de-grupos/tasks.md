@@ -70,7 +70,10 @@ Desenho aguardando aprovação (CLAUDE.md §6, passo 3). Não implementar antes 
 - [x] Cobrança: funde na pendência do grupo, grava `cobranca` (contador + desfundir),
       `temperatura++`; ao cruzar `grupos.cobranca-escala` (default 2) → evento `ESCALADA`
       na trilha (uma vez). Read-model expõe `cobrancas` para o rótulo "Nx".
-- [ ] Descarte realimenta o pré-filtro por grupo (011).
+- [x] Descarte realimenta o filtro por grupo (011): descartar item de grupo grava
+      `sinal_descarte` pela thread (`coalesce(origem_destino, origem_thread)`, sem tocar
+      origem_destino → não dispara envio ao canal); grupo com descartes ≥ `grupos.descarte-limiar`
+      faz novos itens nascerem "rever" (baixa confiança), **nunca dropados** (espelha o 1:1).
 - [x] Entrada mostra origem "grupo X" (`origemGrupo`, join `grupo_acompanhado.nome`) e o
       dono por 1º nome (`quemEspera` já re-hidratado). `GET /v1/pendencias` estendido; API.md.
       UI: web (EntradaPage, selo grape + "já te cobraram Nx") e mobile (chips na fila).

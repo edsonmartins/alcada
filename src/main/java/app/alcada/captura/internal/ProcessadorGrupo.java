@@ -44,6 +44,9 @@ public class ProcessadorGrupo {
     @ConfigProperty(name = "grupos.cobranca-escala", defaultValue = "2")
     long limiarEscala;
 
+    @ConfigProperty(name = "grupos.descarte-limiar", defaultValue = "2")
+    long limiarDescarte;
+
     private final EntityManager em;
     private final Minimizador minimizador;
     private final PreFiltroGrupo preFiltro;
@@ -132,19 +135,31 @@ public class ProcessadorGrupo {
 
     private UUID criarPendencia(OrgId org, Compromisso k, String grupoId) {
         UUID id = UUID.randomUUID();
+        // Descarte realimenta (011): grupo com descartes acima do limiar faz o novo
+        // item nascer "rever" (baixa confiança) — nunca dropado. Espelha o 1:1: o
+        // gestor treina, o filtro atenua, mas não deixa passar despercebido.
+        boolean rever = grupoMarcadoParaRever(org, grupoId);
         em.createNativeQuery("""
                 INSERT INTO pendencia
                     (id, org_id, titulo, quem_espera, o_que_trava, prazo_implicito, classe, horizonte,
                      status, confianca, baixa_confianca, origem_canal, origem_thread)
-                VALUES (?, ?, ?, ?, ?, cast(? as timestamptz), 'DECISAO', ?, 'ENTRADA', ?, false, 'WHATSAPP', ?)
+                VALUES (?, ?, ?, ?, ?, cast(? as timestamptz), 'DECISAO', ?, 'ENTRADA', ?, ?, 'WHATSAPP', ?)
                 """)
                 .setParameter(1, id).setParameter(2, org.valor())
                 .setParameter(3, k.assunto()).setParameter(4, primeiroNome(k.quemPede()))
                 .setParameter(5, k.acaoPendente())
                 .setParameter(6, k.quandoResolvido()).setParameter(7, horizonte(k.quandoResolvido()))
-                .setParameter(8, k.confianca()).setParameter(9, grupoId)
+                .setParameter(8, k.confianca()).setParameter(9, rever).setParameter(10, grupoId)
                 .executeUpdate();
         return id;
+    }
+
+    /** Grupo cujo gestor já descartou itens acima do limiar → futuros nascem "rever". */
+    private boolean grupoMarcadoParaRever(OrgId org, String grupoId) {
+        long n = ((Number) em.createNativeQuery(
+                "SELECT count(*) FROM sinal_descarte WHERE org_id = ? AND chave = ?")
+                .setParameter(1, org.valor()).setParameter(2, grupoId).getSingleResult()).longValue();
+        return n >= limiarDescarte;
     }
 
     /**

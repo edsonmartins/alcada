@@ -90,10 +90,15 @@ public class TriagemService implements app.alcada.triagem.port.Triagem {
         // Descarte é silêncio: nada sai por outbox (não avisa o remetente).
     }
 
+    /**
+     * Chave de aprendizado do descarte. Em 1:1 é o remetente (origem_destino); em
+     * grupo não há remetente único e origem_destino é nulo — cai no grupo
+     * (origem_thread), sem tocar origem_destino (que dispararia envio ao canal).
+     */
     private String remetente(OrgId org, UUID pendenciaId) {
         try {
             Object v = em.createNativeQuery(
-                    "SELECT origem_destino FROM pendencia WHERE org_id = ? AND id = ?")
+                    "SELECT coalesce(origem_destino, origem_thread) FROM pendencia WHERE org_id = ? AND id = ?")
                     .setParameter(1, org.valor()).setParameter(2, pendenciaId).getSingleResult();
             return v == null ? null : v.toString();
         } catch (NoResultException e) {
