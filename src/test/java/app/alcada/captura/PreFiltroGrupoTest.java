@@ -26,6 +26,15 @@ class PreFiltroGrupoTest {
     }
 
     @Test
+    void radical_com_espaco_respeita_limite_de_palavra() {
+        // "ate " (com espaço) não pode casar dentro de "atenção" (o trim antigo quebrava isso).
+        assertFalse(filtro.candidata("Ana: muita atencao aos detalhes do time\n", false),
+                "radical 'ate ' não casa no meio de 'atenção'");
+        assertTrue(filtro.candidata("Bruno: vai ate o fim do mes\n", false),
+                "mas 'ate ' casa quando é a palavra 'até'");
+    }
+
+    @Test
     void item_ja_aberto_do_grupo_e_sempre_candidato() {
         assertTrue(filtro.candidata("Ana: e aí\n", true), "pode ser cobrança de algo já rastreado");
     }

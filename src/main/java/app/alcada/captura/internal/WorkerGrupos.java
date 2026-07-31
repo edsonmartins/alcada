@@ -1,7 +1,9 @@
 package app.alcada.captura.internal;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import app.alcada.plataforma.multitenancy.port.OrgId;
@@ -86,10 +88,19 @@ public class WorkerGrupos {
                 .setParameter(2, LOTE)
                 .getResultList();
 
+        // Dedup por (org, grupo): o mesmo chat_jid pode existir sob mais de uma fonte
+        // na org (unique é por fonte_id,grupo_id). A janela é agregada por
+        // (org, thread_ref), então processa-se UMA vez por grupo — senão a 2ª rodada
+        // trataria a pendência recém-criada como existente e lançaria cobrança falsa.
         List<Reserva> reservas = new ArrayList<>(linhas.size());
+        Set<String> vistos = new HashSet<>();
         for (Object[] l : linhas) {
             OrgId org = new OrgId((UUID) l[0]);
             String grupoId = (String) l[1];
+            if (!vistos.add(org.valor() + "|" + grupoId)) {
+                continue; // já reservado neste lote (outra fonte, mesmo grupo)
+            }
+            // O UPDATE por (org, grupo) já avança avaliado_em de todas as fontes do grupo.
             em.createNativeQuery("""
                     UPDATE grupo_acompanhado SET avaliado_em = now()
                     WHERE org_id = ? AND grupo_id = ?

@@ -90,6 +90,27 @@ class WorkerGruposTest {
                 "menção direta avalia na hora, sem esperar o debounce");
     }
 
+    @Test
+    void mesmo_grupo_sob_duas_fontes_processa_uma_vez() {
+        OrgId org = novaOrg();
+        UUID f1 = criarFonte(org);
+        UUID f2 = criarFonte(org);
+        String g = "G-dup@g.us";
+        ativarGrupo(org, f1, g, "10 minutes");
+        ativarGrupo(org, f2, g, "10 minutes"); // mesmo chat_jid, outra fonte
+        seed(org, f1, g, "5512999", "decide aí, aprova?");
+        transporte.programar(Status.OK, COMPROMISSO);
+
+        worker.varrer();
+
+        assertEquals(1L, contar(org,
+                "SELECT count(*) FROM pendencia WHERE org_id = ? AND origem_thread = '" + g + "'"),
+                "grupo sob duas fontes vira UMA pendência");
+        assertEquals(0L, contar(org,
+                "SELECT count(*) FROM cobranca WHERE org_id = ?"),
+                "e sem cobrança falsa do reprocesso da 2ª fonte");
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private void marcarMencao(OrgId org, String grupoId) {

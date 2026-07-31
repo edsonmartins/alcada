@@ -3,6 +3,9 @@ package app.alcada.captura.internal;
 import java.util.List;
 import java.util.Optional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import app.alcada.plataforma.outbox.port.MensagemOutbox;
@@ -111,18 +114,24 @@ public class GruposResource {
                 payloadAviso(channelId, grupoId, finalidade), "aviso:" + grupoId));
     }
 
+    private static final ObjectMapper JSON = new ObjectMapper();
+
     private static String payloadAviso(String channelId, String grupoId, String finalidade) {
         String texto = "🔔 A partir de agora este grupo conta com o assistente Alçada, que ajuda o "
                 + "responsável a não perder pedidos de decisão. Só itens que dependem de uma decisão "
                 + "dele são registrados; o restante da conversa não é guardado."
                 + (finalidade == null || finalidade.isBlank() ? "" : " Finalidade: " + finalidade + ".");
-        // JSON simples; escapa aspas do texto/finalidade
-        return "{\"channel_id\":\"" + esc(channelId) + "\",\"grupo_id\":\"" + esc(grupoId)
-                + "\",\"texto\":\"" + esc(texto) + "\"}";
-    }
-
-    private static String esc(String s) {
-        return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
+        // Serialização explícita (Jackson): escapa aspas, barras E control chars (ex.: um
+        // \n colado na finalidade quebraria um JSON montado à mão → payload venenoso no outbox).
+        ObjectNode raiz = JSON.createObjectNode();
+        raiz.put("channel_id", channelId);
+        raiz.put("grupo_id", grupoId);
+        raiz.put("texto", texto);
+        try {
+            return JSON.writeValueAsString(raiz);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("falha ao serializar aviso do grupo", e);
+        }
     }
 
     private static Response problema(int status, String tipo, String detalhe) {

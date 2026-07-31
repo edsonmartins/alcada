@@ -81,15 +81,18 @@ public class PendenciaResource {
         if (org.isEmpty()) {
             return problema(400, "org.ausente", "X-Org-Id não resolvido");
         }
+        // origem_grupo por SUBQUERY (não JOIN): o mesmo grupo_id pode existir sob mais
+        // de uma fonte na org (unique é por fonte_id,grupo_id); um JOIN multiplicaria
+        // a linha da pendência. LIMIT 1 garante uma linha por pendência.
         StringBuilder sql = new StringBuilder("""
                 SELECT p.id, p.titulo, p.classe, p.horizonte, p.status, p.quem_espera, p.temperatura,
                        p.baixa_confianca, p.o_que_trava, p.valor_em_jogo, p.prazo_implicito, p.criada_em,
-                       g.nome AS origem_grupo,
+                       (SELECT g.nome FROM grupo_acompanhado g
+                          WHERE g.org_id = p.org_id AND g.grupo_id = p.origem_thread
+                          ORDER BY g.ultimo_visto DESC LIMIT 1) AS origem_grupo,
                        (SELECT count(*) FROM cobranca c
                           WHERE c.org_id = p.org_id AND c.pendencia_id = p.id) AS cobrancas
                 FROM pendencia p
-                LEFT JOIN grupo_acompanhado g
-                       ON g.org_id = p.org_id AND g.grupo_id = p.origem_thread
                 WHERE p.org_id = ?
                 """);
         if (status != null && !status.isBlank()) {

@@ -89,11 +89,13 @@ public class DespachanteCanal implements Despachante {
     private void entregarAvisoGrupo(MensagemOutbox m) {
         String p = m.payloadJson();
         String grupoId = campo(p, "grupo_id");
-        boolean novo = canal.enviarAvisoGrupo(m.org(), new EnviarAvisoGrupo(
+        // enviarAvisoGrupo retorna false quando já fora publicado (idempotente). Se
+        // não lançou, a publicação está firme — marca aviso_em SEMPRE (o mark também
+        // é idempotente). Gatear em `novo` deixaria o grupo sem captura para sempre
+        // quando o envio deu certo mas a marca não commitou e o efeito é reentregue.
+        canal.enviarAvisoGrupo(m.org(), new EnviarAvisoGrupo(
                 campo(p, "channel_id"), grupoId, campo(p, "texto"), m.idempotencyKey()));
-        if (novo) {
-            avisoGrupo.marcarPublicado(m.org(), grupoId);
-        }
+        avisoGrupo.marcarPublicado(m.org(), grupoId);
     }
 
     private void entregarResposta(MensagemOutbox m) {

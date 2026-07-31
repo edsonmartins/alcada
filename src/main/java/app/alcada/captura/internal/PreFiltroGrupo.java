@@ -38,8 +38,11 @@ public class PreFiltroGrupo {
 
     public PreFiltroGrupo(@ConfigProperty(name = "grupos.prefiltro.lexico",
             defaultValue = LEXICO_PADRAO) String lexico) {
+        // Sem trim: os espaços de borda de alguns radicais ("ate ", "pode ", " pf")
+        // são propositais — funcionam como limite de palavra. (O léxico não deve ter
+        // espaço após a vírgula.) isBlank descarta entradas vazias de vírgula solta.
         this.radicais = Arrays.stream(lexico.split(","))
-                .map(String::trim).filter(s -> !s.isEmpty()).map(PreFiltroGrupo::normalizar).toList();
+                .filter(s -> !s.isBlank()).map(PreFiltroGrupo::normalizar).toList();
     }
 
     /**

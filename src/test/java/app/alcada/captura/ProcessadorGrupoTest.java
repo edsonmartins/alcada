@@ -156,6 +156,34 @@ class ProcessadorGrupoTest {
     }
 
     @Test
+    void escala_uma_unica_vez_mesmo_apos_desfundir_e_recobrar() {
+        OrgId org = novaOrg();
+        UUID fonte = criarFonte(org);
+        String g = "G-esc1x@g.us";
+        seed(org, fonte, g, "5512999", "decide?");
+        transporte.programar(Status.OK, COMPROMISSO);
+        processador.processar(org, g);                       // cria
+        seed(org, fonte, g, "5512999", "e aí?");
+        processador.processar(org, g);                       // cobrança 1
+        seed(org, fonte, g, "5512999", "seguimos parados");
+        processador.processar(org, g);                       // cobrança 2 → escala (1x)
+
+        // Simula "desfundir" (remove uma cobrança) e depois uma nova cobrança recruza o limiar.
+        QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery("""
+                DELETE FROM cobranca WHERE id IN (
+                  SELECT c.id FROM cobranca c JOIN pendencia p ON p.id = c.pendencia_id
+                  WHERE c.org_id = ? AND p.origem_thread = '""" + g + "' LIMIT 1)")
+                .setParameter(1, org.valor()).executeUpdate());
+        seed(org, fonte, g, "5512999", "cadê a resposta?");
+        processador.processar(org, g);                       // recruza o limiar
+
+        assertEquals(1L, contar(org, """
+                SELECT count(*) FROM trilha t JOIN pendencia p ON p.id = t.pendencia_id
+                WHERE t.org_id = ? AND p.origem_thread = '""" + g + "' AND t.tipo = 'ESCALADA'"),
+                "escala uma única vez na vida do item, mesmo recruzando o limiar");
+    }
+
+    @Test
     void a_entrada_mostra_origem_do_grupo_e_o_contador_de_cobranca() {
         OrgId org = novaOrg();
         UUID fonte = criarFonte(org);
@@ -171,6 +199,25 @@ class ProcessadorGrupoTest {
         .when().get("/v1/pendencias?status=ENTRADA")
         .then().statusCode(200)
                 .body("find { it.origemGrupo == 'Projeto Rio' }.cobrancas", is(1));
+    }
+
+    @Test
+    void grupo_sob_duas_fontes_nao_duplica_linha_na_fila() {
+        OrgId org = novaOrg();
+        UUID f1 = criarFonte(org);
+        UUID f2 = criarFonte(org);
+        String g = "G-dup2@g.us";
+        nomearGrupo(org, f1, g, "Projeto Rio");
+        nomearGrupo(org, f2, g, "Projeto Rio (2)"); // mesmo grupo_id, outra fonte
+        seed(org, f1, g, "5512999", "decide aí, aprova?");
+        transporte.programar(Status.OK, COMPROMISSO);
+        processador.processar(org, g);
+
+        // A subquery (não JOIN) garante UMA linha por pendência mesmo com 2 grupos casando.
+        given().header("X-Org-Id", org.valor().toString())
+        .when().get("/v1/pendencias?status=ENTRADA")
+        .then().statusCode(200)
+                .body("size()", is(1));
     }
 
     // ---- helpers -----------------------------------------------------------

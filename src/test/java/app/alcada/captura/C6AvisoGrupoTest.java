@@ -35,9 +35,12 @@ class C6AvisoGrupoTest {
         descobrir(org, canal, g); // o bot já viu o grupo (inativo)
 
         // O gestor ativa com finalidade → enfileira o aviso (bot visível).
+        // A finalidade tem uma QUEBRA DE LINHA de propósito: com o payload montado à
+        // mão, o \n produziria JSON inválido (payload venenoso, grupo nunca capturado);
+        // com a serialização via Jackson, o efeito é entregue e aviso_em é marcado.
         given().header("X-Org-Id", org.valor().toString())
                 .contentType("application/json")
-                .body("{\"ativa\":true,\"finalidade\":\"acompanhar decisões do projeto\"}")
+                .body("{\"ativa\":true,\"finalidade\":\"acompanhar decisões\\ndo projeto\"}")
         .when().put("/v1/grupos/" + g)
         .then().statusCode(204);
 

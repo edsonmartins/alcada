@@ -120,8 +120,10 @@ public class ProcessadorGrupo {
                     .setParameter(1, org.valor()).setParameter(2, pid).executeUpdate();
             trilha.registrar(new EventoTrilha(org, pid, TipoEvento.FUNDIDA,
                     Ator.assistente(MODELO, VERSAO), null, null, origem(grupoId, ultimoId), null));
-            // Ao cruzar o limiar, escala uma única vez (o evento marca a transição).
-            if (contarCobrancas(org, pid) == limiarEscala) {
+            // Escala UMA vez só na vida do item: >= limiar (não "==", que re-dispararia
+            // após um desfundir baixar a contagem e uma nova cobrança recruzá-la) e
+            // somente se ainda não houve ESCALADA na trilha deste item.
+            if (contarCobrancas(org, pid) >= limiarEscala && !jaEscalada(org, pid)) {
                 trilha.registrar(new EventoTrilha(org, pid, TipoEvento.ESCALADA,
                         Ator.assistente(MODELO, VERSAO), null, null, origem(grupoId, ultimoId), null));
             }
@@ -176,7 +178,13 @@ public class ProcessadorGrupo {
         return sp < 0 ? t : t.substring(0, sp);
     }
 
-    /** Incrementa o contador auditável por fonte: toda janela vista, e as processadas. */
+    /**
+     * Contador auditável por fonte (ADR-0011 §3): cada AVALIAÇÃO de janela conta em
+     * {@code janelas_vistas}; as candidatas (que vão ao modelo) em {@code janelas_processadas}.
+     * Em produção o {@link WorkerGrupos} só reavalia com conteúdo novo (e a janela
+     * então muda), então isto reflete janelas distintas; um reprocesso idêntico manual
+     * (fora do worker) contaria a mesma janela de novo — cenário não-produtivo.
+     */
     private void registrarProporcao(OrgId org, UUID fonteId, boolean processada) {
         em.createNativeQuery("""
                 INSERT INTO captura_proporcao (org_id, fonte_id, janelas_vistas, janelas_processadas)
@@ -189,6 +197,14 @@ public class ProcessadorGrupo {
                 .setParameter(1, org.valor()).setParameter(2, fonteId)
                 .setParameter(3, processada ? 1 : 0).setParameter(4, processada ? 1 : 0)
                 .executeUpdate();
+    }
+
+    /** Já houve ESCALADA na trilha deste item? (para escalar uma única vez). */
+    private boolean jaEscalada(OrgId org, UUID pendenciaId) {
+        long n = ((Number) em.createNativeQuery(
+                "SELECT count(*) FROM trilha WHERE org_id = ? AND pendencia_id = ? AND tipo = 'ESCALADA'")
+                .setParameter(1, org.valor()).setParameter(2, pendenciaId).getSingleResult()).longValue();
+        return n > 0;
     }
 
     private long contarCobrancas(OrgId org, UUID pendenciaId) {
