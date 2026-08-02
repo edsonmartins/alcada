@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body>
+<title>Alçada — Comandos do assistente</title>
+<style>
+  :root {
+    --navy-0: #070c17; --navy-1: #0b1220;
+    --card-bg: rgba(255,255,255,0.035); --card-brd: rgba(255,255,255,0.09);
+    --ink: #e9eefb; --ink-dim: #a6b2cc; --ink-faint: #6f7d9c;
+    --blue: #5b7cff; --sky: #6fb3ff; --green: #34d17f; --amber: #e6a23c; --violet: #a78bfa;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+    --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: var(--sans); color: var(--ink); line-height: 1.6;
+    background:
+      radial-gradient(1200px 700px at 80% -8%, rgba(91,124,255,0.16), transparent 60%),
+      radial-gradient(900px 600px at 8% 4%, rgba(52,209,127,0.06), transparent 55%),
+      linear-gradient(180deg, var(--navy-1), var(--navy-0));
+    background-attachment: fixed; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: clamp(28px,5vw,72px) clamp(20px,4vw,40px) 96px; }
+  header { margin-bottom: 40px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--sky); margin: 0 0 14px; }
+  h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(32px,5.5vw,52px); line-height: 1.05; margin: 0 0 14px; text-wrap: balance; letter-spacing: -0.01em; }
+  h1 .dot { color: var(--green); }
+  .lead { font-size: clamp(16px,2.1vw,19px); color: var(--ink-dim); max-width: 70ch; margin: 0; }
+  h2 { font-family: var(--serif); font-weight: 600; font-size: clamp(22px,3vw,28px); margin: 56px 0 6px; letter-spacing: -0.01em; }
+  h2 .num { color: var(--blue); font-family: var(--mono); font-size: .62em; margin-right: 12px; vertical-align: 2px; }
+  .section-sub { color: var(--ink-faint); margin: 0 0 22px; font-size: 15px; }
+  .panel { background: var(--card-bg); border: 1px solid var(--card-brd); border-radius: 16px; padding: clamp(14px,2.5vw,26px); overflow-x: auto; }
+  .panel.diagram { text-align: center; }
+  .mermaid { display: inline-block; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 14px; }
+  .cmd { background: var(--card-bg); border: 1px solid var(--card-brd); border-left: 3px solid var(--blue); border-radius: 12px; padding: 16px 18px; }
+  .cmd .name { font-family: var(--mono); font-size: 13px; letter-spacing: .08em; color: var(--sky); font-weight: 700; }
+  .cmd .say { display: block; margin: 8px 0 9px; font-size: 14px; color: var(--ink); }
+  .cmd .say::before { content: "🗣 "; }
+  .cmd .say i { color: var(--ink-dim); font-style: italic; }
+  .cmd p { margin: 0; font-size: 13.5px; color: var(--ink-dim); }
+  .cmd.reg { border-left-color: var(--green); } .cmd.reg .name { color: var(--green); }
+  .cmd.con { border-left-color: var(--sky); }
+  .cmd.rep { border-left-color: var(--violet); } .cmd.rep .name { color: var(--violet); }
+  .cmd.none { border-left-color: var(--ink-faint); opacity: .82; } .cmd.none .name { color: var(--ink-faint); }
+
+  .note { border-left: 3px solid var(--amber); background: rgba(230,162,60,0.07); border-radius: 0 12px 12px 0; padding: 4px 20px; margin-top: 18px; }
+  .note p { font-size: 14px; color: var(--ink-dim); }
+  .traits { border-left: 3px solid var(--green); background: rgba(52,209,127,0.06); border-radius: 0 14px 14px 0; padding: 6px 20px; }
+  .traits li { margin: 12px 0; font-size: 14.5px; color: var(--ink-dim); }
+  .traits b { color: var(--ink); font-family: var(--mono); font-size: 13px; }
+  code { font-family: var(--mono); font-size: .86em; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 5px; color: var(--sky); }
+  footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--card-brd); color: var(--ink-faint); font-size: 12.5px; font-family: var(--mono); }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Alçada · Assistente de voz</p>
+    <h1>Comandos do assistente<span class="dot">.</span></h1>
+    <p class="lead">Voz-first, orientado a comando — <b>não é chat aberto</b> (ADR-0019). A fala vira <b>uma intenção de um conjunto fechado</b>; o modelo só escolhe (INV-10), o código executa. Tudo confirmado antes do efeito e enfileirado offline.</p>
+  </header>
+
+  <h2><span class="num">01</span>Do toque à ação</h2>
+  <p class="section-sub">Fala (ou texto) → reconhecimento → intenção → confirmação → fila → trilha.</p>
+  <div class="panel diagram">
+    <pre class="mermaid">
+%%{init: {"theme":"base","themeVariables":{"primaryColor":"#13203a","primaryBorderColor":"#3b5bdb","primaryTextColor":"#e9eefb","lineColor":"#6f8bff","fontFamily":"ui-sans-serif, system-ui","fontSize":"14px"}}}%%
+flowchart TD
+  doca(["Doca · Falar · Registrar · Consultar"]) --> inp{"fala ou texto"}
+  inp -- fala --> stt["STT · reconhecedor nativo<br/><small>Whisper: proximo</small>"]
+  inp -- digite --> ouvir
+  stt --> ouvir["VozControlador · ouvir"]
+  ouvir --> interp["InterpretadorVoz<br/><small>escolhe UMA intencao · INV-10</small>"]
+  interp -. propoe .-> set{{"RESOLVER · REPASSAR · ADIAR<br/>REGISTRAR · CONSULTAR · NENHUMA"}}
+  set --> conf["Confirmacao · INV-14<br/><small>Resolver X. Confirma</small>"]
+  conf --> fila[("fila offline · INV-13")]
+  fila --> sync["Sincroniza para o backend"]
+  sync --> tr[("trilha · ator ASSISTENTE")]
+  classDef store fill:#0c1526,stroke:#38507e,color:#9fb0d6;
+  classDef ia fill:#0e2a1d,stroke:#2f8f5c,color:#bff0d4;
+  class fila,tr store;
+  class interp,set ia;
+    </pre>
+  </div>
+
+  <h2><span class="num">02</span>O conjunto fechado de intenções</h2>
+  <p class="section-sub">O modelo só pode emitir uma destas — validado por <code>json_schema</code> estrito.</p>
+  <div class="cards">
+    <div class="cmd">
+      <span class="name">RESOLVER</span>
+      <span class="say"><i>"já resolvi o do aditivo"</i></span>
+      <p>Marca a pendência como decidida/feita e a fecha.</p>
+    </div>
+    <div class="cmd rep">
+      <span class="name">REPASSAR · delegar</span>
+      <span class="say"><i>"repassa isso pro João, nível 2"</i></span>
+      <p>Delega a um executor, com nível. Resolve o nome falado → pessoa; se ambíguo ou desconhecido, <b>pergunta pra quem</b>.</p>
+    </div>
+    <div class="cmd">
+      <span class="name">ADIAR</span>
+      <span class="say"><i>"esse eu vejo semana que vem"</i></span>
+      <p>Deixa pra depois — interpreta a data relativa ("semana que vem") no fuso do tenant.</p>
+    </div>
+    <div class="cmd reg">
+      <span class="name">REGISTRAR</span>
+      <span class="say"><i>"lembra de cobrar o Panorama"</i></span>
+      <p>Cria um item manual (lembrete/cobrança) — o escape do ADR-0005, quando não veio da captura.</p>
+    </div>
+    <div class="cmd con">
+      <span class="name">CONSULTAR</span>
+      <span class="say"><i>"o que travou hoje?"</i></span>
+      <p>Pergunta sobre a fila/estado → resposta do módulo de consulta (e o assistente fala de volta, TTS).</p>
+    </div>
+    <div class="cmd none">
+      <span class="name">NENHUMA</span>
+      <span class="say"><i>"…bom dia, pessoal"</i></span>
+      <p>Não é comando → não age. Pede de novo em vez de inventar uma ação.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <p><b>Nota:</b> <code>reservar</code>, <code>repousar</code> e <code>descartar</code> existem como <b>saídas de triagem por toque</b> na fila (swipe/botão) — <b>não</b> são intenções de voz. O interpretador de voz emite apenas as 5 acima (+ NENHUMA).</p>
+  </div>
+
+  <h2><span class="num">03</span>As regras do assistente</h2>
+  <ul class="traits">
+    <li><b>INV-10</b> — o modelo só <b>classifica</b> a fala numa intenção; a execução é código determinístico. Nenhum efeito externo sai do modelo.</li>
+    <li><b>ADR-0019</b> — conjunto fechado, <b>não chat aberto</b>: interpretação → ação, previsível e auditável.</li>
+    <li><b>INV-14 · confirmação</b> — antes de qualquer efeito, "… Confirma?" (janela de reversibilidade).</li>
+    <li><b>INV-13 · offline-first</b> — o comando entra numa fila local (SQLite) e sincroniza em background; nada se perde, funciona até com o app fechado.</li>
+    <li><b>INV-11 · trilha</b> — cada comando vira evento com ator <code>ASSISTENTE:{modelo,versão}</code>.</li>
+  </ul>
+
+  <footer>Alçada · referência — comandos do assistente · gerado a partir do código (InterpretadorVoz, VozControlador, doca da fila)</footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, securityLevel: "loose" });</script>
+</body></html>

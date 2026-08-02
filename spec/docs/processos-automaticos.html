@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body>
+<title>Alçada — Processos automáticos</title>
+<style>
+  :root {
+    --navy-0: #070c17;
+    --navy-1: #0b1220;
+    --navy-2: #101a30;
+    --card-bg: rgba(255,255,255,0.035);
+    --card-brd: rgba(255,255,255,0.09);
+    --ink: #e9eefb;
+    --ink-dim: #a6b2cc;
+    --ink-faint: #6f7d9c;
+    --blue: #5b7cff;
+    --sky: #6fb3ff;
+    --green: #34d17f;
+    --amber: #e6a23c;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+    --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 700px at 78% -8%, rgba(91,124,255,0.16), transparent 60%),
+      radial-gradient(900px 600px at 10% 4%, rgba(52,209,127,0.06), transparent 55%),
+      linear-gradient(180deg, var(--navy-1), var(--navy-0));
+    background-attachment: fixed;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: clamp(28px, 5vw, 72px) clamp(20px, 4vw, 40px) 96px; }
+
+  header { margin-bottom: 40px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--sky); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--serif); font-weight: 600; font-size: clamp(32px, 5.5vw, 52px);
+    line-height: 1.05; margin: 0 0 14px; text-wrap: balance; letter-spacing: -0.01em;
+  }
+  h1 .dot { color: var(--green); }
+  .lead { font-size: clamp(16px, 2.1vw, 19px); color: var(--ink-dim); max-width: 68ch; margin: 0; }
+
+  h2 {
+    font-family: var(--serif); font-weight: 600; font-size: clamp(22px, 3vw, 28px);
+    margin: 56px 0 6px; letter-spacing: -0.01em;
+  }
+  h2 .num { color: var(--blue); font-family: var(--mono); font-size: 0.62em; margin-right: 12px; vertical-align: 2px; }
+  .section-sub { color: var(--ink-faint); margin: 0 0 22px; font-size: 15px; }
+
+  .panel {
+    background: var(--card-bg); border: 1px solid var(--card-brd);
+    border-radius: 16px; padding: clamp(14px, 2.5vw, 26px);
+    overflow-x: auto;
+  }
+  .panel.diagram { text-align: center; }
+  .mermaid { display: inline-block; min-width: 0; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 14px 2px 0; font-size: 13px; color: var(--ink-dim); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 22px; height: 3px; border-radius: 3px; display: inline-block; }
+  .swatch.solid { background: var(--blue); }
+  .swatch.dash { background: repeating-linear-gradient(90deg, var(--green) 0 6px, transparent 6px 11px); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  thead th {
+    text-align: left; font-family: var(--mono); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 600; padding: 0 14px 12px; border-bottom: 1px solid var(--card-brd);
+  }
+  tbody td { padding: 13px 14px; border-bottom: 1px solid rgba(255,255,255,0.055); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: rgba(91,124,255,0.05); }
+  .w-name { font-weight: 600; color: var(--ink); white-space: nowrap; }
+  .tick { font-family: var(--mono); font-size: 12.5px; color: var(--sky); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tag { font-family: var(--mono); font-size: 12px; color: var(--green); background: rgba(52,209,127,0.1);
+         border: 1px solid rgba(52,209,127,0.22); border-radius: 6px; padding: 1px 7px; white-space: nowrap; }
+  .cron { color: var(--amber); }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .card { background: var(--card-bg); border: 1px solid var(--card-brd); border-radius: 14px; padding: 18px 18px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15.5px; font-family: var(--sans); }
+  .card h3 .k { font-family: var(--mono); font-size: 12px; color: var(--sky); display: block; margin-bottom: 3px; letter-spacing: .04em; }
+  .card p { margin: 0; font-size: 13.5px; color: var(--ink-dim); }
+
+  .inv { border-left: 3px solid var(--green); background: rgba(52,209,127,0.06);
+         border-radius: 0 14px 14px 0; padding: 6px 20px; margin-top: 8px; }
+  .inv li { margin: 12px 0; font-size: 14.5px; color: var(--ink-dim); }
+  .inv b { color: var(--ink); font-family: var(--mono); font-size: 13px; }
+  code { font-family: var(--mono); font-size: 0.86em; background: rgba(255,255,255,0.06);
+         padding: 1px 6px; border-radius: 5px; color: var(--sky); }
+
+  footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--card-brd);
+           color: var(--ink-faint); font-size: 12.5px; font-family: var(--mono); }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Alçada · Plano de controle de decisões</p>
+    <h1>Processos automáticos<span class="dot">.</span></h1>
+    <p class="lead">O que roda sozinho, em background. Princípio de projeto: <b>nenhum timer em memória</b> — cada <code>@Scheduled</code> é só um <em>tick</em> que puxa trabalho de tabelas no banco (claim com <code>FOR&nbsp;UPDATE&nbsp;SKIP&nbsp;LOCKED</code>), sobrevivendo a reinício, com retry exponencial e idempotência.</p>
+  </header>
+
+  <h2><span class="num">01</span>O fluxo de ponta a ponta</h2>
+  <p class="section-sub">Da mensagem que chega até a decisão do gestor — o modelo <em>propõe</em>, o código executa.</p>
+  <div class="panel diagram">
+    <pre class="mermaid">
+%%{init: {"theme":"base","themeVariables":{"background":"transparent","primaryColor":"#13203a","primaryBorderColor":"#3b5bdb","primaryTextColor":"#e9eefb","secondaryColor":"#12233f","tertiaryColor":"#0f1830","lineColor":"#6f8bff","fontFamily":"ui-sans-serif, system-ui","fontSize":"14px","clusterBkg":"#0d1526","clusterBorder":"#26324e"}}}%%
+flowchart TD
+  canal(["📱 Canal · WhatsApp via Linktor"]) --> ing["Webhook · Ingestão"]
+  ing --> eb[("evento_bruto")]
+  eb --> min["Minimizador<br/><small>pseudonimiza · redige</small>"]
+  min --> gw["Gateway de modelos<br/><small>Sensibilidade → destino</small>"]
+  gw --> ext["Extrator / ExtratorGrupo"]
+  ext -. "propõe · INV-10" .-> cod{{"Código determinístico<br/>decide + executa"}}
+  cod --> pend[("pendencia")]
+  pend --> tri["Triagem · Assistente de voz"]
+  tri -- "efeito + estado<br/>(mesma transação)" --> ob[("outbox")]
+  ob --> wob["WorkerOutbox"]
+  wob --> canal
+  pend --> job[("job")]
+  job --> wj["WorkerJobs"]
+  wj --> motor["Motor de Autonomia"]
+  motor -. "após a janela" .-> ob
+  cod --> tr[("trilha · append-only")]
+  tri --> tr
+  motor --> tr
+
+  classDef store fill:#0c1526,stroke:#38507e,color:#9fb0d6,font-family:ui-monospace;
+  classDef ia fill:#0e2a1d,stroke:#2f8f5c,color:#bff0d4;
+  class eb,pend,job,ob,tr store;
+  class min,gw,ext ia;
+    </pre>
+    <div class="legend">
+      <span><i class="swatch solid"></i> fluxo determinístico</span>
+      <span><i class="swatch dash"></i> proposta do modelo (IA)</span>
+      <span><i class="swatch" style="background:#0c1526;border:1px solid #38507e"></i> tabela (estado no banco)</span>
+    </div>
+  </div>
+
+  <h2><span class="num">02</span>Workers agendados</h2>
+  <p class="section-sub">O tick só puxa; o estado vive no banco. Em <code>%test</code> o scheduler é desligado.</p>
+  <div class="panel">
+    <table>
+      <thead>
+        <tr><th>Worker</th><th>Tick</th><th>Puxa de</th><th>O que faz</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="w-name">WorkerJobs</td><td class="tick">2s</td><td><span class="tag">job</span></td><td>Scheduler persistente: drena a tabela <code>job</code>, roteia por <code>tipo</code> a um <code>ExecutorJob</code>, marca CONCLUIDO na mesma transação.</td></tr>
+        <tr><td class="w-name">WorkerOutbox</td><td class="tick">2s</td><td><span class="tag">outbox</span></td><td>Entrega cada efeito externo via <code>Despachante</code> (canal/Linktor), ao-menos-uma-vez, e marca ENVIADO.</td></tr>
+        <tr><td class="w-name">WorkerReprocesso</td><td class="tick">5s</td><td><span class="tag">reprocesso</span></td><td>Refila chamadas de modelo que voltaram indisponíveis (reprocesso da extração).</td></tr>
+        <tr><td class="w-name">WorkerGrupos</td><td class="tick">30s</td><td><span class="tag">grupo_acompanhado</span></td><td>Poll dos grupos com <b>debounce</b> (conversa assentou) → <code>ProcessadorGrupo</code> (janela → extração).</td></tr>
+        <tr><td class="w-name">VarredorMortos</td><td class="tick">30s</td><td><span class="tag">outbox</span></td><td>Varre efeitos que esgotaram as tentativas → <code>FALHA_COMUNICACAO</code> na trilha.</td></tr>
+        <tr><td class="w-name">RolagemParticoes</td><td class="tick cron">03:00</td><td><span class="tag">trilha</span></td><td>Rola/arquiva partições da trilha (manutenção idempotente).</td></tr>
+        <tr><td class="w-name">ExpurgoEventoBruto</td><td class="tick cron">03:30</td><td><span class="tag">evento_bruto</span></td><td>Apaga o bruto vencido — retenção ≤ 30 dias (ADR-0011). Fica só o fato derivado.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="num">03</span>Motor de autonomia</h2>
+  <p class="section-sub">A máquina de estados da delegação. Os gatilhos de tempo são jobs na tabela <code>job</code>, executados pelo WorkerJobs.</p>
+  <div class="panel diagram">
+    <pre class="mermaid">
+%%{init: {"theme":"base","themeVariables":{"background":"transparent","primaryColor":"#13203a","primaryBorderColor":"#3b5bdb","primaryTextColor":"#e9eefb","lineColor":"#6f8bff","fontFamily":"ui-sans-serif, system-ui","fontSize":"13px"}}}%%
+flowchart LR
+  del(["Delegação / pendência com prazo"]) --> l50["LEMBRETE_50<br/><small>metade do prazo</small>"]
+  del --> l90["LEMBRETE_90<br/><small>fim do prazo</small>"]
+  del --> vir["VIRADA<br/><small>fuso / dia</small>"]
+  del --> esc["ESCALONAMENTO<br/><small>promove nível</small>"]
+  del --> venc["VENCIMENTO"]
+  venc --> exe{{"Fecha a janela<br/>→ executa o efeito · INV-14"}}
+  classDef ev fill:#1a1430,stroke:#7a5bd0,color:#e5dcff;
+  class l50,l90,vir,esc,venc ev;
+    </pre>
+  </div>
+  <p class="section-sub" style="margin-top:16px">Também passam pelo WorkerJobs: <code>PROCESSAR_CAPTURA</code> (mensagem 1:1) e <code>DESPERTAR</code> (acorda item reservado/"dormindo"). O gestor pode <b>intervir</b> (retomar) ou <b>desfazer</b> enquanto a janela está aberta.</p>
+
+  <h2><span class="num">04</span>Peças dirigidas por modelo (a IA)</h2>
+  <p class="section-sub">Sempre atrás de regras — o modelo nunca executa efeito externo.</p>
+  <div class="cards">
+    <div class="card"><h3><span class="k">RFC-0007</span>Gateway de modelos</h3><p>Nenhum módulo de domínio conhece o provedor. O chamador declara a <code>Sensibilidade</code>; o gateway decide o destino com política fixa (<code>only</code>, sem fallback, <code>zdr:true</code>, <code>data_collection:deny</code>).</p></div>
+    <div class="card"><h3><span class="k">ADR-0020 §3</span>Minimizador</h3><p>Roda <b>antes de qualquer</b> chamada de modelo: pseudonimiza nomes, redige CPF/CNPJ/e-mail/telefone. Re-hidrata localmente (1º nome).</p></div>
+    <div class="card"><h3><span class="k">captura</span>Extrator / ExtratorGrupo</h3><p>Extrai pendências e compromissos com <code>json_schema</code> estrito. O modelo <b>propõe</b>; o código valida e cria.</p></div>
+    <div class="card"><h3><span class="k">assistente</span>InterpretadorVoz</h3><p>Fala → escolhe <b>uma</b> intenção de um conjunto fechado (resolver, repassar, adiar, descartar, registrar, consultar). Não é chat aberto.</p></div>
+  </div>
+
+  <h2><span class="num">05</span>As regras que governam tudo</h2>
+  <ul class="inv">
+    <li><b>INV-10</b> — o modelo só <b>propõe</b> (classe / extração / rascunho / intenção); o código determinístico decide e executa. Nenhuma chamada de modelo no caminho de efeito externo.</li>
+    <li><b>Outbox transacional</b> — a transição de estado e a escrita do efeito acontecem na <b>mesma transação</b>; se reverte, nada é publicado.</li>
+    <li><b>INV-14 · reversibilidade</b> — o efeito externo só sai <b>depois</b> de fechada a janela de desfazer.</li>
+    <li><b>Idempotência</b> — toda escrita de efeito externo é idempotente (por <code>idempotency_key</code> ou <code>(pendencia_id, transição)</code>).</li>
+    <li><b>INV-11 · trilha append-only</b> — tudo que esses processos fazem fica auditável, com ator <code>HUMANO</code> · <code>SISTEMA:{regra}</code> · <code>ASSISTENTE:{modelo,versão}</code>. Correção é evento de compensação, nunca UPDATE/DELETE.</li>
+    <li><b>INV-15 · multi-tenant</b> — toda query carrega <code>org_id</code>; nenhum aprendizado cruza tenant.</li>
+  </ul>
+
+  <footer>Alçada · referência de arquitetura — processos automáticos · gerado a partir do código (workers @Scheduled, motor de autonomia, gateway de modelos)</footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, securityLevel: "loose" });</script>
+</body></html>
