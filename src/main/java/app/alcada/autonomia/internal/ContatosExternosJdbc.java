@@ -26,12 +26,7 @@ public class ContatosExternosJdbc implements ContatosExternos {
     @Override
     @Transactional
     public UUID registrar(OrgId org, String nome, String canal, String endereco, UUID gestorId) {
-        if (nome == null || nome.isBlank() || endereco == null || endereco.isBlank()) {
-            throw new IllegalArgumentException("nome e endereço são obrigatórios");
-        }
-        if (!CANAIS.contains(canal)) {
-            throw new IllegalArgumentException("canal inválido: " + canal);
-        }
+        validar(nome, canal, endereco);
         UUID id = UUID.randomUUID();
         em.createNativeQuery("""
                 INSERT INTO contato_externo (id, org_id, nome, canal, endereco, criado_por)
@@ -41,6 +36,28 @@ public class ContatosExternosJdbc implements ContatosExternos {
                 .setParameter(4, canal).setParameter(5, endereco).setParameter(6, gestorId)
                 .executeUpdate();
         return id;
+    }
+
+    @Override
+    @Transactional
+    public boolean atualizar(OrgId org, UUID contatoId, String nome, String canal, String endereco) {
+        validar(nome, canal, endereco);
+        return em.createNativeQuery("""
+                UPDATE contato_externo SET nome = ?, canal = ?, endereco = ?
+                WHERE org_id = ? AND id = ?
+                """)
+                .setParameter(1, nome).setParameter(2, canal).setParameter(3, endereco)
+                .setParameter(4, org.valor()).setParameter(5, contatoId)
+                .executeUpdate() > 0;
+    }
+
+    private static void validar(String nome, String canal, String endereco) {
+        if (nome == null || nome.isBlank() || endereco == null || endereco.isBlank()) {
+            throw new IllegalArgumentException("nome e endereço são obrigatórios");
+        }
+        if (!CANAIS.contains(canal)) {
+            throw new IllegalArgumentException("canal inválido: " + canal);
+        }
     }
 
     @Override

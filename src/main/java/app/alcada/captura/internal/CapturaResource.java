@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -94,14 +95,47 @@ public class CapturaResource {
         }
         @SuppressWarnings("unchecked")
         List<Object[]> linhas = em.createNativeQuery(
-                "SELECT id, tipo, identificador, ativa FROM fonte WHERE org_id = ? ORDER BY criada_em")
+                "SELECT id, tipo, identificador, ativa, linktor_channel_id FROM fonte "
+                + "WHERE org_id = ? ORDER BY criada_em")
                 .setParameter(1, org.get().valor())
                 .getResultList();
         List<FonteResumo> fontes = new ArrayList<>(linhas.size());
         for (Object[] l : linhas) {
-            fontes.add(new FonteResumo(l[0].toString(), (String) l[1], (String) l[2], (Boolean) l[3]));
+            fontes.add(new FonteResumo(l[0].toString(), (String) l[1], (String) l[2], (Boolean) l[3],
+                    (String) l[4]));
         }
         return Response.ok(fontes).build();
+    }
+
+    /**
+     * Define o canal do Linktor de uma fonte (RFC-0008 F1.5). É por onde o aviso
+     * de repasse sai no WhatsApp: o despachante usa a primeira fonte WHATSAPP
+     * ativa do tenant. Vazio limpa (a fonte deixa de servir de saída).
+     */
+    @PUT
+    @Path("/fontes/{id}/canal")
+    @Transactional
+    public Response definirCanal(@PathParam("id") String id, CanalFonte req) {
+        Optional<OrgId> org = contexto.atual();
+        if (org.isEmpty()) {
+            return problema(400, "org.ausente", "X-Org-Id não resolvido");
+        }
+        UUID fonteId;
+        try {
+            fonteId = UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            return problema(404, "fonte.inexistente", "fonte não encontrada");
+        }
+        String canal = req == null || req.linktorChannelId() == null
+                || req.linktorChannelId().isBlank() ? null : req.linktorChannelId().trim();
+        int n = em.createNativeQuery(
+                "UPDATE fonte SET linktor_channel_id = ? WHERE org_id = ? AND id = ?")
+                .setParameter(1, canal)
+                .setParameter(2, org.get().valor())
+                .setParameter(3, fonteId)
+                .executeUpdate();
+        return n == 0 ? problema(404, "fonte.inexistente", "fonte não encontrada")
+                : Response.noContent().build();
     }
 
     @POST
@@ -128,13 +162,18 @@ public class CapturaResource {
     public record ResultadoIngestao(String status, String eventoBrutoId) {
     }
 
+    public record CanalFonte(String linktorChannelId) {
+    }
+
     public record NovaFonte(String tipo, String identificador, String finalidade, String responsavelId) {
     }
 
     public record FonteCriada(String id, String segredo) {
     }
 
-    public record FonteResumo(String id, String tipo, String identificador, boolean ativa) {
+    /** {@code linktorChannelId}: canal de saída do Linktor (RFC-0008), nulo se não configurado. */
+    public record FonteResumo(String id, String tipo, String identificador, boolean ativa,
+                              String linktorChannelId) {
     }
 
     public record Problema(String type, String detail, int status) {

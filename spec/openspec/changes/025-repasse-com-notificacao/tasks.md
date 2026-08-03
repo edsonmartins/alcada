@@ -35,8 +35,11 @@
 - [x] Testes `test/repasse_externo_test.dart` (5) + regressão do destino interno
 
 ## Web (React, F1.5)
-- [ ] Tela de contatos externos (listar/criar/editar) (C22)
-- [ ] Config de canais do tenant (channel id do Linktor, remetente de e-mail)
+- [x] `PUT /v1/contatos/{id}` (porta `atualizar` + endpoint) e `PUT /v1/fontes/{id}/canal`; `GET /v1/fontes` passa a trazer `linktorChannelId`
+- [x] Tela `/canais` "Canais e contatos": lista, registra e edita contatos externos (C22)
+- [x] Mesma tela: qual fonte entrega o aviso de WhatsApp, troca do canal do Linktor e aviso quando não há canal (C23)
+- [x] Testes `canais.test.tsx` (5), `ContatosResourceTest` (+3), `CanalFonteTest` (3); `spec/docs/API.md` atualizado
+- Nota: remetente de e-mail é config da aplicação (SMTP, `@prod`), não do tenant — não vira tela. Exclusão de contato fica fora: delegações referenciam o contato (FK) e reter/apagar é questão aberta de LGPD.
 
 ## Questões abertas herdadas do RFC-0008
 - [ ] Consentimento/base legal do contato externo (LGPD) e opt-out

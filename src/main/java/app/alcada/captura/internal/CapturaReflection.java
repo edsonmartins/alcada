@@ -14,6 +14,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         CapturaResource.NovaFonte.class,
         CapturaResource.FonteCriada.class,
         CapturaResource.FonteResumo.class,
+        CapturaResource.CanalFonte.class,
         CapturaResource.Problema.class,
         PendenciaResource.PendenciaResumo.class,
         PendenciaResource.EscapeRequest.class,

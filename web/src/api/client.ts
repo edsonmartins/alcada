@@ -35,3 +35,7 @@ export function get<T>(path: string): Promise<T> {
 export function post<T>(path: string, body?: unknown): Promise<T> {
   return apiFetch<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined });
 }
+
+export function put<T>(path: string, body?: unknown): Promise<T> {
+  return apiFetch<T>(path, { method: "PUT", body: body ? JSON.stringify(body) : undefined });
+}

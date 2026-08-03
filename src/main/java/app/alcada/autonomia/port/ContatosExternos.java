@@ -19,6 +19,13 @@ public interface ContatosExternos {
     /** Registra um contato externo e devolve seu id. Canal: WHATSAPP | EMAIL. */
     UUID registrar(OrgId org, String nome, String canal, String endereco, UUID gestorId);
 
+    /**
+     * Atualiza nome, canal e endereço de um contato do tenant — o telefone muda,
+     * o contato é o mesmo (as delegações continuam apontando para ele). Falso se
+     * o contato não é do tenant ou não existe (INV-15).
+     */
+    boolean atualizar(OrgId org, UUID contatoId, String nome, String canal, String endereco);
+
     /** Lista os contatos externos do tenant. */
     List<ContatoExterno> listar(OrgId org);
 

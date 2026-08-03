@@ -131,8 +131,14 @@
 - **WHEN** o destino é externo, por voz ou pelo toque na Entrada
 - **THEN** o app lista os contatos conhecidos com o canal de cada um e oferece registrar um novo — **canal e endereço são digitados**, nunca extraídos da fala.
 
-## Web (F1.5) — pendente
+## Web (F1.5)
 
 ## C22 — tela de contatos externos
-- **WHEN** o gestor abre a configuração de contatos
-- **THEN** vê, cria e edita os contatos do tenant, com o canal de cada um.
+- **WHEN** o gestor abre "Canais e contatos"
+- **THEN** vê os contatos do tenant com o canal de cada um, registra um novo (nome, canal, endereço) e edita um existente (o telefone muda; o contato é o mesmo, e as delegações seguem válidas).
+- *Testes (web):* `src/__tests__/canais.test.tsx` — listar, registrar, editar. Backend: `ContatosResourceTest.edita_nome_canal_e_endereco_do_contato`, `.editar_contato_de_outra_organizacao_da_404`, `.editar_com_canal_invalido_recusado`
+
+## C23 — canal de saída do tenant
+- **WHEN** o gestor abre a mesma tela
+- **THEN** vê **por qual fonte** o aviso de WhatsApp sai (a primeira `WHATSAPP` ativa com canal), pode trocar o canal do Linktor, e é avisado quando não há canal configurado — nesse caso os avisos ficam represados, não se perdem (INV-13).
+- *Testes:* `canais.test.tsx` (mostrar/trocar/avisar) · `CanalFonteTest.define_e_le_o_canal_do_linktor_na_fonte`, `.canal_vazio_limpa_a_saida`, `.fonte_de_outra_organizacao_da_404`

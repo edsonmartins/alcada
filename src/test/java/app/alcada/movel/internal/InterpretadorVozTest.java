@@ -242,6 +242,11 @@ class InterpretadorVozTest {
         }
 
         @Override
+        public boolean atualizar(OrgId org, UUID id, String nome, String canal, String endereco) {
+            throw new UnsupportedOperationException("o interpretador não edita nada (INV-10)");
+        }
+
+        @Override
         public List<ContatoExterno> listar(OrgId org) {
             return conhecidos;
         }

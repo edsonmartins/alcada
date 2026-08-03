@@ -114,11 +114,14 @@ POST   /v1/delegacoes/{id}/devolver        { motivo }
 ```
 POST   /v1/contatos                        { nome, canal, endereco }   # registra destinatário externo
 GET    /v1/contatos                        # contatos do tenant
+PUT    /v1/contatos/{id}                   { nome, canal, endereco }   # o telefone mudou; o contato é o mesmo
 ```
 
 `canal`: `WHATSAPP` | `EMAIL`; `endereco` é telefone E.164 ou e-mail. `POST` → `201 {id}`;
 `400 alcada:contato.invalido` se falta nome/canal/endereco, `422 alcada:contato.invalido` se o canal
-não é um dos dois. `GET` → `[{id, nome, canal, endereco}]`.
+não é um dos dois. `GET` → `[{id, nome, canal, endereco}]`. `PUT` → `204`; `404
+alcada:contato.inexistente` quando o contato não é do tenant (INV-15) — as delegações que apontam
+para o contato seguem válidas (não há exclusão).
 Contato é **dado operacional de repasse, não conta** (INV-02): serve para delegar a quem não é
 usuário do Alçada, e o repasse o avisa pelo canal (`AVISO_REPASSE` no outbox). `endereco` é PII
 (ADR-0011): não trafega pelo gateway de modelos.
@@ -186,7 +189,11 @@ POST   /v1/captura/audio                   # texto transcrito no dispositivo + m
 GET    /v1/fontes
 POST   /v1/fontes                          # declaração de canal (ADR-0011)
 POST   /v1/fontes/{id}/desativar
+PUT    /v1/fontes/{id}/canal               { linktorChannelId }   # canal de saída (RFC-0008)
 ```
+`GET /v1/fontes` → `[{id, tipo, identificador, ativa, linktorChannelId}]`. `PUT .../canal` define
+por onde o **aviso de repasse** sai no WhatsApp (o despachante usa a primeira fonte `WHATSAPP`
+**ativa** com canal); string vazia limpa. `204`; `404 alcada:fonte.inexistente` fora do tenant (INV-15).
 `POST /v1/captura/linktor` (024): quando a mensagem veio de grupo, o envelope traz
 `data.group.id` (chat_jid; ausente em 1:1) e `data.message.senderId` = o indivíduo
 que falou. Só grupos **selecionados** têm o conteúdo ingerido (ver Grupos).

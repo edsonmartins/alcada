@@ -10,7 +10,9 @@ import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -49,6 +51,32 @@ public class ContatosResource {
         try {
             UUID id = contatos.registrar(org.get(), req.nome(), req.canal(), req.endereco(), pessoa.get());
             return Response.status(201).entity(new ContatoCriado(id.toString())).build();
+        } catch (IllegalArgumentException e) {
+            return problema(422, "contato.invalido", e.getMessage());
+        }
+    }
+
+    @PUT
+    @Path("/{id}")
+    public Response atualizar(@PathParam("id") String id, CriarContato req) {
+        Optional<OrgId> org = contexto.atual();
+        if (org.isEmpty()) {
+            return problema(400, "org.ausente", "X-Org-Id não resolvido");
+        }
+        if (req == null || vazio(req.nome()) || vazio(req.canal()) || vazio(req.endereco())) {
+            return problema(400, "contato.invalido", "nome, canal e endereco são obrigatórios");
+        }
+        UUID contatoId;
+        try {
+            contatoId = UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            return problema(404, "contato.inexistente", "contato não encontrado");
+        }
+        try {
+            boolean alterado = contatos.atualizar(org.get(), contatoId, req.nome(), req.canal(),
+                    req.endereco());
+            return alterado ? Response.noContent().build()
+                    : problema(404, "contato.inexistente", "contato não encontrado");
         } catch (IllegalArgumentException e) {
             return problema(422, "contato.invalido", e.getMessage());
         }
