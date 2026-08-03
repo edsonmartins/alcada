@@ -103,15 +103,24 @@
 - **THEN** o `AVISO_REPASSE` nasce represado e só sai na liberação do resumo.
 - *Teste:* `ComandoRepasseExternoTest.aviso_de_repasse_em_trajeto_nasce_represado`
 
-## Assistente e app (F1.4c/F1.4d) — pendentes
+## Assistente (F1.4c)
 
 ## C19 — nome falado resolve contra pessoas e contatos externos
 - **WHEN** o gestor diz "repassa pro Marcello" e Marcello é contato externo
-- **THEN** o interpretador propõe o repasse externo para confirmação (nunca decide sozinho, INV-10).
+- **THEN** o interpretador propõe o repasse externo (`contatoId` + `contatoCanal`, nunca `donoId`) e a fala diz por onde o aviso sai; com homônimo interno, devolve a lista mista com `tipo` e não decide (INV-10).
+- *Testes:* `InterpretadorVozTest.repassarParaContatoExternoResolveCanalEPedeConfirmacao`, `.contatoDeEmailAvisaQueVaiPorEmail`, `.pessoaEContatoHomonimosDevolvemListaMistaSemDecidir`
 
-## C20 — nome desconhecido vira contato com confirmação
+## C19b — o casamento de nome do diretório de contatos
+- **WHEN** o termo falado casa por prefixo de palavra, com ou sem acento
+- **THEN** devolve os contatos do **próprio** tenant; termo vazio não casa com todos (INV-15).
+- *Testes:* `ContatosBuscaTest.casa_por_primeiro_nome_e_ignora_acento`, `.nome_desconhecido_nao_casa_com_ninguem`, `.busca_nao_atravessa_organizacoes`
+
+## C20 — nome desconhecido pode virar contato, com confirmação
 - **WHEN** o nome falado não casa com ninguém
-- **THEN** o assistente **pergunta** (quem é / por qual canal) e só registra o contato na confirmação.
+- **THEN** o assistente **pergunta**: devolve equipe + contatos conhecidos, `termoFalado` e `podeRegistrarContato` — canal e endereço são coletados no app, não extraídos da fala (o modelo não inventa endereço de terceiro, INV-10).
+- *Testes:* `InterpretadorVozTest.nomeNovoOfereceListaMistaEPermiteRegistrarContato`, `.semNinguemNaEquipeAvisaQueNaoAchou`
+
+## App (F1.4d) — pendente
 
 ## C21 — o app diz por onde o executor será avisado
 - **WHEN** o repasse externo é confirmado no app

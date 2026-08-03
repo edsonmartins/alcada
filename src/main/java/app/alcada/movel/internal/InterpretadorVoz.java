@@ -3,6 +3,8 @@ package app.alcada.movel.internal;
 import java.util.List;
 import java.util.UUID;
 
+import app.alcada.autonomia.port.ContatosExternos;
+import app.alcada.autonomia.port.ContatosExternos.ContatoExterno;
 import app.alcada.consulta.port.Consulta;
 import app.alcada.consulta.port.ResultadoConsulta;
 import app.alcada.identidade.port.Pessoas;
@@ -21,8 +23,9 @@ import jakarta.enterprise.context.ApplicationScoped;
  * Interpretação de fala livre por LLM (022, ADR-0014/0019): mapeia a fala do
  * gestor para UMA intenção de um conjunto fechado (INV-10 — o modelo só escolhe,
  * o código executa) e resolve o item da fila, usando o contexto da conversa para
- * follow-ups. No REPASSAR resolve o nome falado para um {@code pessoa_id} via o
- * diretório de pessoas ([[Pessoas]]), com memória de apelidos por gestor: quando
+ * follow-ups. No REPASSAR resolve o nome falado contra os dois diretórios — pessoas
+ * do tenant ({@link Pessoas}) e contatos externos ({@link ContatosExternos},
+ * RFC-0008) —, com memória de apelidos por gestor: quando
  * não reconhece o nome, oferece a lista para o gestor escolher e {@code aprende}
  * o termo dali em diante. Quando há mais de um candidato, devolve as opções para
  * o app perguntar (nunca decide sozinho). Nenhum efeito aqui: comandos voltam
@@ -44,23 +47,34 @@ public class InterpretadorVoz {
     private final ModelGateway modelo;
     private final Consulta consulta;
     private final Pessoas pessoas;
+    private final ContatosExternos contatos;
     private final Preferencias preferencias;
     private final ObjectMapper json = new ObjectMapper();
 
     public InterpretadorVoz(ModelGateway modelo, Consulta consulta, Pessoas pessoas,
-            Preferencias preferencias) {
+            ContatosExternos contatos, Preferencias preferencias) {
         this.modelo = modelo;
         this.consulta = consulta;
         this.pessoas = pessoas;
+        this.contatos = contatos;
         this.preferencias = preferencias;
     }
 
     public record ItemFila(String id, String titulo) {
     }
 
-    public record Candidato(String id, String nome) {
+    /**
+     * Destino possível do repasse: uma pessoa do tenant ({@code tipo=PESSOA}) ou um
+     * contato externo ({@code tipo=CONTATO}, com o {@code canal} por onde será
+     * avisado). O app mostra a lista; a escolha é sempre do gestor (INV-10).
+     */
+    public record Candidato(String id, String nome, String tipo, String canal) {
         static Candidato de(PessoaRef p) {
-            return new Candidato(p.id().toString(), p.nome());
+            return new Candidato(p.id().toString(), p.nome(), "PESSOA", null);
+        }
+
+        static Candidato de(ContatoExterno c) {
+            return new Candidato(c.id().toString(), c.nome(), "CONTATO", c.canal());
         }
     }
 
@@ -68,13 +82,26 @@ public class InterpretadorVoz {
      * Resultado estruturado para o app: comando a confirmar, consulta respondida,
      * ou nada. {@code termoFalado} != null (com {@code candidatosDono}) sinaliza
      * que o nome não foi reconhecido: se o gestor escolher da lista, o app pede
-     * para aprender o apelido (termo→pessoa).
+     * para aprender o apelido (termo→pessoa). No repasse externo (RFC-0008) vem
+     * {@code contatoId} + {@code contatoCanal} em vez de {@code donoId} — nunca os
+     * dois. {@code podeRegistrarContato} avisa que o app pode oferecer o cadastro
+     * do nome falado como contato novo (canal e endereço são coletados lá, não
+     * extraídos da fala — o modelo não inventa endereço de terceiro, INV-10).
      */
     public record Resultado(
             String intencao, String pendenciaId, String titulo,
             String donoId, String donoNome, String nivel, String tituloNovo,
             String resposta, String frase, boolean precisaConfirmar,
-            List<Candidato> candidatosDono, String termoFalado) {
+            List<Candidato> candidatosDono, String termoFalado,
+            String contatoId, String contatoCanal, boolean podeRegistrarContato) {
+
+        /** Resultado sem destino externo (o caso comum das demais intenções). */
+        Resultado(String intencao, String pendenciaId, String titulo, String donoId, String donoNome,
+                String nivel, String tituloNovo, String resposta, String frase,
+                boolean precisaConfirmar, List<Candidato> candidatosDono, String termoFalado) {
+            this(intencao, pendenciaId, titulo, donoId, donoNome, nivel, tituloNovo, resposta, frase,
+                    precisaConfirmar, candidatosDono, termoFalado, null, null, false);
+        }
     }
 
     public Resultado interpretar(OrgId org, UUID gestorId, String texto, List<String> contexto,
@@ -115,7 +142,12 @@ public class InterpretadorVoz {
         };
     }
 
-    /** Repasse: precisa de item + dono resolvido a partir do diretório de pessoas. */
+    /**
+     * Repasse: precisa de item + destino resolvido. O nome falado é procurado nos
+     * dois diretórios — pessoas do tenant e contatos externos (RFC-0008). Um único
+     * casamento vira proposta de confirmação; mais de um, ou nenhum, devolve a
+     * lista para o gestor escolher (INV-10).
+     */
     private Resultado repassar(OrgId org, UUID gestorId, Bruto b, List<ItemFila> fila) {
         ItemFila alvo = alvo(fila, b.item);
         if (alvo == null) {
@@ -128,28 +160,49 @@ public class InterpretadorVoz {
             return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, null, nivel, null, null,
                     "Para quem repassar “" + alvo.titulo() + "”?", false, List.of(), null);
         }
-        List<PessoaRef> achados = pessoas.buscarPorNome(org, gestorId, b.donoNome);
-        if (achados.size() == 1) {
-            PessoaRef p = achados.get(0);
-            return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), p.id().toString(), p.nome(), nivel, null,
-                    null, "Repassar “" + alvo.titulo() + "” para " + p.nome() + ". Confirma?",
-                    true, List.of(), null);
+        List<PessoaRef> internos = pessoas.buscarPorNome(org, gestorId, b.donoNome);
+        List<ContatoExterno> externos = contatos.buscarPorNome(org, b.donoNome);
+
+        if (internos.size() + externos.size() == 1) {
+            if (internos.size() == 1) {
+                PessoaRef p = internos.get(0);
+                return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), p.id().toString(), p.nome(),
+                        nivel, null, null, "Repassar “" + alvo.titulo() + "” para " + p.nome() + ". Confirma?",
+                        true, List.of(), null);
+            }
+            ContatoExterno c = externos.get(0);
+            return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, c.nome(), nivel, null, null,
+                    "Repassar “" + alvo.titulo() + "” para " + c.nome() + ". Aviso " + porOnde(c.canal())
+                            + ". Confirma?",
+                    true, List.of(), null, c.id().toString(), c.canal(), false);
         }
-        if (achados.size() > 1) {
-            List<Candidato> opcoes = achados.stream().limit(3).map(Candidato::de).toList();
+        if (internos.size() + externos.size() > 1) {
+            List<Candidato> opcoes = candidatos(internos, externos, 3);
             String nomes = opcoes.stream().limit(2).map(Candidato::nome).reduce((a, c) -> a + " ou " + c).orElse("");
             return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, b.donoNome, nivel, null, null,
                     "Achei mais de um: " + nomes + ". Qual deles?", false, opcoes, null);
         }
-        // Nome não reconhecido: oferece a lista e aprende ao escolher (termoFalado != null).
-        List<PessoaRef> equipe = pessoas.listar(org, gestorId);
-        if (equipe.isEmpty()) {
-            return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, b.donoNome, nivel, null, null,
-                    "Não encontrei " + b.donoNome + " na sua equipe.", false, List.of(), null);
-        }
+        // Nome não reconhecido: oferece equipe + contatos conhecidos e aprende ao
+        // escolher (termoFalado); e o app pode registrar o nome como contato novo.
+        List<Candidato> conhecidos = candidatos(pessoas.listar(org, gestorId), contatos.listar(org), 0);
+        String frase = conhecidos.isEmpty()
+                ? "Não encontrei " + b.donoNome + ". Quer registrar como contato?"
+                : "Não reconheci “" + b.donoNome + "”. Para quem repassar “" + alvo.titulo() + "”?";
         return new Resultado("REPASSAR", alvo.id(), alvo.titulo(), null, b.donoNome, nivel, null, null,
-                "Não reconheci “" + b.donoNome + "”. Para quem repassar “" + alvo.titulo() + "”?",
-                false, equipe.stream().map(Candidato::de).toList(), b.donoNome);
+                frase, false, conhecidos, b.donoNome, null, null, true);
+    }
+
+    /** Pessoas primeiro, contatos depois; {@code limite} 0 = todos. */
+    private static List<Candidato> candidatos(List<PessoaRef> internos, List<ContatoExterno> externos,
+            int limite) {
+        List<Candidato> todos = new java.util.ArrayList<>(internos.size() + externos.size());
+        internos.forEach(p -> todos.add(Candidato.de(p)));
+        externos.forEach(c -> todos.add(Candidato.de(c)));
+        return limite > 0 && todos.size() > limite ? List.copyOf(todos.subList(0, limite)) : List.copyOf(todos);
+    }
+
+    private static String porOnde(String canal) {
+        return "EMAIL".equals(canal) ? "por e-mail" : "no WhatsApp";
     }
 
     private static Resultado nada(String frase) {
@@ -176,7 +229,8 @@ public class InterpretadorVoz {
             }
         }
         sb.append("Fala agora: \"").append(texto).append("\"\n");
-        sb.append("Regras: item=0 se nenhum/ambíguo. REPASSAR → donoNome (só o nome/apelido da pessoa); ");
+        sb.append("Regras: item=0 se nenhum/ambíguo. REPASSAR → donoNome (só o nome/apelido de quem ");
+        sb.append("recebe, seja da equipe ou de fora; NUNCA telefone ou e-mail); ");
         sb.append("nivel (N1/N2/N3) APENAS se o gestor disser explicitamente — senão OMITA o campo, não invente. ");
         sb.append("ADIAR → quandoVoltar. REGISTRAR → tituloNovo. ");
         sb.append("CONSULTAR → reescreva a pergunta COMPLETA em \"pergunta\" usando o contexto ");

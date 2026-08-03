@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import java.util.UUID;
 
+import app.alcada.autonomia.port.ContatosExternos;
+import app.alcada.autonomia.port.ContatosExternos.ContatoExterno;
 import app.alcada.consulta.port.Consulta;
 import app.alcada.consulta.port.ResultadoConsulta;
 import java.util.Optional;
@@ -48,8 +50,24 @@ class InterpretadorVozTest {
 
     private InterpretadorVoz comPreferencia(String json, List<PessoaRef> achados,
             List<PessoaRef> equipe, String nivelPref) {
+        return montar(json, achados, equipe, List.of(), List.of(), nivelPref);
+    }
+
+    /** Interpretador com os dois diretórios: pessoas e contatos externos (RFC-0008). */
+    private InterpretadorVoz comContatos(String json, List<PessoaRef> achados, List<PessoaRef> equipe,
+            List<ContatoExterno> contatosAchados, List<ContatoExterno> contatosConhecidos) {
+        return montar(json, achados, equipe, contatosAchados, contatosConhecidos, null);
+    }
+
+    private InterpretadorVoz montar(String json, List<PessoaRef> achados, List<PessoaRef> equipe,
+            List<ContatoExterno> contatosAchados, List<ContatoExterno> contatosConhecidos, String nivelPref) {
         return new InterpretadorVoz(new GatewayFixo(json), new ConsultaFixa(),
-                new PessoasFixo(achados, equipe), new PreferenciasFixo(nivelPref));
+                new PessoasFixo(achados, equipe), new ContatosFixo(contatosAchados, contatosConhecidos),
+                new PreferenciasFixo(nivelPref));
+    }
+
+    private static ContatoExterno contato(String nome, String canal) {
+        return new ContatoExterno(UUID.randomUUID(), nome, canal, "+5521999990000");
     }
 
     @Test
@@ -100,6 +118,72 @@ class InterpretadorVozTest {
         assertNull(r.donoId());
         assertTrue(r.candidatosDono().isEmpty());
         assertTrue(r.frase().contains("Fulano"));
+        assertTrue(r.podeRegistrarContato(), "sem ninguém conhecido, resta registrar um contato");
+    }
+
+    // C19 — nome falado casa com um contato externo: propõe o repasse dizendo o canal
+    @Test
+    void repassarParaContatoExternoResolveCanalEPedeConfirmacao() {
+        ContatoExterno marcello = contato("Marcello Andrade", "WHATSAPP");
+        var r = comContatos("{\"intencao\":\"REPASSAR\",\"item\":1,\"donoNome\":\"Marcello\"}",
+                List.of(), List.of(), List.of(marcello), List.of(marcello))
+                .interpretar(ORG, GESTOR, "repassa o reembolso pro marcello", List.of(), FILA);
+
+        assertEquals("REPASSAR", r.intencao());
+        assertEquals(marcello.id().toString(), r.contatoId());
+        assertEquals("WHATSAPP", r.contatoCanal());
+        assertNull(r.donoId(), "destino externo não vai como pessoa");
+        assertEquals("Marcello Andrade", r.donoNome());
+        assertTrue(r.precisaConfirmar());
+        assertTrue(r.frase().contains("no WhatsApp"), r.frase());
+        assertEquals("N2", r.nivel());
+        assertFalse(r.podeRegistrarContato(), "o contato já existe");
+    }
+
+    // C19 — contato de e-mail: a fala diz por onde o aviso sai
+    @Test
+    void contatoDeEmailAvisaQueVaiPorEmail() {
+        ContatoExterno paulo = contato("Paulo Cesar", "EMAIL");
+        var r = comContatos("{\"intencao\":\"REPASSAR\",\"item\":1,\"donoNome\":\"Paulo\"}",
+                List.of(), List.of(), List.of(paulo), List.of(paulo))
+                .interpretar(ORG, GESTOR, "repassa pro paulo", List.of(), FILA);
+
+        assertEquals("EMAIL", r.contatoCanal());
+        assertTrue(r.frase().contains("por e-mail"), r.frase());
+    }
+
+    // C19 — homônimos entre pessoa e contato: devolve a lista mista, não decide (INV-10)
+    @Test
+    void pessoaEContatoHomonimosDevolvemListaMistaSemDecidir() {
+        var uid = UUID.randomUUID();
+        ContatoExterno externo = contato("Marcello Andrade", "WHATSAPP");
+        var r = comContatos("{\"intencao\":\"REPASSAR\",\"item\":1,\"donoNome\":\"Marcello\"}",
+                List.of(new PessoaRef(uid, "Marcello Interno")), List.of(), List.of(externo), List.of(externo))
+                .interpretar(ORG, GESTOR, "repassa pro marcello", List.of(), FILA);
+
+        assertNull(r.donoId(), "não decide qual quando há mais de um");
+        assertNull(r.contatoId());
+        assertEquals(2, r.candidatosDono().size());
+        assertEquals("PESSOA", r.candidatosDono().get(0).tipo(), "pessoas primeiro");
+        assertEquals("CONTATO", r.candidatosDono().get(1).tipo());
+        assertEquals("WHATSAPP", r.candidatosDono().get(1).canal(), "o app diz por onde o aviso sai");
+        assertNull(r.termoFalado(), "ambiguidade de nome não vira apelido");
+    }
+
+    // C20 — nome novo: oferece equipe + contatos conhecidos e permite registrar o contato
+    @Test
+    void nomeNovoOfereceListaMistaEPermiteRegistrarContato() {
+        var uid = UUID.randomUUID();
+        ContatoExterno conhecido = contato("Clécia Souza", "WHATSAPP");
+        var r = comContatos("{\"intencao\":\"REPASSAR\",\"item\":1,\"donoNome\":\"Marcello\"}",
+                List.of(), List.of(new PessoaRef(uid, "Daniel Marinho")), List.of(), List.of(conhecido))
+                .interpretar(ORG, GESTOR, "repassa pro marcello", List.of(), FILA);
+
+        assertNull(r.donoId());
+        assertNull(r.contatoId());
+        assertEquals(2, r.candidatosDono().size(), "equipe + contatos conhecidos");
+        assertEquals("Marcello", r.termoFalado(), "app aprende o termo ao escolher da lista");
+        assertTrue(r.podeRegistrarContato(), "o app pode oferecer registrar Marcello como contato");
     }
 
     @Test
@@ -147,6 +231,29 @@ class InterpretadorVozTest {
 
         @Override
         public void aprender(OrgId org, UUID gestorId, String termo, UUID pessoaId) {
+        }
+    }
+
+    private record ContatosFixo(List<ContatoExterno> achados, List<ContatoExterno> conhecidos)
+            implements ContatosExternos {
+        @Override
+        public UUID registrar(OrgId org, String nome, String canal, String endereco, UUID gestorId) {
+            throw new UnsupportedOperationException("o interpretador não registra nada (INV-10)");
+        }
+
+        @Override
+        public List<ContatoExterno> listar(OrgId org) {
+            return conhecidos;
+        }
+
+        @Override
+        public Optional<ContatoExterno> buscar(OrgId org, UUID contatoId) {
+            return conhecidos.stream().filter(c -> c.id().equals(contatoId)).findFirst();
+        }
+
+        @Override
+        public List<ContatoExterno> buscarPorNome(OrgId org, String termo) {
+            return achados;
         }
     }
 

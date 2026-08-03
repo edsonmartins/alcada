@@ -21,12 +21,15 @@
 - [x] `spec/docs/API.md`: `/v1/contatos` e `campos.contato` em `/v1/comandos`
 
 ## Assistente (F1.4c)
-- [ ] `InterpretadorVoz` resolve o nome falado contra pessoas **e** contatos externos; ambíguo → pergunta (C19)
-- [ ] Nome novo → propõe registrar contato (nome, canal, endereço) com confirmação (C20)
+- [x] `ContatosExternos.buscarPorNome(org, termo)` — prefixo de palavra, sem acento, por tenant (C19b)
+- [x] `InterpretadorVoz` resolve o nome falado contra pessoas **e** contatos; único casamento vira `contatoId`+`contatoCanal`, mais de um devolve `candidatosDono` com `tipo` (C19)
+- [x] Nome novo → `podeRegistrarContato` + `termoFalado`; canal/endereço **não** saem da fala (decisão: o modelo não inventa endereço de terceiro) — o app coleta na F1.4d (C20)
+- [x] `spec/docs/API.md`: `/v1/voz/interpretar` e os campos de destino
 - [ ] Apelido falado de contato externo (memória durável, hoje só de pessoa — C17)
 
 ## App (Flutter, F1.4d)
-- [ ] Fluxo de escolher contato existente / criar novo no repasse
+- [ ] Fluxo de escolher contato existente / criar novo no repasse (coleta canal + endereço quando `podeRegistrarContato`)
+- [ ] Mapear o destino do interpretador para `campos.contato` do comando (`contatoId` → `{id}`; contato novo → `{nome,canal,endereco}`)
 - [ ] Fala do resultado: "vou avisar o Marcello por WhatsApp" (C21)
 
 ## Web (React, F1.5)

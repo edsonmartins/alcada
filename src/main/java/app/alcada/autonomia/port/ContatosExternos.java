@@ -25,6 +25,13 @@ public interface ContatosExternos {
     /** Busca um contato do tenant. Vazio se não existe ou é de outra organização (INV-15). */
     Optional<ContatoExterno> buscar(OrgId org, UUID contatoId);
 
+    /**
+     * Contatos que casam com o termo falado — mesma regra do diretório de pessoas
+     * (prefixo de palavra, sem acento). Vazio quando ninguém casa: aí o chamador
+     * pergunta ao gestor (INV-10), nunca escolhe.
+     */
+    List<ContatoExterno> buscarPorNome(OrgId org, String termo);
+
     /** Contato externo (leitura). O endereço é operacional, não identidade. */
     record ContatoExterno(UUID id, String nome, String canal, String endereco) {}
 }

@@ -56,12 +56,22 @@ GET    /v1/revisao-semanal                 # roteiro conduzido da sexta
 POST   /v1/consulta                        { pergunta }                 # consulta NL sobre a fila (020, RFC-0004 §3)
 POST   /v1/comandos                        { comandos:[Comando] }       # sync do canal móvel (021, RFC-0005)
 POST   /v1/voz/transcrever                  { audioBase64, formato?, idioma? }  # STT na nuvem (022, ADR-0026)
+POST   /v1/voz/interpretar                  { texto, contexto?, itens? }        # fala livre → intenção (022)
 ```
 
 `POST /v1/voz/transcrever` (022): áudio em base64 → `{texto}`, via gateway (Whisper no
 OpenRouter; chave só no servidor). Indisponível → **503**, e o app degrada para o STT
 on-device (INV-13). Só SKU Cloud (áudio de decisão sai do perímetro — ADR-0020/0028);
 classe RESTRITA nunca sai.
+
+`POST /v1/voz/interpretar` (022): fala + contexto + fila → `{intencao, pendenciaId, titulo, donoId,
+donoNome, nivel, tituloNovo, resposta, frase, precisaConfirmar, candidatosDono:[{id,nome,tipo,canal}],
+termoFalado, contatoId, contatoCanal, podeRegistrarContato}`. O modelo **propõe**; o app confirma
+(INV-10). No `REPASSAR`, o nome falado é resolvido contra pessoas **e** contatos externos (RFC-0008):
+um casamento único vira `donoId` (interno) **ou** `contatoId`+`contatoCanal` (externo, nunca os dois);
+mais de um devolve `candidatosDono` com `tipo` `PESSOA|CONTATO`; nenhum devolve a lista conhecida,
+`termoFalado` (para aprender o apelido ao escolher) e `podeRegistrarContato`. Canal e endereço de um
+contato novo **não** saem da fala — o app os coleta, para o modelo não inventar endereço de terceiro.
 
 `POST /v1/consulta` (020): pergunta livre → template de whitelist → SQL determinístico
 (INV-10/INV-15). Resposta `{pergunta, template, resposta, itens:[{id,titulo,classe,valorEmJogo}]}`;

@@ -1,5 +1,7 @@
 package app.alcada.autonomia.internal;
 
+import java.text.Normalizer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,6 +55,17 @@ public class ContatosExternosJdbc implements ContatosExternos {
     }
 
     @Override
+    public List<ContatoExterno> buscarPorNome(OrgId org, String termo) {
+        String[] alvo = tokens(termo);
+        if (alvo.length == 0) {
+            return List.of();
+        }
+        // Diretório pequeno (contato é escape, não cadastro): casa em memória com a
+        // mesma regra do diretório de pessoas — prefixo de palavra, sem acento.
+        return listar(org).stream().filter(c -> casa(c.nome(), alvo)).toList();
+    }
+
+    @Override
     public Optional<ContatoExterno> buscar(OrgId org, UUID contatoId) {
         if (contatoId == null) {
             return Optional.empty();
@@ -66,5 +79,38 @@ public class ContatosExternosJdbc implements ContatosExternos {
         } catch (NoResultException e) {
             return Optional.empty();
         }
+    }
+
+    // ---- casamento por nome (espelha PessoasJdbc) ---------------------------
+
+    /** Casa quando cada palavra do termo é prefixo de alguma palavra do nome. */
+    private static boolean casa(String nome, String[] alvo) {
+        for (String t : alvo) {
+            boolean achou = false;
+            for (String w : tokens(nome)) {
+                if (w.startsWith(t)) {
+                    achou = true;
+                    break;
+                }
+            }
+            if (!achou) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String[] tokens(String s) {
+        if (s == null || s.isBlank()) {
+            return new String[0];
+        }
+        return Arrays.stream(normalizar(s).split("\\s+")).filter(w -> !w.isBlank()).toArray(String[]::new);
+    }
+
+    private static String normalizar(String s) {
+        return Normalizer.normalize(s, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase()
+                .trim();
     }
 }
