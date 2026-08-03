@@ -1,5 +1,6 @@
 package app.alcada.autonomia.internal;
 
+import java.util.List;
 import java.util.UUID;
 
 import app.alcada.autonomia.port.ContatosExternos;
@@ -38,5 +39,16 @@ public class ContatosExternosJdbc implements ContatosExternos {
                 .setParameter(4, canal).setParameter(5, endereco).setParameter(6, gestorId)
                 .executeUpdate();
         return id;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<ContatoExterno> listar(OrgId org) {
+        List<Object[]> linhas = em.createNativeQuery(
+                "SELECT id, nome, canal, endereco FROM contato_externo WHERE org_id = ? ORDER BY nome")
+                .setParameter(1, org.valor()).getResultList();
+        return linhas.stream()
+                .map(r -> new ContatoExterno((UUID) r[0], (String) r[1], (String) r[2], (String) r[3]))
+                .toList();
     }
 }
