@@ -120,11 +120,16 @@
 - **THEN** o assistente **pergunta**: devolve equipe + contatos conhecidos, `termoFalado` e `podeRegistrarContato` — canal e endereço são coletados no app, não extraídos da fala (o modelo não inventa endereço de terceiro, INV-10).
 - *Testes:* `InterpretadorVozTest.nomeNovoOfereceListaMistaEPermiteRegistrarContato`, `.semNinguemNaEquipeAvisaQueNaoAchou`
 
-## App (F1.4d) — pendente
+## App (F1.4d) — repo `alcada-mobile`
 
 ## C21 — o app diz por onde o executor será avisado
 - **WHEN** o repasse externo é confirmado no app
-- **THEN** a fala do resultado diz que o aviso vai por WhatsApp ou e-mail.
+- **THEN** a fala do resultado diz que o aviso vai por WhatsApp ou e-mail — e, em trajeto, que sai **ao estacionar** (INV-14); o comando leva `campos.contato` (`{id}` ou `{nome,canal,endereco}`), nunca `dono`.
+- *Testes (mobile):* `test/repasse_externo_test.dart` — contato conhecido, candidato do tipo CONTATO, contato novo, trajeto, e a regressão do destino interno.
+
+## C21b — o gestor escolhe ou registra o contato
+- **WHEN** o destino é externo, por voz ou pelo toque na Entrada
+- **THEN** o app lista os contatos conhecidos com o canal de cada um e oferece registrar um novo — **canal e endereço são digitados**, nunca extraídos da fala.
 
 ## Web (F1.5) — pendente
 

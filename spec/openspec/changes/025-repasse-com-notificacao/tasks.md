@@ -27,10 +27,12 @@
 - [x] `spec/docs/API.md`: `/v1/voz/interpretar` e os campos de destino
 - [ ] Apelido falado de contato externo (memória durável, hoje só de pessoa — C17)
 
-## App (Flutter, F1.4d)
-- [ ] Fluxo de escolher contato existente / criar novo no repasse (coleta canal + endereço quando `podeRegistrarContato`)
-- [ ] Mapear o destino do interpretador para `campos.contato` do comando (`contatoId` → `{id}`; contato novo → `{nome,canal,endereco}`)
-- [ ] Fala do resultado: "vou avisar o Marcello por WhatsApp" (C21)
+## App (Flutter, F1.4d) — repo `alcada-mobile`
+- [x] `DestinoRepasse` (interno | contato | contato novo) e `Despachador.repassar(destino:)` → `campos.dono` **ou** `campos.contato` (`aliasFalado` só no interno)
+- [x] Voz: contato resolvido vira confirmação; lista mista mostra o canal do contato; "Registrar '<nome>' como contato" coleta canal+endereço em diálogo (nunca da fala)
+- [x] Toque (folha de repasse na Entrada): seção "Fora do Alçada" com os contatos (`GET /v1/contatos`) e "Alguém de fora" para registrar na hora
+- [x] Fala do resultado: "Repassado. Vou avisar no WhatsApp/por e-mail" — em trajeto, "quando você estacionar" (INV-14) (C21)
+- [x] Testes `test/repasse_externo_test.dart` (5) + regressão do destino interno
 
 ## Web (React, F1.5)
 - [ ] Tela de contatos externos (listar/criar/editar) (C22)
