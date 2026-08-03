@@ -74,6 +74,13 @@ REPOUSAR, ADIAR, REGISTRAR, CONSULTAR`. Resposta `{resultados:[{comandoId, statu
 OK|IGNORADO|RECUSADO|ERRO, detalhe?, pendenciaId?, consulta?}]}`. Pendência que já saiu da fila →
 `IGNORADO` (não erro); `REGISTRAR` (escape) nunca é ignorado; `CONSULTAR` traz `consulta`.
 
+`REPASSAR` (RFC-0008) tem **um** destino: `campos.dono` (pessoa interna) **ou** `campos.contato`
+(externo) — os dois juntos, ou nenhum, dão `ERRO`. O contato vem como `{id}` (já registrado) ou
+`{nome, canal, endereco}` (registrado na hora, na mesma transação do comando — logo o reenvio do
+mesmo `comandoId` não cria contato duplicado). `id` de outra organização → `ERRO "contato não
+encontrado"` (INV-15). Destino externo enfileira o `AVISO_REPASSE`; em trajeto ele nasce represado
+e só sai na confirmação do resumo (INV-14).
+
 `GET /v1/radar` (pacote 009) → `dependeDoGestor{qtd,total,pct}`, `rodandoSemVoce`,
 `adiados[{id,titulo,adiadoCount,oQueTrava,quemEspera,valorEmJogo}]`,
 `piorEspera{pendenciaId,titulo,dias,quemEspera}`,
@@ -92,6 +99,19 @@ POST   /v1/delegacoes/{id}/propor          { proposta }
 POST   /v1/delegacoes/{id}/concluir        { resultado }
 POST   /v1/delegacoes/{id}/devolver        { motivo }
 ```
+
+### Contatos externos de repasse (pacote 025, RFC-0008)
+```
+POST   /v1/contatos                        { nome, canal, endereco }   # registra destinatário externo
+GET    /v1/contatos                        # contatos do tenant
+```
+
+`canal`: `WHATSAPP` | `EMAIL`; `endereco` é telefone E.164 ou e-mail. `POST` → `201 {id}`;
+`400 alcada:contato.invalido` se falta nome/canal/endereco, `422 alcada:contato.invalido` se o canal
+não é um dos dois. `GET` → `[{id, nome, canal, endereco}]`.
+Contato é **dado operacional de repasse, não conta** (INV-02): serve para delegar a quem não é
+usuário do Alçada, e o repasse o avisa pelo canal (`AVISO_REPASSE` no outbox). `endereco` é PII
+(ADR-0011): não trafega pelo gateway de modelos.
 
 ### Regras de autonomia (pacote 010, RFC-0003 §A)
 ```

@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.UUID;
 
 import app.alcada.autonomia.port.Autonomia;
+import app.alcada.autonomia.port.ContatosExternos;
+import app.alcada.autonomia.port.DestinoRepasse;
 import app.alcada.captura.port.EscapeCaptura;
 import app.alcada.consulta.port.Consulta;
 import app.alcada.consulta.port.ResultadoConsulta;
@@ -36,6 +38,7 @@ public class ComandoMovelJdbc implements ComandoMovel {
     private final EntityManager em;
     private final Triagem triagem;
     private final Autonomia autonomia;
+    private final ContatosExternos contatos;
     private final EscapeCaptura escape;
     private final Consulta consulta;
     private final Pessoas pessoas;
@@ -43,11 +46,12 @@ public class ComandoMovelJdbc implements ComandoMovel {
     private final EscopoTrajeto trajeto;
 
     public ComandoMovelJdbc(EntityManager em, Triagem triagem, Autonomia autonomia,
-                            EscapeCaptura escape, Consulta consulta, Pessoas pessoas,
-                            Preferencias preferencias, EscopoTrajeto trajeto) {
+                            ContatosExternos contatos, EscapeCaptura escape, Consulta consulta,
+                            Pessoas pessoas, Preferencias preferencias, EscopoTrajeto trajeto) {
         this.em = em;
         this.triagem = triagem;
         this.autonomia = autonomia;
+        this.contatos = contatos;
         this.escape = escape;
         this.consulta = consulta;
         this.pessoas = pessoas;
@@ -120,16 +124,10 @@ public class ComandoMovelJdbc implements ComandoMovel {
                 case REPOUSAR -> triagem.repousar(org, c.pendenciaId(), prazoOu(f.voltaEm(), 7), pessoa);
                 case ADIAR -> triagem.adiar(org, c.pendenciaId(), prazoOu(f.voltaEm(), 7), f.oQueFalta(), pessoa);
                 case REPASSAR -> {
-                    if (f.dono() == null || f.nivel() == null) {
-                        return ResultadoComando.erro(c.comandoId(), "REPASSAR exige dono e nível");
+                    ResultadoComando recusa = repassar(org, pessoa, c, f);
+                    if (recusa != null) {
+                        return recusa;
                     }
-                    autonomia.delegar(org, c.pendenciaId(), f.dono(), f.nivel(), prazoOu(f.prazo(), 2), pessoa);
-                    // Memória durável (022): o termo falado vira apelido do dono (no-op se
-                    // já casava pelo nome) e o nível usado vira o padrão do gestor.
-                    if (f.aliasFalado() != null) {
-                        pessoas.aprender(org, pessoa, f.aliasFalado(), f.dono());
-                    }
-                    preferencias.registrarNivelRepasse(org, pessoa, f.nivel());
                 }
                 default -> { /* REGISTRAR/CONSULTAR tratados em executar */ }
             }
@@ -137,6 +135,66 @@ public class ComandoMovelJdbc implements ComandoMovel {
         } catch (RuntimeException e) {
             return ResultadoComando.erro(c.comandoId(), e.getMessage());
         }
+    }
+
+    /**
+     * Repasse (RFC-0008): destino interno (dono) OU externo (contato conhecido pelo
+     * {@code id}, ou registrado na hora — escape, INV-02). O contato nasce na mesma
+     * transação do comando, logo o reenvio do mesmo {@code comandoId} não cria um
+     * segundo contato (INV-13). Devolve a recusa, ou {@code null} se delegou.
+     */
+    private ResultadoComando repassar(OrgId org, UUID pessoa, Comando c, Comando.Campos f) {
+        Comando.Contato ct = contatoOuNulo(f.contato());
+        if (f.dono() == null && ct == null) {
+            return ResultadoComando.erro(c.comandoId(), "REPASSAR exige dono ou contato");
+        }
+        if (f.dono() != null && ct != null) {
+            return ResultadoComando.erro(c.comandoId(), "REPASSAR aceita dono ou contato, não os dois");
+        }
+        if (f.nivel() == null) {
+            return ResultadoComando.erro(c.comandoId(), "REPASSAR exige nível");
+        }
+
+        DestinoRepasse destino;
+        if (ct == null) {
+            destino = new DestinoRepasse.Interno(f.dono());
+        } else if (ct.id() != null) {
+            if (contatos.buscar(org, ct.id()).isEmpty()) {
+                return ResultadoComando.erro(c.comandoId(), "contato não encontrado"); // INV-15
+            }
+            destino = new DestinoRepasse.Externo(ct.id());
+        } else {
+            // Valida antes de chamar a porta: exceção aqui marcaria a transação do
+            // comando para rollback e derrubaria o registro de idempotência.
+            if (vazio(ct.nome()) || vazio(ct.endereco()) || vazio(ct.canal())
+                    || !ContatosExternos.CANAIS.contains(ct.canal())) {
+                return ResultadoComando.erro(c.comandoId(),
+                        "contato novo exige nome, endereco e canal " + ContatosExternos.CANAIS);
+            }
+            destino = new DestinoRepasse.Externo(
+                    contatos.registrar(org, ct.nome(), ct.canal(), ct.endereco(), pessoa));
+        }
+
+        autonomia.delegar(org, c.pendenciaId(), destino, f.nivel(), prazoOu(f.prazo(), 2), pessoa);
+        // Memória durável (022): o termo falado vira apelido do dono interno (no-op se já
+        // casava pelo nome). Apelido de contato externo é resolvido na interpretação.
+        if (f.aliasFalado() != null && ct == null) {
+            pessoas.aprender(org, pessoa, f.aliasFalado(), f.dono());
+        }
+        // O nível usado vira o padrão do gestor, valha o destino que valer.
+        preferencias.registrarNivelRepasse(org, pessoa, f.nivel());
+        return null;
+    }
+
+    private static boolean vazio(String s) {
+        return s == null || s.isBlank();
+    }
+
+    /** Contato sem nenhum campo ({@code {}} no JSON) é ausência de destino, não um destino. */
+    private static Comando.Contato contatoOuNulo(Comando.Contato ct) {
+        boolean semDados = ct == null || (ct.id() == null && vazio(ct.nome())
+                && vazio(ct.canal()) && vazio(ct.endereco()));
+        return semDados ? null : ct;
     }
 
     private ResultadoConsulta consultarSeguro(OrgId org, Comando c) {
@@ -179,6 +237,7 @@ public class ComandoMovelJdbc implements ComandoMovel {
     }
 
     private static Comando.Campos vazio() {
-        return new Comando.Campos(null, null, null, null, null, null, null, null, null, null, null, null);
+        return new Comando.Campos(null, null, null, null, null, null, null, null, null, null, null,
+                null, null);
     }
 }

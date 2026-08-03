@@ -24,8 +24,8 @@ public record Comando(
     }
 
     /**
-     * Campos por intenção (os não usados ficam nulos): REPASSAR {dono, nivel, prazo,
-     * aliasFalado}; RESERVAR {prazo}; REPOUSAR/ADIAR {voltaEm, oQueFalta};
+     * Campos por intenção (os não usados ficam nulos): REPASSAR {dono | contato, nivel,
+     * prazo, aliasFalado}; RESERVAR {prazo}; REPOUSAR/ADIAR {voltaEm, oQueFalta};
      * RESOLVER {nota}; REGISTRAR {titulo, quemEspera, oQueTrava, classe};
      * CONSULTAR {pergunta}. {@code aliasFalado} é o termo que o gestor falou para o
      * dono quando o nome não foi reconhecido — o repasse confirmado o aprende como
@@ -34,6 +34,15 @@ public record Comando(
     public record Campos(
             UUID dono, String nivel, String prazo, String voltaEm, String oQueFalta,
             String nota, String titulo, String quemEspera, String oQueTrava, String classe,
-            String pergunta, String aliasFalado) {
+            String pergunta, String aliasFalado, Contato contato) {
+    }
+
+    /**
+     * Destino externo do repasse (RFC-0008): {@code id} de um contato já conhecido,
+     * ou {nome, canal, endereco} para registrá-lo na hora (escape, INV-02). Exclusivo
+     * com {@code dono} — o repasse tem um destino só. Havendo {@code id}, os demais
+     * campos são ignorados. Canal: WHATSAPP | EMAIL.
+     */
+    public record Contato(UUID id, String nome, String canal, String endereco) {
     }
 }

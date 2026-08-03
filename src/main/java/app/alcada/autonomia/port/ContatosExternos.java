@@ -1,6 +1,8 @@
 package app.alcada.autonomia.port;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import app.alcada.plataforma.multitenancy.port.OrgId;
@@ -11,11 +13,17 @@ import app.alcada.plataforma.multitenancy.port.OrgId;
  */
 public interface ContatosExternos {
 
+    /** Canais de aviso aceitos — o chamador valida antes de registrar. */
+    Set<String> CANAIS = Set.of("WHATSAPP", "EMAIL");
+
     /** Registra um contato externo e devolve seu id. Canal: WHATSAPP | EMAIL. */
     UUID registrar(OrgId org, String nome, String canal, String endereco, UUID gestorId);
 
     /** Lista os contatos externos do tenant. */
     List<ContatoExterno> listar(OrgId org);
+
+    /** Busca um contato do tenant. Vazio se não existe ou é de outra organização (INV-15). */
+    Optional<ContatoExterno> buscar(OrgId org, UUID contatoId);
 
     /** Contato externo (leitura). O endereço é operacional, não identidade. */
     record ContatoExterno(UUID id, String nome, String canal, String endereco) {}

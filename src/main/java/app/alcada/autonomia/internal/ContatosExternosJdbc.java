@@ -1,19 +1,19 @@
 package app.alcada.autonomia.internal;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import app.alcada.autonomia.port.ContatosExternos;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
 import jakarta.transaction.Transactional;
 
 /** Persistência dos contatos externos de repasse (RFC-0008). */
 @ApplicationScoped
 public class ContatosExternosJdbc implements ContatosExternos {
-
-    private static final java.util.Set<String> CANAIS = java.util.Set.of("WHATSAPP", "EMAIL");
 
     private final EntityManager em;
 
@@ -50,5 +50,21 @@ public class ContatosExternosJdbc implements ContatosExternos {
         return linhas.stream()
                 .map(r -> new ContatoExterno((UUID) r[0], (String) r[1], (String) r[2], (String) r[3]))
                 .toList();
+    }
+
+    @Override
+    public Optional<ContatoExterno> buscar(OrgId org, UUID contatoId) {
+        if (contatoId == null) {
+            return Optional.empty();
+        }
+        try {
+            Object[] r = (Object[]) em.createNativeQuery(
+                    "SELECT id, nome, canal, endereco FROM contato_externo WHERE org_id = ? AND id = ?")
+                    .setParameter(1, org.valor()).setParameter(2, contatoId).getSingleResult();
+            return Optional.of(
+                    new ContatoExterno((UUID) r[0], (String) r[1], (String) r[2], (String) r[3]));
+        } catch (NoResultException e) {
+            return Optional.empty();
+        }
     }
 }

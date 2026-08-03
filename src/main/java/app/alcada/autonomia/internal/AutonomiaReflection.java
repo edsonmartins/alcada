@@ -13,7 +13,11 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         DelegacaoResource.ProporRequest.class,
         DelegacaoResource.ConcluirRequest.class,
         DelegacaoResource.DevolverRequest.class,
-        DelegacaoResource.DelegacaoResumo.class
+        DelegacaoResource.DelegacaoResumo.class,
+        ContatosResource.CriarContato.class,
+        ContatosResource.ContatoCriado.class,
+        ContatosResource.ContatoView.class,
+        ContatosResource.Problema.class
 })
 public final class AutonomiaReflection {
     private AutonomiaReflection() {

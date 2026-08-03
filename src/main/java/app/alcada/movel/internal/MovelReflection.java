@@ -8,6 +8,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @RegisterForReflection(targets = {
         Comando.class,
         Comando.Campos.class,
+        Comando.Contato.class,
         ResultadoComando.class,
         ComandoResource.Lote.class,
         ComandoResource.Resposta.class,
