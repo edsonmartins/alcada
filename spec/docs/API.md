@@ -11,7 +11,7 @@
 GET    /v1/pendencias?status=&horizonte=&dono=&q=&page=
 GET    /v1/pendencias/{id}
 POST   /v1/pendencias                      # escape manual — métrica de falha (ADR-0005)
-POST   /v1/pendencias/{id}/resolver        { nota?, lembrete?: { quando, texto } }
+POST   /v1/pendencias/{id}/resolver        { nota?, lembrete?: { quando, texto, comCalendario? } }
 POST   /v1/pendencias/{id}/delegar         { dono_id, nivel, prazo }
 POST   /v1/pendencias/{id}/reservar        { agendado_para, gerar_dossie: bool }
 POST   /v1/pendencias/{id}/repousar        { volta_em }
@@ -31,7 +31,10 @@ POST   /v1/pendencias/{id}/dossie/perguntar { pergunta }     # recuperação hí
 chamador; o lembrete vira uma pendência que dorme até a data e volta pela Entrada (fila única, sem
 caixa de lembretes). `204`; `400 alcada:lembrete.invalido` se faltar `quando`/`texto` ou a data não
 for ISO-8601; `422 alcada:lembrete.invalido` no passado ou a mais de 12 meses — e aí **o item não
-fecha**. O evento no calendário do gestor chega na fatia F2.3.
+fecha**. Com `comCalendario`, o compromisso também vai para a agenda do gestor: sai pelo outbox
+(`EVENTO_CALENDARIO`) e só **depois da janela** `alcada.calendario.janela` (default 5 min), para o
+desfazer chegar antes do evento existir (INV-14). Sem calendário conectado, a trilha registra
+`FALHA_COMPROMISSO` e o lembrete continua valendo dentro do Alçada.
 
 Perguntas ao dossiê (014, RFC-0004 §1): `POST .../dossie/perguntar` → `{encontrou, resposta,
 fontes:[{fonteTipo, fonteRef, trecho}]}`. Recuperação híbrida BM25 (`tsvector`) + embeddings

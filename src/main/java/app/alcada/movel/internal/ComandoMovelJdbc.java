@@ -205,7 +205,8 @@ public class ComandoMovelJdbc implements ComandoMovel {
         }
         Triagem.Lembrete lembrete;
         try {
-            lembrete = new Triagem.Lembrete(OffsetDateTime.parse(l.quando()), l.texto());
+            lembrete = new Triagem.Lembrete(OffsetDateTime.parse(l.quando()), l.texto(),
+                    Boolean.TRUE.equals(l.comCalendario()));
         } catch (java.time.format.DateTimeParseException e) {
             throw new IllegalArgumentException("lembrete.quando deve ser ISO-8601 com fuso");
         }

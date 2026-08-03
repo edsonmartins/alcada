@@ -27,7 +27,21 @@ public interface Triagem {
      * Compromisso que sobra de uma decisão ("marquei a reunião pra quinta"). O
      * evento no calendário do gestor entra na F2.3 — aqui é só a data e o texto.
      */
-    record Lembrete(OffsetDateTime quando, String texto) {
+    /**
+     * Chave do compromisso no outbox (RFC-0009). Pública porque quem cancela o
+     * lembrete precisa descartar o efeito ainda não emitido — reprocesso pela
+     * mesma chave nunca cria dois eventos (INV-13).
+     */
+    static String chaveCompromisso(UUID lembreteId) {
+        return lembreteId + ":evento_calendario";
+    }
+
+    record Lembrete(OffsetDateTime quando, String texto, boolean comCalendario) {
+
+        /** Lembrete que fica só no Alçada (sem evento na agenda do gestor). */
+        public Lembrete(OffsetDateTime quando, String texto) {
+            this(quando, texto, false);
+        }
 
         /**
          * Um lembrete só serve se for para o futuro e tiver o que dizer. Longe

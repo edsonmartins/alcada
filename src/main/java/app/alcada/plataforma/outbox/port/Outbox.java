@@ -17,6 +17,21 @@ public interface Outbox {
     void publicar(MensagemOutbox mensagem);
 
     /**
+     * Enfileira um efeito externo que só pode sair <b>depois</b> de {@code
+     * disponivelEm} (INV-14): a janela de arrependimento. Enquanto não vence, a
+     * linha fica no outbox e pode ser descartada — o terceiro nunca soube.
+     */
+    void publicarApos(MensagemOutbox mensagem, java.time.OffsetDateTime disponivelEm);
+
+    /**
+     * Descarta um efeito ainda não emitido, pela chave de idempotência. Só apaga
+     * o que está PENDENTE: o que já saiu não volta atrás (INV-14).
+     *
+     * @return true se o efeito foi descartado antes de sair
+     */
+    boolean descartarPendente(OrgId org, String idempotencyKey);
+
+    /**
      * Libera os efeitos represados de um trajeto (023): as linhas ganham
      * {@code trajeto_id = NULL} e passam a ser emitidas pelo worker. Chamado ao
      * estacionar + confirmar o resumo (INV-14). Escopado por org (INV-15).

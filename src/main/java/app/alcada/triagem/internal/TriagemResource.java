@@ -51,7 +51,8 @@ public class TriagemResource {
         Triagem.Lembrete lembrete;
         try {
             lembrete = l == null ? null
-                    : new Triagem.Lembrete(OffsetDateTime.parse(l.quando()), l.texto());
+                    : new Triagem.Lembrete(OffsetDateTime.parse(l.quando()), l.texto(),
+                            Boolean.TRUE.equals(l.comCalendario()));
         } catch (java.time.format.DateTimeParseException e) {
             return problema(400, "lembrete.invalido", "quando deve ser ISO-8601 com fuso");
         }
@@ -147,8 +148,11 @@ public class TriagemResource {
     public record ResolverRequest(String nota, LembreteRequest lembrete) {
     }
 
-    /** {@code quando}: ISO-8601 com fuso, já resolvido pelo chamador (RFC-0009). */
-    public record LembreteRequest(String quando, String texto) {
+    /**
+     * {@code quando}: ISO-8601 com fuso, já resolvido pelo chamador (RFC-0009).
+     * {@code comCalendario}: também põe o compromisso na agenda do gestor.
+     */
+    public record LembreteRequest(String quando, String texto, Boolean comCalendario) {
     }
 
     public record ReservarRequest(String agendadoPara, Boolean gerarDossie) {

@@ -69,19 +69,25 @@
 - **THEN** o matcher local resolve a data no relógio do aparelho e o comando leva o lembrete; se a data não for legível, o assistente **pergunta** em vez de resolver sem o compromisso.
 - *Testes (mobile):* "offline: …guarda o lembrete", "offline: compromisso sem data vira pergunta", "dataDaFala resolve as formas comuns e recusa o que não dá"
 
-## Calendário (F2.3/F2.4) — pendentes
+## Calendário (F2.3a — porta e entrega; provedor real na F2.3b)
 
 ## C13 — o compromisso entra no calendário do gestor
-- **WHEN** o gestor conectou o calendário e pediu o evento
-- **THEN** o evento é criado **depois da janela**, pelo outbox, e a trilha registra `COMPROMISSO_AGENDADO`.
+- **WHEN** o lembrete foi criado com `comCalendario`
+- **THEN** o evento **não** sai antes da janela; vencida, é criado na agenda **do gestor** (não do tenant), o `evento_calendario_id` fica na pendência-lembrete e a trilha registra `COMPROMISSO_AGENDADO`.
+- *Teste:* `CompromissoCalendarioTest.compromisso_entra_no_calendario_depois_da_janela`
 
 ## C14 — desfazer na janela: o calendário nunca soube
-- **WHEN** o gestor desfaz dentro da janela
-- **THEN** o `EVENTO_CALENDARIO` é descartado no outbox e nenhum evento existe (INV-14).
+- **WHEN** o efeito é descartado antes de vencer a janela
+- **THEN** nenhum evento é criado e não há `COMPROMISSO_AGENDADO` (INV-14).
+- *Teste:* `CompromissoCalendarioTest.descartar_na_janela_impede_o_evento`
 
 ## C15 — falha de entrega não some
-- **WHEN** o provedor recusa/está fora
-- **THEN** retry; falha definitiva ⇒ `FALHA_COMPROMISSO` e o gestor fica sabendo (INV-13).
+- **WHEN** o provedor está fora ⇒ a mensagem volta para retentativa (INV-13); **WHEN** o gestor não tem calendário conectado ⇒ `FALHA_COMPROMISSO` e a mensagem é dada por entregue (não adianta repetir), com o lembrete valendo dentro do Alçada.
+- *Testes:* `CompromissoCalendarioTest.provedor_indisponivel_reprocessa`, `.sem_conta_conectada_registra_falha_e_nao_repete`, `.reprocesso_nao_duplica_o_evento`, `.lembrete_sem_calendario_nao_publica_efeito`
+
+## C15b — conectar/revogar o calendário (F2.3b) — pendente
+- **WHEN** o gestor conecta a conta Google/Outlook por OAuth
+- **THEN** o token fica cifrado, escopo mínimo, revogável; sem conta, `comCalendario` só produz `FALHA_COMPROMISSO`.
 
 ## Web (F2.5) — pendente
 

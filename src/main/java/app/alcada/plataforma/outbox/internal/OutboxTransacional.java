@@ -26,6 +26,19 @@ public class OutboxTransacional implements Outbox {
             ON CONFLICT (idempotency_key) DO NOTHING
             """;
 
+    /** Mesmo INSERT, com a hora em que o efeito passa a poder sair (INV-14). */
+    private static final String INSERT_APOS = """
+            INSERT INTO outbox (org_id, tipo, payload, idempotency_key, trajeto_id, pendencia_id,
+                                disponivel_em)
+            VALUES (?, ?, cast(? as jsonb), ?, ?, ?, ?)
+            ON CONFLICT (idempotency_key) DO NOTHING
+            """;
+
+    private static final String DESCARTAR_PENDENTE = """
+            DELETE FROM outbox
+            WHERE org_id = ? AND idempotency_key = ? AND status = 'PENDENTE'
+            """;
+
     private static final String LIBERAR = """
             UPDATE outbox SET trajeto_id = NULL
             WHERE org_id = ? AND trajeto_id = ?
@@ -54,6 +67,27 @@ public class OutboxTransacional implements Outbox {
                 .setParameter(5, trajeto.atual().orElse(null))
                 .setParameter(6, trajeto.pendencia().orElse(null))
                 .executeUpdate();
+    }
+
+    @Override
+    public void publicarApos(MensagemOutbox m, java.time.OffsetDateTime disponivelEm) {
+        em.createNativeQuery(INSERT_APOS)
+                .setParameter(1, m.org().valor())
+                .setParameter(2, m.tipo())
+                .setParameter(3, m.payloadJson())
+                .setParameter(4, m.idempotencyKey())
+                .setParameter(5, trajeto.atual().orElse(null))
+                .setParameter(6, trajeto.pendencia().orElse(null))
+                .setParameter(7, disponivelEm)
+                .executeUpdate();
+    }
+
+    @Override
+    public boolean descartarPendente(OrgId org, String idempotencyKey) {
+        return em.createNativeQuery(DESCARTAR_PENDENTE)
+                .setParameter(1, org.valor())
+                .setParameter(2, idempotencyKey)
+                .executeUpdate() > 0;
     }
 
     @Override

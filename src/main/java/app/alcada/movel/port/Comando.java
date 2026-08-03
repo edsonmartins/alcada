@@ -42,7 +42,12 @@ public record Comando(
      * a reunião pra quinta". {@code quando} é ISO-8601 com fuso, já resolvido por
      * quem falou — o backend valida e agenda; não interpreta linguagem.
      */
-    public record Lembrete(String quando, String texto) {
+    public record Lembrete(String quando, String texto, Boolean comCalendario) {
+
+        /** Lembrete que fica só no Alçada (sem evento na agenda do gestor). */
+        public Lembrete(String quando, String texto) {
+            this(quando, texto, false);
+        }
     }
 
     /**

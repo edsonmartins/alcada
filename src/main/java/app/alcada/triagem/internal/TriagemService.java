@@ -1,6 +1,8 @@
 package app.alcada.triagem.internal;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -18,6 +20,7 @@ import app.alcada.plataforma.trilha.port.TipoEvento;
 import app.alcada.plataforma.trilha.port.Trilha;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.persistence.NoResultException;
 import jakarta.transaction.Transactional;
 
@@ -36,6 +39,15 @@ public class TriagemService implements app.alcada.triagem.port.Triagem {
     private final Outbox outbox;
     private final Agenda agenda;
     private final FusoTenant fuso;
+
+    /**
+     * Janela entre o "sim" e o compromisso aparecer na agenda do gestor (INV-14).
+     * Curta de propósito: a janela do motor (horas) serve para efeito que o
+     * sistema executa por ausência; aqui o ato é deliberado e o gestor pode
+     * querer ver o evento hoje mesmo.
+     */
+    @ConfigProperty(name = "alcada.calendario.janela", defaultValue = "PT5M")
+    Duration janelaCompromisso;
 
     public TriagemService(EntityManager em, Trilha trilha, Outbox outbox, Agenda agenda,
                           FusoTenant fuso) {
@@ -110,6 +122,28 @@ public class TriagemService implements app.alcada.triagem.port.Triagem {
                 Ator.humano(gestorId), null, null, null,
                 "{\"lembrete_id\":\"" + lembreteId + "\",\"quando\":\"" + lembrete.quando() + "\"}"));
         agendarDespertar(org, lembreteId, 1, lembrete.quando());
+        if (lembrete.comCalendario()) {
+            agendarCompromisso(org, lembreteId, lembrete, gestorId);
+        }
+    }
+
+    /**
+     * O compromisso no calendário do gestor é efeito externo (RFC-0009): vai para
+     * o outbox e só fica disponível depois da janela de arrependimento — desfazer
+     * antes disso descarta a linha e a agenda nunca soube (INV-14).
+     */
+    private void agendarCompromisso(OrgId org, UUID lembreteId, Lembrete lembrete, UUID gestorId) {
+        String payload = "{\"lembrete_id\":\"" + lembreteId + "\",\"gestor_id\":\"" + gestorId
+                + "\",\"quando\":\"" + lembrete.quando() + "\",\"titulo\":"
+                + jsonTexto(lembrete.texto().trim()) + "}";
+        outbox.publicarApos(
+                new MensagemOutbox(org, "EVENTO_CALENDARIO", payload,
+                        app.alcada.triagem.port.Triagem.chaveCompromisso(lembreteId)),
+                OffsetDateTime.now(ZoneOffset.UTC).plus(janelaCompromisso));
+    }
+
+    private static String jsonTexto(String s) {
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
     /** Horizonte pela distância até a data, no fuso do tenant (ADR-0008). */

@@ -16,11 +16,18 @@
 - [x] Offline (F2.2b): `Interpretador.dataDaFala` lê hoje/amanhã/dia da semana/"semana que vem" com hora opcional no relógio do aparelho; sem data legível o assistente pergunta (C12b)
 - [x] Testes: backend `InterpretadorVozTest` (+4) e `ComandoRepasseExternoTest` (+2); mobile `test/lembrete_datado_test.dart` (7); `spec/docs/API.md`
 
-## Calendário (F2.3 Google, F2.4 Outlook)
-- [ ] Porta `Calendario` + `ContasCalendario` (OAuth por gestor, token cifrado, escopo mínimo)
-- [ ] `EVENTO_CALENDARIO` no outbox após a janela; `evento_calendario_id` na pendência-lembrete (C13)
-- [ ] Desfazer na janela descarta o evento; cancelar depois enfileira `CANCELAR_EVENTO_CALENDARIO` (C14)
-- [ ] Retry e `FALHA_COMPROMISSO` (C15)
+## Calendário — porta e entrega (F2.3a)
+- [x] Porta `Calendario` (+ `CriarEvento`) em `notificacao`, com `CalendarioStub` fora de prod — nenhum domínio conhece Google/Microsoft (ADR-0021)
+- [x] `Lembrete.comCalendario` (porta, endpoint, comando) e `V36` com `pendencia.evento_calendario_id`
+- [x] `Outbox.publicarApos` (janela antes do efeito, `alcada.calendario.janela` default PT5M) e `Outbox.descartarPendente` (C13/C14)
+- [x] `DespachanteCanal` case `EVENTO_CALENDARIO` → cria o evento, grava o id e registra `COMPROMISSO_AGENDADO`; sem conta → `FALHA_COMPROMISSO` sem retentativa eterna (C15)
+- [x] Testes `CompromissoCalendarioTest` (6) + `spec/docs/API.md`
+- Nota (divergência consciente da RFC): a RFC dizia "após a janela" pensando na janela do motor (horas). Para o compromisso isso deixaria a agenda vazia por horas — a janela virou config curta (5 min), o suficiente para o desfazer.
+
+## Calendário — provedor real (F2.3b Google, F2.4 Outlook)
+- [ ] `ContasCalendario` + `conta_calendario` (OAuth por gestor, token cifrado, escopo mínimo, revogação) (C15b)
+- [ ] `GoogleCalendarHttp` (@prod): criar evento, refresh de token, erros → `CalendarioIndisponivel`/`SemConta`
+- [ ] Cancelar: `Calendario.cancelarEvento` + `CANCELAR_EVENTO_CALENDARIO` no outbox quando o lembrete é cancelado depois da janela
 - [ ] Adaptador Outlook no mesmo contrato
 
 ## Web (F2.5)

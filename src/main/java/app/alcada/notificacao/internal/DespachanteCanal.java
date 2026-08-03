@@ -1,5 +1,7 @@
 package app.alcada.notificacao.internal;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -8,7 +10,9 @@ import app.alcada.captura.port.AvisoGrupo;
 import app.alcada.captura.port.EnviarAvisoGrupo;
 import app.alcada.captura.port.EnviarDireto;
 import app.alcada.captura.port.EnviarMensagem;
+import app.alcada.notificacao.port.Calendario;
 import app.alcada.notificacao.port.Canal;
+import app.alcada.notificacao.port.CriarEvento;
 import app.alcada.notificacao.port.Email;
 import app.alcada.notificacao.port.EnviarEmail;
 import app.alcada.plataforma.multitenancy.port.OrgId;
@@ -34,17 +38,23 @@ public class DespachanteCanal implements Despachante {
 
     private static final Logger LOG = Logger.getLogger(DespachanteCanal.class);
 
+    /** Bloco padrão de um compromisso sem duração declarada (RFC-0009, questão 5). */
+    private static final Duration DURACAO_PADRAO = Duration.ofHours(1);
+
     private final EntityManager em;
     private final Canal canal;
     private final Email email;
+    private final Calendario calendario;
     private final Trilha trilha;
     private final AvisoGrupo avisoGrupo;
     private final ObjectMapper json = new ObjectMapper();
 
-    public DespachanteCanal(EntityManager em, Canal canal, Email email, Trilha trilha, AvisoGrupo avisoGrupo) {
+    public DespachanteCanal(EntityManager em, Canal canal, Email email, Calendario calendario,
+                            Trilha trilha, AvisoGrupo avisoGrupo) {
         this.em = em;
         this.canal = canal;
         this.email = email;
+        this.calendario = calendario;
         this.trilha = trilha;
         this.avisoGrupo = avisoGrupo;
     }
@@ -56,6 +66,7 @@ public class DespachanteCanal implements Despachante {
             case "canal.resposta" -> entregarResposta(m);
             case "grupo.aviso" -> entregarAvisoGrupo(m);
             case "AVISO_REPASSE" -> entregarAvisoRepasse(m);
+            case "EVENTO_CALENDARIO" -> entregarCompromisso(m);
             default -> {
                 // eventos internos (delegacao.executada/escalada/devolvida, …): sem saída ao solicitante
             }
@@ -136,6 +147,41 @@ public class DespachanteCanal implements Despachante {
         if (novo) {
             comunicada(m.org(), pendenciaId, canalTipo);
         }
+    }
+
+    /**
+     * Põe o compromisso na agenda do gestor (RFC-0009 F2.3). Só chega aqui depois
+     * da janela — antes disso a linha ficava no outbox e podia ser descartada
+     * (INV-14). Sem calendário conectado, registra a impossibilidade e não fica
+     * preso em retentativa; falha do provedor propaga e o outbox reprocessa.
+     */
+    private void entregarCompromisso(MensagemOutbox m) {
+        String p = m.payloadJson();
+        UUID lembreteId = UUID.fromString(campo(p, "lembrete_id"));
+        UUID gestorId = UUID.fromString(campo(p, "gestor_id"));
+        OffsetDateTime quando = OffsetDateTime.parse(campo(p, "quando"));
+        String titulo = campo(p, "titulo");
+
+        String eventoId;
+        try {
+            eventoId = calendario.criarEvento(m.org(), new CriarEvento(
+                    gestorId, quando, DURACAO_PADRAO, titulo, m.idempotencyKey()));
+        } catch (Calendario.SemConta e) {
+            trilha.registrar(new EventoTrilha(m.org(), lembreteId, TipoEvento.FALHA_COMPROMISSO,
+                    Ator.sistemaMotor("notificacao"), null, null, null,
+                    "{\"motivo\":\"sem_calendario_conectado\"}"));
+            return; // o lembrete continua valendo no Alçada; só não virou evento
+        }
+        if (eventoId == null) {
+            return; // reprocesso: o evento já existe, nada a registrar de novo
+        }
+        em.createNativeQuery(
+                "UPDATE pendencia SET evento_calendario_id = ? WHERE org_id = ? AND id = ?")
+                .setParameter(1, eventoId).setParameter(2, m.org().valor())
+                .setParameter(3, lembreteId).executeUpdate();
+        trilha.registrar(new EventoTrilha(m.org(), lembreteId, TipoEvento.COMPROMISSO_AGENDADO,
+                Ator.sistemaMotor("notificacao"), null, null, null,
+                "{\"quando\":\"" + quando + "\"}"));
     }
 
     private String canalWhatsappDaOrg(OrgId org) {
