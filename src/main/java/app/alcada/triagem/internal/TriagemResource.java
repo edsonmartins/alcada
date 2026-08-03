@@ -7,6 +7,7 @@ import java.util.UUID;
 import app.alcada.plataforma.multitenancy.port.ContextoPessoa;
 import app.alcada.plataforma.multitenancy.port.ContextoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
+import app.alcada.triagem.port.Triagem;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -36,12 +37,32 @@ public class TriagemResource {
         this.contextoPessoa = contextoPessoa;
     }
 
+    /**
+     * Resolve o item e, opcionalmente, deixa um lembrete datado (RFC-0009): o
+     * compromisso que sobra da decisão vira um item que dorme até a data.
+     */
     @POST
     @Path("/{id}/resolver")
     public Response resolver(@PathParam("id") String id, ResolverRequest req) {
+        LembreteRequest l = req == null ? null : req.lembrete();
+        if (l != null && (l.quando() == null || l.texto() == null || l.texto().isBlank())) {
+            return problema(400, "lembrete.invalido", "quando e texto são obrigatórios no lembrete");
+        }
+        Triagem.Lembrete lembrete;
+        try {
+            lembrete = l == null ? null
+                    : new Triagem.Lembrete(OffsetDateTime.parse(l.quando()), l.texto());
+        } catch (java.time.format.DateTimeParseException e) {
+            return problema(400, "lembrete.invalido", "quando deve ser ISO-8601 com fuso");
+        }
         return comContexto((org, gestor) -> {
-            triagem.resolver(org, UUID.fromString(id), req == null ? null : req.nota(), gestor);
-            return Response.noContent().build();
+            try {
+                triagem.resolver(org, UUID.fromString(id), req == null ? null : req.nota(),
+                        lembrete, gestor);
+                return Response.noContent().build();
+            } catch (FalhasTriagem.LembreteInvalido e) {
+                return problema(422, "lembrete.invalido", e.getMessage());
+            }
         });
     }
 
@@ -123,7 +144,11 @@ public class TriagemResource {
     }
 
     // ---- DTOs --------------------------------------------------------------
-    public record ResolverRequest(String nota) {
+    public record ResolverRequest(String nota, LembreteRequest lembrete) {
+    }
+
+    /** {@code quando}: ISO-8601 com fuso, já resolvido pelo chamador (RFC-0009). */
+    public record LembreteRequest(String quando, String texto) {
     }
 
     public record ReservarRequest(String agendadoPara, Boolean gerarDossie) {

@@ -11,7 +11,7 @@
 GET    /v1/pendencias?status=&horizonte=&dono=&q=&page=
 GET    /v1/pendencias/{id}
 POST   /v1/pendencias                      # escape manual — métrica de falha (ADR-0005)
-POST   /v1/pendencias/{id}/resolver        { nota? }
+POST   /v1/pendencias/{id}/resolver        { nota?, lembrete?: { quando, texto } }
 POST   /v1/pendencias/{id}/delegar         { dono_id, nivel, prazo }
 POST   /v1/pendencias/{id}/reservar        { agendado_para, gerar_dossie: bool }
 POST   /v1/pendencias/{id}/repousar        { volta_em }
@@ -25,6 +25,13 @@ POST   /v1/pendencias/{id}/bloco/redigir   { opcao, tom }    # rascunho editáve
 POST   /v1/pendencias/{id}/decidir         { opcao, texto }  # fecha + DECIDIDA_NO_BLOCO + outbox
 POST   /v1/pendencias/{id}/dossie/perguntar { pergunta }     # recuperação híbrida (014)
 ```
+
+`POST .../resolver` com `lembrete` (RFC-0009): fecha o item **e** guarda o compromisso que sobrou
+("resolvi, mas marquei a reunião pra quinta"). `quando` é ISO-8601 **com fuso**, já resolvido pelo
+chamador; o lembrete vira uma pendência que dorme até a data e volta pela Entrada (fila única, sem
+caixa de lembretes). `204`; `400 alcada:lembrete.invalido` se faltar `quando`/`texto` ou a data não
+for ISO-8601; `422 alcada:lembrete.invalido` no passado ou a mais de 12 meses — e aí **o item não
+fecha**. O evento no calendário do gestor chega na fatia F2.3.
 
 Perguntas ao dossiê (014, RFC-0004 §1): `POST .../dossie/perguntar` → `{encontrou, resposta,
 fontes:[{fonteTipo, fonteRef, trecho}]}`. Recuperação híbrida BM25 (`tsvector`) + embeddings

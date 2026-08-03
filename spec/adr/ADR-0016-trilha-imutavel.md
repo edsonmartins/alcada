@@ -46,7 +46,11 @@ Descarte por irrelevância **não gera trilha** — não existe pendência ainda
 captura.
 
 **Triagem**
-`RESOLVIDA` · `REPASSADA` · `RESERVADA` · `REPOUSADA` · `ADIADA` · `DESPERTADA`
+`RESOLVIDA` · `REPASSADA` · `RESERVADA` · `REPOUSADA` · `ADIADA` · `DESPERTADA` · `DESCARTADA`
+
+**Lembrete e compromisso** *(acrescentado por RFC-0009)*
+`LEMBRETE_CRIADO` (na pendência de **origem**, aponta para o lembrete que ficou) ·
+`COMPROMISSO_AGENDADO` · `FALHA_COMPROMISSO` (entrega no calendário do gestor)
 
 **Autonomia**
 `PROPOSTA_REGISTRADA` · `JANELA_INICIADA` · `EXECUTADA` · `EXECUTADA_POR_AUSENCIA` ·

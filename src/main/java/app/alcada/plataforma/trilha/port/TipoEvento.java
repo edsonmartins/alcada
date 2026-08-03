@@ -1,9 +1,10 @@
 package app.alcada.plataforma.trilha.port;
 
 /**
- * Vocabulário fechado da trilha — anexo normativo do ADR-0016 (29 tipos).
- * Nenhum módulo grava tipo fora desta lista sem emenda ao ADR. O CHECK em
- * {@code V1__identidade_e_trilha.sql} espelha exatamente estes valores.
+ * Vocabulário fechado da trilha — anexo normativo do ADR-0016, emendado por
+ * ADR-0024 (devolução), ADR-0025 (comunicação) e RFC-0009 (lembrete/compromisso).
+ * Nenhum módulo grava tipo fora desta lista sem emenda ao ADR. O CHECK vigente
+ * está na última migration que o redefine ({@code V35__lembrete_datado.sql}).
  */
 public enum TipoEvento {
     // Captura (descarte por irrelevância NÃO gera trilha — vai para métrica de captura)
@@ -11,6 +12,11 @@ public enum TipoEvento {
 
     // Triagem
     RESOLVIDA, REPASSADA, RESERVADA, REPOUSADA, ADIADA, DESPERTADA, DESCARTADA,
+
+    // Lembrete e compromisso (RFC-0009): LEMBRETE_CRIADO fica na pendência de
+    // origem e aponta para o lembrete; os dois seguintes são a entrega no
+    // calendário do gestor (F2.3).
+    LEMBRETE_CRIADO, COMPROMISSO_AGENDADO, FALHA_COMPROMISSO,
 
     // Autonomia
     PROPOSTA_REGISTRADA, JANELA_INICIADA, EXECUTADA, EXECUTADA_POR_AUSENCIA,

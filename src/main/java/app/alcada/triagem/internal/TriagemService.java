@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import app.alcada.plataforma.multitenancy.port.FusoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import app.alcada.plataforma.outbox.port.MensagemOutbox;
 import app.alcada.plataforma.outbox.port.Outbox;
@@ -34,12 +35,15 @@ public class TriagemService implements app.alcada.triagem.port.Triagem {
     private final Trilha trilha;
     private final Outbox outbox;
     private final Agenda agenda;
+    private final FusoTenant fuso;
 
-    public TriagemService(EntityManager em, Trilha trilha, Outbox outbox, Agenda agenda) {
+    public TriagemService(EntityManager em, Trilha trilha, Outbox outbox, Agenda agenda,
+                          FusoTenant fuso) {
         this.em = em;
         this.trilha = trilha;
         this.outbox = outbox;
         this.agenda = agenda;
+        this.fuso = fuso;
     }
 
     // ---- saídas ------------------------------------------------------------
@@ -60,13 +64,81 @@ public class TriagemService implements app.alcada.triagem.port.Triagem {
     @Override
     @Transactional
     public void resolver(OrgId org, UUID pendenciaId, String nota, UUID gestorId) {
+        resolver(org, pendenciaId, nota, null, gestorId);
+    }
+
+    @Override
+    @Transactional
+    public void resolver(OrgId org, UUID pendenciaId, String nota, Lembrete lembrete, UUID gestorId) {
         exigirEntrada(org, pendenciaId);
+        // Valida antes de fechar: lembrete inválido não deixa o item meio resolvido.
+        if (lembrete != null) {
+            exigirLembreteUtil(lembrete);
+        }
         setStatus(org, pendenciaId, "FECHADA");
         trilha.registrar(new EventoTrilha(org, pendenciaId, TipoEvento.RESOLVIDA,
                 Ator.humano(gestorId), "ENTRADA", "FECHADA", null, null));
         // só FECHADA notifica solicitante/contraparte (INV-09)
         outbox.publicar(new MensagemOutbox(org, "item.fechado",
                 "{\"pendencia_id\":\"" + pendenciaId + "\"}", pendenciaId + ":fechado"));
+        if (lembrete != null) {
+            criarLembrete(org, pendenciaId, lembrete, gestorId);
+        }
+    }
+
+    // ---- lembrete datado (RFC-0009) ----------------------------------------
+
+    /**
+     * O compromisso vira uma pendência nova, dormindo até a data: no dia ela
+     * desperta na Entrada como qualquer outro item (fila única, INV-03). Não há
+     * caixa de lembretes — até despertar, ele é invisível (ADR-0018).
+     */
+    private void criarLembrete(OrgId org, UUID origemId, Lembrete lembrete, UUID gestorId) {
+        UUID lembreteId = UUID.randomUUID();
+        em.createNativeQuery("""
+                INSERT INTO pendencia (id, org_id, titulo, classe, horizonte, status, volta_em,
+                                       ocorrencia, origem, origem_pendencia_id)
+                VALUES (?, ?, ?, 'DECISAO', ?, 'DORMINDO', ?, 1, 'LEMBRETE', ?)
+                """)
+                .setParameter(1, lembreteId).setParameter(2, org.valor())
+                .setParameter(3, lembrete.texto().trim())
+                .setParameter(4, horizonteDe(org, lembrete.quando()))
+                .setParameter(5, lembrete.quando()).setParameter(6, origemId)
+                .executeUpdate();
+        // O evento fica na pendência de ORIGEM: é lá que se lê "resolvi, e sobrou isto".
+        trilha.registrar(new EventoTrilha(org, origemId, TipoEvento.LEMBRETE_CRIADO,
+                Ator.humano(gestorId), null, null, null,
+                "{\"lembrete_id\":\"" + lembreteId + "\",\"quando\":\"" + lembrete.quando() + "\"}"));
+        agendarDespertar(org, lembreteId, 1, lembrete.quando());
+    }
+
+    /**
+     * Um lembrete só serve se for para o futuro e tiver o que dizer. Longe demais
+     * quase sempre é data mal interpretada (INV-10: o código valida o que o modelo
+     * propôs) — e um lembrete na data errada é pior que nenhum.
+     */
+    private static void exigirLembreteUtil(Lembrete lembrete) {
+        if (lembrete.quando() == null || lembrete.texto() == null || lembrete.texto().isBlank()) {
+            throw new FalhasTriagem.LembreteInvalido("lembrete exige quando e texto");
+        }
+        OffsetDateTime agora = OffsetDateTime.now(java.time.ZoneOffset.UTC);
+        if (!lembrete.quando().isAfter(agora)) {
+            throw new FalhasTriagem.LembreteInvalido("lembrete no passado: " + lembrete.quando());
+        }
+        if (lembrete.quando().isAfter(agora.plusMonths(12))) {
+            throw new FalhasTriagem.LembreteInvalido("lembrete a mais de 12 meses: " + lembrete.quando());
+        }
+    }
+
+    /** Horizonte pela distância até a data, no fuso do tenant (ADR-0008). */
+    private String horizonteDe(OrgId org, OffsetDateTime quando) {
+        java.time.ZoneId zona = fuso.fuso(org);
+        java.time.LocalDate hoje = java.time.LocalDate.now(zona);
+        java.time.LocalDate dia = quando.atZoneSameInstant(zona).toLocalDate();
+        if (!dia.isAfter(hoje)) {
+            return "HOJE";
+        }
+        return dia.isAfter(hoje.plusDays(7)) ? "TRIMESTRE" : "SEMANA";
     }
 
     /**

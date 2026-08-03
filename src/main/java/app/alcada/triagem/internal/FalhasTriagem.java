@@ -19,4 +19,11 @@ final class FalhasTriagem {
             super(msg);
         }
     }
+
+    /** 422 — lembrete sem data/texto, no passado ou longe demais (RFC-0009). */
+    static class LembreteInvalido extends RuntimeException {
+        LembreteInvalido(String msg) {
+            super(msg);
+        }
+    }
 }

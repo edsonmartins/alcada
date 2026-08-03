@@ -17,6 +17,18 @@ public interface Triagem {
 
     void resolver(OrgId org, UUID pendenciaId, String nota, UUID gestorId);
 
+    /**
+     * Resolve deixando um lembrete datado (RFC-0009): o item fecha e o compromisso
+     * vira uma pendência nova, dormindo até a data. Lembrete nulo = resolver comum.
+     */
+    void resolver(OrgId org, UUID pendenciaId, String nota, Lembrete lembrete, UUID gestorId);
+
+    /**
+     * Compromisso que sobra de uma decisão ("marquei a reunião pra quinta"). O
+     * evento no calendário do gestor entra na F2.3 — aqui é só a data e o texto.
+     */
+    record Lembrete(OffsetDateTime quando, String texto) {}
+
     void reservar(OrgId org, UUID pendenciaId, OffsetDateTime agendadoPara, UUID gestorId);
 
     void repousar(OrgId org, UUID pendenciaId, OffsetDateTime voltaEm, UUID gestorId);

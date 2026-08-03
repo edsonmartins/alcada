@@ -5,6 +5,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 /** Reflexão para os DTOs da triagem (endpoints devolvem {@code Response}). */
 @RegisterForReflection(targets = {
         TriagemResource.ResolverRequest.class,
+        TriagemResource.LembreteRequest.class,
         TriagemResource.ReservarRequest.class,
         TriagemResource.RepousarRequest.class,
         TriagemResource.AdiarRequest.class,
