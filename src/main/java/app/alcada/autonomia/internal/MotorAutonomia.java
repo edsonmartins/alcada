@@ -6,6 +6,7 @@ import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.UUID;
 
+import app.alcada.autonomia.port.DestinoRepasse;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import app.alcada.plataforma.outbox.port.MensagemOutbox;
 import app.alcada.plataforma.outbox.port.Outbox;
@@ -46,9 +47,21 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
 
     // ---- ações de comando --------------------------------------------------
 
-    /** Delega uma pendência. Aplica elegibilidade e modo ausência. Devolve a delegação. */
+    /** Delega a um dono interno (compat). Encaminha para o destino tipado. */
+    @Override
     @Transactional
     public UUID delegar(OrgId org, UUID pendenciaId, UUID donoId, String nivelPedido,
+                        OffsetDateTime prazo, UUID gestorId) {
+        return delegar(org, pendenciaId, new DestinoRepasse.Interno(donoId), nivelPedido, prazo, gestorId);
+    }
+
+    /**
+     * Delega uma pendência a um destino interno (pessoa) ou externo (contato) — RFC-0008.
+     * Aplica elegibilidade e modo ausência. No externo, enfileira o aviso de repasse.
+     */
+    @Override
+    @Transactional
+    public UUID delegar(OrgId org, UUID pendenciaId, DestinoRepasse destino, String nivelPedido,
                         OffsetDateTime prazo, UUID gestorId) {
         String classe = classePendencia(org, pendenciaId);
         Parametros p = parametros(org, classe);
@@ -62,14 +75,18 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
         }
 
         UUID delegacaoId = UUID.randomUUID();
-        em.createNativeQuery("""
-                INSERT INTO delegacao (id, org_id, pendencia_id, dono_id, nivel, prazo,
+        // Destino: exatamente uma coluna (dono_id OU contato_id); a outra fica NULL.
+        String coluna = destino instanceof DestinoRepasse.Externo ? "contato_id" : "dono_id";
+        UUID destinoId = destino instanceof DestinoRepasse.Externo e ? e.contatoId()
+                : ((DestinoRepasse.Interno) destino).pessoaId();
+        em.createNativeQuery(("""
+                INSERT INTO delegacao (id, org_id, pendencia_id, %s, nivel, prazo,
                                        janela, escalonamento, status)
                 VALUES (?, ?, ?, ?, ?, ?, (?::bigint * interval '1 second'),
                         (?::bigint * interval '1 second'), 'ABERTA')
-                """)
+                """).formatted(coluna))
                 .setParameter(1, delegacaoId).setParameter(2, org.valor()).setParameter(3, pendenciaId)
-                .setParameter(4, donoId).setParameter(5, nivel).setParameter(6, prazo)
+                .setParameter(4, destinoId).setParameter(5, nivel).setParameter(6, prazo)
                 .setParameter(7, p.janela().toSeconds()).setParameter(8, p.escalonamento().toSeconds())
                 .executeUpdate();
 
@@ -84,6 +101,12 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
                     Ator.sistemaMotor("autonomia"), null, null, null,
                     "{\"de\":\"" + nivelPedido + "\",\"para\":\"N3\"}"));
             notificar(org, "delegacao.criada", delegacaoId, "convertida para N3 por ausência do gestor");
+        }
+
+        // Externo (RFC-0008): enfileira o aviso de repasse; o WorkerOutbox/DespachanteCanal
+        // entrega ao contato pelo canal (WhatsApp/e-mail). Represado/liberado com a janela.
+        if (destino instanceof DestinoRepasse.Externo ext) {
+            avisarRepasseExterno(org, delegacaoId, pendenciaId, ext.contatoId());
         }
 
         // Só N2 tem o ciclo de ausência (vencimento/janela/escalonamento).
@@ -387,6 +410,20 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
 
     private static String payload(UUID delegacaoId) {
         return "{\"delegacao_id\":\"" + delegacaoId + "\"}";
+    }
+
+    /**
+     * Enfileira o AVISO_REPASSE no outbox (idempotente por delegação). O
+     * WorkerOutbox/DespachanteCanal entrega ao contato externo pelo canal (fatia F1.3).
+     */
+    private void avisarRepasseExterno(OrgId org, UUID delegacaoId, UUID pendenciaId, UUID contatoId) {
+        Object[] c = (Object[]) em.createNativeQuery(
+                "SELECT canal, endereco FROM contato_externo WHERE org_id = ? AND id = ?")
+                .setParameter(1, org.valor()).setParameter(2, contatoId).getSingleResult();
+        String payload = "{\"delegacao_id\":\"" + delegacaoId + "\",\"contato_id\":\"" + contatoId
+                + "\",\"pendencia_id\":\"" + pendenciaId + "\",\"canal\":" + json((String) c[0])
+                + ",\"endereco\":" + json((String) c[1]) + "}";
+        outbox.publicar(new MensagemOutbox(org, "AVISO_REPASSE", payload, delegacaoId + ":aviso_repasse"));
     }
 
     private static String json(String s) {
