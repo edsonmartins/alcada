@@ -12,6 +12,7 @@ import java.util.UUID;
 import app.alcada.autonomia.internal.MotorAutonomia;
 import app.alcada.autonomia.port.ContatosExternos;
 import app.alcada.autonomia.port.DestinoRepasse;
+import app.alcada.notificacao.internal.EmailStub;
 import app.alcada.notificacao.internal.LinktorStub;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import app.alcada.plataforma.outbox.internal.WorkerOutbox;
@@ -32,12 +33,14 @@ class RepasseAvisoTest {
     @Inject ContatosExternos contatos;
     @Inject WorkerOutbox worker;
     @Inject LinktorStub linktor;
+    @Inject EmailStub emailStub;
     @Inject ConsultaTrilha trilha;
     @Inject EntityManager em;
 
     @BeforeEach
     void limpar() {
         linktor.limpar();
+        emailStub.limpar();
     }
 
     // WHEN repasse externo (WhatsApp) THEN o worker entrega no canal + trilha COMUNICADA
@@ -53,6 +56,22 @@ class RepasseAvisoTest {
         assertEquals(1, diretas.size(), "enviou 1 mensagem direta ao contato");
         assertEquals("chan-abc", diretas.get(0).channelId(), "usa o canal WhatsApp do tenant");
         assertTrue(diretas.get(0).texto().contains(c.pend.toString()), "texto referencia a pendência");
+        assertTrue(tipos(c.org, c.pend).contains("COMUNICADA"));
+    }
+
+    // WHEN repasse externo (e-mail) THEN o worker envia por SMTP + trilha COMUNICADA
+    @Test
+    void aviso_externo_email_envia_por_smtp_e_registra_comunicada() {
+        Ctx c = novo("chan-abc");
+        UUID contato = contatos.registrar(c.org, "Ana Paula", "EMAIL", "ana.paula@hotsales.com.br", c.gestor);
+        motor.delegar(c.org, c.pend, new DestinoRepasse.Externo(contato), "N2", agora(), c.gestor);
+
+        worker.processarLote();
+
+        var enviados = emailStub.enviados().stream()
+                .filter(e -> "ana.paula@hotsales.com.br".equals(e.to())).toList();
+        assertEquals(1, enviados.size(), "enviou 1 e-mail ao contato");
+        assertTrue(enviados.get(0).texto().contains(c.pend.toString()), "corpo referencia a pendência");
         assertTrue(tipos(c.org, c.pend).contains("COMUNICADA"));
     }
 

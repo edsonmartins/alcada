@@ -9,6 +9,8 @@ import app.alcada.captura.port.EnviarAvisoGrupo;
 import app.alcada.captura.port.EnviarDireto;
 import app.alcada.captura.port.EnviarMensagem;
 import app.alcada.notificacao.port.Canal;
+import app.alcada.notificacao.port.Email;
+import app.alcada.notificacao.port.EnviarEmail;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import app.alcada.plataforma.outbox.port.Despachante;
 import app.alcada.plataforma.outbox.port.MensagemOutbox;
@@ -34,13 +36,15 @@ public class DespachanteCanal implements Despachante {
 
     private final EntityManager em;
     private final Canal canal;
+    private final Email email;
     private final Trilha trilha;
     private final AvisoGrupo avisoGrupo;
     private final ObjectMapper json = new ObjectMapper();
 
-    public DespachanteCanal(EntityManager em, Canal canal, Trilha trilha, AvisoGrupo avisoGrupo) {
+    public DespachanteCanal(EntityManager em, Canal canal, Email email, Trilha trilha, AvisoGrupo avisoGrupo) {
         this.em = em;
         this.canal = canal;
+        this.email = email;
         this.trilha = trilha;
         this.avisoGrupo = avisoGrupo;
     }
@@ -110,22 +114,25 @@ public class DespachanteCanal implements Despachante {
         String canalTipo = campo(p, "canal");
         String endereco = campo(p, "endereco");
         UUID pendenciaId = UUID.fromString(campo(p, "pendencia_id"));
-
-        if (!"WHATSAPP".equals(canalTipo)) {
-            // EMAIL (SMTP) é a fatia F1.3b; sem canal ainda — não trava o outbox.
-            LOG.infof("AVISO_REPASSE canal %s ainda sem entrega (F1.3b); marcado entregue", canalTipo);
-            return;
-        }
-        String channelId = canalWhatsappDaOrg(m.org());
-        if (channelId == null || channelId.isBlank()) {
-            trilha.registrar(new EventoTrilha(m.org(), pendenciaId, TipoEvento.COMUNICACAO_IMPOSSIVEL,
-                    Ator.sistemaMotor("notificacao"), null, null, null,
-                    "{\"motivo\":\"sem_canal_whatsapp\"}"));
-            return;
-        }
         String texto = "Você recebeu um repasse no Alçada para acompanhar. (ref " + pendenciaId + ")";
-        boolean novo = canal.enviarDireto(m.org(),
-                new EnviarDireto(channelId, endereco, texto, m.idempotencyKey()));
+
+        boolean novo;
+        if ("EMAIL".equals(canalTipo)) {
+            novo = email.enviar(m.org(), new EnviarEmail(endereco, "Repasse no Alçada", texto, m.idempotencyKey()));
+        } else if ("WHATSAPP".equals(canalTipo)) {
+            String channelId = canalWhatsappDaOrg(m.org());
+            if (channelId == null || channelId.isBlank()) {
+                trilha.registrar(new EventoTrilha(m.org(), pendenciaId, TipoEvento.COMUNICACAO_IMPOSSIVEL,
+                        Ator.sistemaMotor("notificacao"), null, null, null,
+                        "{\"motivo\":\"sem_canal_whatsapp\"}"));
+                return;
+            }
+            novo = canal.enviarDireto(m.org(),
+                    new EnviarDireto(channelId, endereco, texto, m.idempotencyKey()));
+        } else {
+            LOG.warnf("AVISO_REPASSE canal desconhecido: %s; marcado entregue", canalTipo);
+            return;
+        }
         if (novo) {
             comunicada(m.org(), pendenciaId, canalTipo);
         }

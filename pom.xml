@@ -82,6 +82,12 @@
       <artifactId>quarkus-scheduler</artifactId>
     </dependency>
 
+    <!-- E-mail: notificação de repasse a contato externo (RFC-0008 F1.3b). SMTP só em prod. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-mailer</artifactId>
+    </dependency>
+
     <!-- Multi-tenant: org_id do token (INV-15) -->
     <dependency>
       <groupId>io.quarkus</groupId>
