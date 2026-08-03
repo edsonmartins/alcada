@@ -1,0 +1,293 @@
+<title>Roteiro — Corpus de voz (gate de WER)</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef1f4;
+    --ink: #161a20;
+    --ink-soft: #4a525e;
+    --ink-faint: #838d9b;
+    --line: #dde2e8;
+    --line-strong: #c9d0d8;
+    --rec: #cf7a1f;          /* luz de gravação — o único acento */
+    --rec-soft: #f4e6d3;
+    --rec-ink: #8a4e0d;
+    --sig: #2f6f57;          /* verde de nível — só para "campos críticos" */
+    --sig-soft: #dcebe4;
+    --sig-ink: #1f5340;
+    --radius: 10px;
+    --maxw: 760px;
+    --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101318; --surface: #171b21; --surface-2: #1e232b;
+      --ink: #e8ebef; --ink-soft: #aab3bf; --ink-faint: #7b8592;
+      --line: #272d36; --line-strong: #333b46;
+      --rec: #e6a24f; --rec-soft: #33261a; --rec-ink: #f0bd7d;
+      --sig: #5aa585; --sig-soft: #17251f; --sig-ink: #83c5a8;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f6f8; --surface: #ffffff; --surface-2: #eef1f4;
+    --ink: #161a20; --ink-soft: #4a525e; --ink-faint: #838d9b;
+    --line: #dde2e8; --line-strong: #c9d0d8;
+    --rec: #cf7a1f; --rec-soft: #f4e6d3; --rec-ink: #8a4e0d;
+    --sig: #2f6f57; --sig-soft: #dcebe4; --sig-ink: #1f5340;
+  }
+  :root[data-theme="dark"] {
+    --bg: #101318; --surface: #171b21; --surface-2: #1e232b;
+    --ink: #e8ebef; --ink-soft: #aab3bf; --ink-faint: #7b8592;
+    --line: #272d36; --line-strong: #333b46;
+    --rec: #e6a24f; --rec-soft: #33261a; --rec-ink: #f0bd7d;
+    --sig: #5aa585; --sig-soft: #17251f; --sig-ink: #83c5a8;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "kern";
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 22px 80px; }
+
+  /* ---- header ---- */
+  header { padding: 54px 0 32px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 12px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--rec-ink); margin: 0 0 18px;
+  }
+  .rec-dot {
+    width: 9px; height: 9px; border-radius: 50%; background: var(--rec);
+    box-shadow: 0 0 0 4px var(--rec-soft);
+  }
+  h1 {
+    font-size: clamp(30px, 5.4vw, 44px); line-height: 1.05; letter-spacing: -.022em;
+    font-weight: 780; margin: 0 0 14px; text-wrap: balance;
+  }
+  .lede { font-size: 18px; color: var(--ink-soft); margin: 0; max-width: 60ch; text-wrap: pretty; }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 24px;
+    font-size: 13px; color: var(--ink-faint);
+    border-top: 1px solid var(--line); padding-top: 18px;
+    font-variant-numeric: tabular-nums;
+  }
+  .meta b { color: var(--ink); font-weight: 650; }
+
+  /* ---- generic ---- */
+  h2 {
+    font-size: 13px; font-weight: 680; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 46px 0 16px; display: flex; align-items: center; gap: 12px;
+  }
+  h2::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  p { margin: 0 0 14px; }
+  a { color: var(--rec-ink); text-underline-offset: 2px; }
+
+  .callout {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: var(--rec-soft); border: 1px solid color-mix(in srgb, var(--rec) 35%, transparent);
+    border-radius: var(--radius); padding: 16px 18px; margin: 4px 0 8px;
+  }
+  .callout .ic { font-size: 20px; line-height: 1.3; }
+  .callout p { margin: 0; color: var(--ink); font-size: 15px; }
+  .callout b { color: var(--rec-ink); }
+
+  /* ---- measure cards ---- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .card h3 { margin: 0 0 6px; font-size: 15px; font-weight: 680; letter-spacing: -.01em; }
+  .card p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .card.crit { border-color: color-mix(in srgb, var(--sig) 34%, transparent); background: var(--sig-soft); }
+  .card.crit h3 { color: var(--sig-ink); }
+
+  /* ---- spec panel (setup) ---- */
+  .spec { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .spec .row { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 18px; border-top: 1px solid var(--line); }
+  .spec .row:first-child { border-top: 0; }
+  .spec .k { font-size: 12px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); padding-top: 2px; }
+  .spec .v { font-size: 15px; color: var(--ink); }
+  .spec .v .n { font-variant-numeric: tabular-nums; font-weight: 680; }
+  code, kbd { font-family: var(--mono); font-size: .88em; background: var(--surface-2); padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 4px; }
+  .chip {
+    font-size: 12.5px; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-soft);
+  }
+
+  /* ---- phrase table ---- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+  thead th {
+    text-align: left; font-size: 11px; font-weight: 680; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--ink-faint); padding: 12px 16px; border-bottom: 1px solid var(--line-strong); background: var(--surface-2);
+    position: sticky; top: 0;
+  }
+  tbody td { padding: 11px 16px; border-top: 1px solid var(--line); vertical-align: top; }
+  tbody tr:first-child td { border-top: 0; }
+  .id { font-family: var(--mono); font-size: 12.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .say { font-family: var(--mono); font-size: 13px; color: var(--ink); line-height: 1.5; }
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 5px; white-space: nowrap;
+    background: var(--surface-2); color: var(--ink-soft); border: 1px solid var(--line);
+  }
+  .crit-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .cc {
+    font-family: var(--mono); font-size: 11.5px; font-weight: 500;
+    padding: 2px 7px; border-radius: 5px;
+    background: var(--sig-soft); color: var(--sig-ink);
+    border: 1px solid color-mix(in srgb, var(--sig) 26%, transparent);
+  }
+  .cc.none { background: transparent; color: var(--ink-faint); border: 1px dashed var(--line-strong); }
+
+  ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: grid; gap: 10px; }
+  ol.steps li {
+    counter-increment: s; display: grid; grid-template-columns: 34px 1fr; gap: 14px; align-items: start;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px;
+  }
+  ol.steps li::before {
+    content: counter(s); font-variant-numeric: tabular-nums; font-weight: 720; font-size: 15px;
+    width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px;
+    background: var(--rec-soft); color: var(--rec-ink); border: 1px solid color-mix(in srgb, var(--rec) 30%, transparent);
+  }
+  ol.steps b { font-weight: 680; }
+  ol.steps small { color: var(--ink-soft); display: block; font-size: 13.5px; margin-top: 2px; }
+
+  footer { margin-top: 52px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 13px; }
+  footer code { font-size: 12px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span class="rec-dot"></span> ADR-0026 §4 · Gate de WER</div>
+    <h1>Roteiro de gravação do corpus de voz</h1>
+    <p class="lede">Antes de adotar o Whisper on-device, o gate mede a precisão da transcrição em português com ruído de carro. Este guia diz o que gravar, como e como rotular — o resto do pipeline já existe.</p>
+    <div class="meta">
+      <span><b>30</b> falas prontas</span>
+      <span><b>3+</b> condições de ruído</span>
+      <span>WAV <b>16&nbsp;kHz</b> mono</span>
+      <span>PT-BR</span>
+    </div>
+  </header>
+
+  <div class="callout">
+    <span class="ic">⚠️</span>
+    <p><b>Segurança primeiro.</b> Não leia o roteiro dirigindo. Peça a um passageiro para conduzir a gravação, ou grave parado / como carona. O objetivo é capturar o <b>ruído real</b>, nunca dirigir distraído.</p>
+  </div>
+
+  <h2>O que medimos, e por quê</h2>
+  <div class="cards">
+    <div class="card">
+      <h3>WER geral</h3>
+      <p>Erro médio da transcrição inteira. Alto demais, e a interpretação sofre.</p>
+    </div>
+    <div class="card crit">
+      <h3>WER dos campos críticos</h3>
+      <p>Nome, valor, prazo, nível — onde o erro custa a decisão. Confirmar “Alessandro N3” por “Alexandre N2” é grave.</p>
+    </div>
+    <div class="card">
+      <h3>Latência · tamanho · bateria</h3>
+      <p>Medidos no aparelho, na mesma sessão (~30 min de trajeto). Saem do device, não do corpus.</p>
+    </div>
+  </div>
+
+  <h2>Como gravar</h2>
+  <div class="spec">
+    <div class="row"><div class="k">Quantas</div><div class="v"><span class="n">30</span> falas distintas (mínimo). Recomendado: as 30 × 3 condições = <span class="n">90</span> clipes. ~6 por intenção, variando nomes, valores e prazos.</div></div>
+    <div class="row"><div class="k">Condições</div><div class="v">Grave cada fala em ao menos três:
+      <div class="chips">
+        <span class="chip">Cidade andando</span>
+        <span class="chip">Rodovia / velocidade</span>
+        <span class="chip">Parado no sinal</span>
+        <span class="chip">+ túnel</span>
+        <span class="chip">+ janela aberta</span>
+        <span class="chip">+ rádio baixo</span>
+      </div>
+    </div></div>
+    <div class="row"><div class="k">Formato</div><div class="v">WAV, 16&nbsp;kHz, mono (casa com o app). Se o gravador só fizer <code>m4a</code>, converta: <code>ffmpeg -i in.m4a -ar 16000 -ac 1 out.wav</code></div></div>
+    <div class="row"><div class="k">Nome</div><div class="v"><code>f{NN}_{condicao}.wav</code> — ex.: <code>f03_rodovia.wav</code>. O <code>NN</code> casa com a coluna <code>id</code> da tabela.</div></div>
+    <div class="row"><div class="k">Tom</div><div class="v">Fale como falaria de verdade — celular no suporte, não na boca.</div></div>
+  </div>
+
+  <h2>As 30 falas <span class="id" style="text-transform:none;letter-spacing:0"></span></h2>
+  <p style="color:var(--ink-soft);font-size:14.5px;margin-bottom:16px">Diga cada linha em voz alta. Se improvisar algo diferente, <b>corrija a referência</b> para bater com o áudio — senão o WER mede errado. Os <span style="color:var(--sig-ink);font-weight:600">campos verdes</span> são o que a decisão depende.</p>
+  <div class="tablewrap">
+    <table id="falas">
+      <thead>
+        <tr><th>#</th><th>Intenção</th><th>Diga isto</th><th>Campos críticos</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <h2>Como vira veredito</h2>
+  <ol class="steps">
+    <li><div><b>Transcreva cada clipe</b> com cada candidato — <b>aparelho</b>, <b>nuvem</b>, e depois <b>whisper-small</b>.<small>O app já grava e transcreve; para o gate, junte as hipóteses na ordem das linhas da tabela.</small></div></li>
+    <li><div><b>Rode o gate.</b> <code>avaliar(...)</code> devolve o WER médio e o WER de campos por candidato.<small>O corpus rotulado carrega direto do CSV via <code>amostrasDeCsv()</code>.</small></div></li>
+    <li><div><b>Compare com o limiar de negócio.</b> Provisório: <code>WER ≤ 0,15</code> e <code>campos ≤ 0,05</code>. O número oficial é seu.<small>Se o Whisper passar, adota-se on-device; se reprovar, o ADR-0026 manda reabrir a escolha.</small></div></li>
+  </ol>
+
+  <div class="callout" style="margin-top:16px">
+    <span class="ic">🎚️</span>
+    <p><b>Definir o limiar é sua decisão.</b> A pergunta prática: <b>qual erro nos campos críticos é tolerável no trânsito?</b> A confirmação falada (“Alexandre, N2, até sexta. Confirma?”) existe justamente para pegar o erro antes de virar risco — o limiar de campos deve refletir o quanto ela consegue segurar.</p>
+  </div>
+
+  <footer>
+    Fonte no repositório: <code>spec/openspec/changes/022-canal-de-voz/roteiro-corpus-wer.md</code> · <code>corpus_wer_template.csv</code> · harness em <code>alcada-mobile/lib/voz/aval/</code>.
+  </footer>
+</div>
+
+<script>
+  const F = [
+    ["f01","resolver","já resolvi o reembolso da viagem",[]],
+    ["f02","resolver","o aditivo do contrato tá fechado",[]],
+    ["f03","resolver","aprovei a nota fiscal da Camila",["Camila"]],
+    ["f04","resolver","resolvi o pagamento do fornecedor",[]],
+    ["f05","resolver","terminei a análise da proposta da Acme",["Acme"]],
+    ["f06","resolver","já paguei o adiantamento do Rodrigo",["Rodrigo"]],
+    ["f07","repassar","passa o contrato do fornecedor pro Alexandre no N2 até sexta",["Alexandre","N2","sexta"]],
+    ["f08","repassar","manda a proposta da Acme pra Fernanda no N1",["Fernanda","N1","Acme"]],
+    ["f09","repassar","repassa o reembolso pro Bruno até segunda",["Bruno","segunda"]],
+    ["f10","repassar","delega a compra de duzentos e cinquenta mil pro Rodrigo no N3",["duzentos e cinquenta mil","Rodrigo","N3"]],
+    ["f11","repassar","passa esse pro Ricardo até o dia quinze",["Ricardo","dia quinze"]],
+    ["f12","repassar","fala pro Marcelo tocar o aditivo no N2",["Marcelo","N2"]],
+    ["f13","adiar","esse eu vejo semana que vem",["semana que vem"]],
+    ["f14","adiar","adia o contrato da Acme pra sexta",["Acme","sexta"]],
+    ["f15","adiar","deixa o reembolso pra próxima semana",["próxima semana"]],
+    ["f16","adiar","segura a proposta até segunda",["segunda"]],
+    ["f17","adiar","empurra a compra pro mês que vem",["mês que vem"]],
+    ["f18","adiar","deixa esse pra depois do feriado",["feriado"]],
+    ["f19","registrar","lembra de cobrar o Bruno sobre a nota na segunda",["Bruno","segunda"]],
+    ["f20","registrar","anota pra ligar pra Fernanda amanhã",["Fernanda","amanhã"]],
+    ["f21","registrar","registra a reunião com o fornecedor na sexta",["sexta"]],
+    ["f22","registrar","me lembra de revisar o orçamento dia dez",["dia dez"]],
+    ["f23","registrar","não esquece de aprovar o adiantamento da Camila",["Camila"]],
+    ["f24","registrar","anota cobrar o Ricardo do relatório",["Ricardo"]],
+    ["f25","consultar","o que tá esperando por mim hoje",["hoje"]],
+    ["f26","consultar","o que eu decidi essa semana",["essa semana"]],
+    ["f27","consultar","quanto tem em jogo na fila",[]],
+    ["f28","consultar","o que travou por causa do financeiro",["financeiro"]],
+    ["f29","consultar","o que eu venho adiando",[]],
+    ["f30","consultar","o que eu deleguei que ainda tá aberto",[]],
+  ];
+  const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const tb = document.querySelector('#falas tbody');
+  tb.innerHTML = F.map(([id,intent,say,campos]) => {
+    const cc = campos.length
+      ? campos.map(c => `<span class="cc">${esc(c)}</span>`).join('')
+      : `<span class="cc none">—</span>`;
+    return `<tr>
+      <td class="id">${id}</td>
+      <td><span class="tag">${intent}</span></td>
+      <td class="say">${esc(say)}</td>
+      <td><div class="crit-chips">${cc}</div></td>
+    </tr>`;
+  }).join('');
+</script>

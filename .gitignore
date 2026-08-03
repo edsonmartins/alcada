@@ -16,3 +16,7 @@ target/
 .quarkus/
 *-runner
 *-runner.jar
+
+# Saída de execução e diffs de trabalho
+*.log
+*.diff

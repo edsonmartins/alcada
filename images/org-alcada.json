@@ -1,0 +1,562 @@
+{
+  "owner": "admin",
+  "name": "alcada",
+  "createdTime": "",
+  "displayName": "Alçada",
+  "websiteUrl": "https://alcada.vendax.ai",
+  "logo": "https://app.archguard.com.br/files/branding/logo_archguard_texto_direita.png",
+  "logoDark": "https://app.archguard.com.br/files/branding/logo_archguard_texto_direita.png",
+  "favicon": "https://app.archguard.com.br/files/branding/logo_archguard_single.png",
+  "hasPrivilegeConsent": false,
+  "passwordType": "bcrypt",
+  "passwordSalt": "",
+  "passwordOptions": [
+    "AtLeast6"
+  ],
+  "passwordObfuscatorType": "",
+  "passwordObfuscatorKey": "",
+  "passwordExpireDays": 0,
+  "countryCodes": [
+    "BR",
+    "US",
+    "ES",
+    "FR",
+    "DE",
+    "GB",
+    "CN",
+    "JP",
+    "KR",
+    "VN",
+    "ID",
+    "SG",
+    "IN"
+  ],
+  "defaultAvatar": "https://app.archguard.com.br/files/branding/logo_archguard_single.png",
+  "usePermanentAvatar": false,
+  "defaultApplication": "",
+  "userTypes": [],
+  "tags": [],
+  "languages": [
+    "en",
+    "es",
+    "fr",
+    "de",
+    "ja",
+    "zh",
+    "vi",
+    "pt",
+    "tr",
+    "pl",
+    "uk"
+  ],
+  "themeData": null,
+  "defaultPassword": "",
+  "masterVerificationCode": "",
+  "ipWhitelist": "",
+  "initScore": 2000,
+  "enableSoftDeletion": false,
+  "isProfilePublic": false,
+  "useEmailAsUsername": false,
+  "enableTour": true,
+  "disableSignin": false,
+  "ipRestriction": "",
+  "navItems": null,
+  "userNavItems": null,
+  "widgetItems": null,
+  "mfaItems": null,
+  "mfaRememberInHours": 12,
+  "accountMenu": "",
+  "accountItems": [
+    {
+      "name": "Organization",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "ID",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Immutable",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Name",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Display name",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "First name",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Last name",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Avatar",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "User type",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Password",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Email",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Phone",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Country code",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Country/Region",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Location",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Address",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Addresses",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Affiliation",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Title",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "ID card type",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "ID card",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "ID card info",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Real name",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "ID verification",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Homepage",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Bio",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Tag",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Language",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Gender",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Birthday",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Education",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Balance",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Balance credit",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Balance currency",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Cart",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Transactions",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Score",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Karma",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Ranking",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Signup application",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Register type",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Register source",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Roles",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Immutable",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Permissions",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Immutable",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Groups",
+      "visible": true,
+      "viewRule": "Public",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Consents",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "3rd-party logins",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Properties",
+      "visible": true,
+      "viewRule": "Admin",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Is online",
+      "visible": true,
+      "viewRule": "Admin",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Is admin",
+      "visible": true,
+      "viewRule": "Admin",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Is forbidden",
+      "visible": true,
+      "viewRule": "Admin",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Is deleted",
+      "visible": true,
+      "viewRule": "Admin",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Multi-factor authentication",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "MFA items",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "WebAuthn credentials",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Last change password time",
+      "visible": true,
+      "viewRule": "Admin",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Managed accounts",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Face ID",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "MFA accounts",
+      "visible": true,
+      "viewRule": "Self",
+      "modifyRule": "Self",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "Need update password",
+      "visible": true,
+      "viewRule": "Admin",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    },
+    {
+      "name": "IP whitelist",
+      "visible": true,
+      "viewRule": "Admin",
+      "modifyRule": "Admin",
+      "regex": "",
+      "tab": ""
+    }
+  ],
+  "dcrPolicy": "disabled",
+  "ldapAttributes": null,
+  "kerberosRealm": "",
+  "kerberosKdcHost": "",
+  "kerberosKeytab": "",
+  "kerberosServiceName": "",
+  "orgBalance": 0,
+  "userBalance": 0,
+  "balanceCredit": 0,
+  "balanceCurrency": "",
+  "masterPassword": ""
+}
