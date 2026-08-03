@@ -234,6 +234,45 @@ class ComandoRepasseExternoTest {
         assertEquals(0L, countOutbox(org, "AVISO_REPASSE"), "interno recebe pela própria fila");
     }
 
+    // C12 — RESOLVER com lembrete pelo comando (offline-first): fecha e agenda junto
+    @Test
+    void comando_resolver_com_lembrete_fecha_e_agenda() {
+        OrgId org = novaOrg();
+        UUID pend = pendencia(org, "ENTRADA");
+        String quinta = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).plusDays(3).toString();
+
+        var r = sync(org, UUID.randomUUID(), resolverComLembrete(pend, quinta, "Reunião Sharpi"));
+
+        assertEquals(Status.OK, r.get(0).status());
+        assertEquals("FECHADA", status(org, pend));
+        assertEquals(1L, countLembretes(org), "o compromisso virou item dormindo");
+    }
+
+    // C12 — data malformada é ERRO do comando, não silêncio: o compromisso não some
+    @Test
+    void comando_com_lembrete_invalido_e_recusado() {
+        OrgId org = novaOrg();
+        UUID pend = pendencia(org, "ENTRADA");
+
+        var r = sync(org, UUID.randomUUID(), resolverComLembrete(pend, "quinta que vem", "Reunião"));
+
+        assertEquals(Status.ERRO, r.get(0).status());
+        assertEquals("ENTRADA", status(org, pend), "o item não fecha sem o lembrete");
+        assertEquals(0L, countLembretes(org));
+    }
+
+    private static Comando resolverComLembrete(UUID pend, String quando, String texto) {
+        return new Comando(UUID.randomUUID(), Intencao.RESOLVER, pend,
+                new Campos(null, null, null, null, null, null, null, null, null, null, null, null,
+                        null, new Comando.Lembrete(quando, texto)));
+    }
+
+    private long countLembretes(OrgId org) {
+        return ((Number) QuarkusTransaction.requiringNew().call(() -> em.createNativeQuery(
+                "SELECT count(*) FROM pendencia WHERE org_id = ? AND origem = 'LEMBRETE'")
+                .setParameter(1, org.valor()).getSingleResult())).longValue();
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private List<ResultadoComando> sync(OrgId org, UUID pessoa, Comando c) {
@@ -247,7 +286,7 @@ class ComandoRepasseExternoTest {
 
     private static Campos campos(UUID dono, Contato contato, String aliasFalado) {
         return new Campos(dono, "N2", null, null, null, null, null, null, null, null, null,
-                aliasFalado, contato);
+                aliasFalado, contato, null);
     }
 
     private OrgId novaOrg() {

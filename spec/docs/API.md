@@ -73,12 +73,16 @@ classe RESTRITA nunca sai.
 
 `POST /v1/voz/interpretar` (022): fala + contexto + fila → `{intencao, pendenciaId, titulo, donoId,
 donoNome, nivel, tituloNovo, resposta, frase, precisaConfirmar, candidatosDono:[{id,nome,tipo,canal}],
-termoFalado, contatoId, contatoCanal, podeRegistrarContato}`. O modelo **propõe**; o app confirma
+termoFalado, contatoId, contatoCanal, podeRegistrarContato, lembreteQuando, lembreteTexto}`. O modelo **propõe**; o app confirma
 (INV-10). No `REPASSAR`, o nome falado é resolvido contra pessoas **e** contatos externos (RFC-0008):
 um casamento único vira `donoId` (interno) **ou** `contatoId`+`contatoCanal` (externo, nunca os dois);
 mais de um devolve `candidatosDono` com `tipo` `PESSOA|CONTATO`; nenhum devolve a lista conhecida,
 `termoFalado` (para aprender o apelido ao escolher) e `podeRegistrarContato`. Canal e endereço de um
 contato novo **não** saem da fala — o app os coleta, para o modelo não inventar endereço de terceiro.
+No `RESOLVER` com compromisso (RFC-0009), o prompt leva o "agora" no fuso do tenant e o modelo
+devolve `lembreteQuando` em ISO-8601 **só quando consegue resolver a data**; sem ela (ou se a data
+não sobrevive à validação), vem `lembreteTexto` com a frase perguntando — o app espera a resposta e
+não despacha nada.
 
 `POST /v1/consulta` (020): pergunta livre → template de whitelist → SQL determinístico
 (INV-10/INV-15). Resposta `{pergunta, template, resposta, itens:[{id,titulo,classe,valorEmJogo}]}`;
@@ -90,6 +94,11 @@ mapeia para a ação determinística existente (INV-10); intenções: `RESOLVER,
 REPOUSAR, ADIAR, REGISTRAR, CONSULTAR`. Resposta `{resultados:[{comandoId, status:
 OK|IGNORADO|RECUSADO|ERRO, detalhe?, pendenciaId?, consulta?}]}`. Pendência que já saiu da fila →
 `IGNORADO` (não erro); `REGISTRAR` (escape) nunca é ignorado; `CONSULTAR` traz `consulta`.
+
+`RESOLVER` aceita `campos.lembrete {quando, texto}` (RFC-0009): fecha o item e guarda o compromisso
+que sobrou, na mesma transação do comando — reenviar o mesmo `comandoId` não duplica o lembrete.
+`quando` é ISO-8601 com fuso; data malformada, no passado ou a mais de 12 meses vira `ERRO` do
+comando (o item **não** fecha), nunca silêncio.
 
 `REPASSAR` (RFC-0008) tem **um** destino: `campos.dono` (pessoa interna) **ou** `campos.contato`
 (externo) — os dois juntos, ou nenhum, dão `ERRO`. O contato vem como `{id}` (já registrado) ou

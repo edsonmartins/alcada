@@ -27,7 +27,30 @@ public interface Triagem {
      * Compromisso que sobra de uma decisão ("marquei a reunião pra quinta"). O
      * evento no calendário do gestor entra na F2.3 — aqui é só a data e o texto.
      */
-    record Lembrete(OffsetDateTime quando, String texto) {}
+    record Lembrete(OffsetDateTime quando, String texto) {
+
+        /**
+         * Um lembrete só serve se for para o futuro e tiver o que dizer. Longe
+         * demais quase sempre é data mal interpretada (INV-10: o código valida o
+         * que o modelo propôs) — e um lembrete na data errada é pior que nenhum.
+         *
+         * <p>Mora aqui, e não no serviço, para o chamador poder validar **antes**
+         * de abrir a transação do comando: exceção lá dentro marcaria a transação
+         * para rollback e derrubaria o registro de idempotência junto.
+         */
+        public void exigirUtil() {
+            if (quando == null || texto == null || texto.isBlank()) {
+                throw new IllegalArgumentException("lembrete exige quando e texto");
+            }
+            OffsetDateTime agora = OffsetDateTime.now(java.time.ZoneOffset.UTC);
+            if (!quando.isAfter(agora)) {
+                throw new IllegalArgumentException("lembrete no passado: " + quando);
+            }
+            if (quando.isAfter(agora.plusMonths(12))) {
+                throw new IllegalArgumentException("lembrete a mais de 12 meses: " + quando);
+            }
+        }
+    }
 
     void reservar(OrgId org, UUID pendenciaId, OffsetDateTime agendadoPara, UUID gestorId);
 

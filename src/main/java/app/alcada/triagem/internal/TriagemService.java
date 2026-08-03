@@ -73,7 +73,7 @@ public class TriagemService implements app.alcada.triagem.port.Triagem {
         exigirEntrada(org, pendenciaId);
         // Valida antes de fechar: lembrete inválido não deixa o item meio resolvido.
         if (lembrete != null) {
-            exigirLembreteUtil(lembrete);
+            lembrete.exigirUtil();
         }
         setStatus(org, pendenciaId, "FECHADA");
         trilha.registrar(new EventoTrilha(org, pendenciaId, TipoEvento.RESOLVIDA,
@@ -110,24 +110,6 @@ public class TriagemService implements app.alcada.triagem.port.Triagem {
                 Ator.humano(gestorId), null, null, null,
                 "{\"lembrete_id\":\"" + lembreteId + "\",\"quando\":\"" + lembrete.quando() + "\"}"));
         agendarDespertar(org, lembreteId, 1, lembrete.quando());
-    }
-
-    /**
-     * Um lembrete só serve se for para o futuro e tiver o que dizer. Longe demais
-     * quase sempre é data mal interpretada (INV-10: o código valida o que o modelo
-     * propôs) — e um lembrete na data errada é pior que nenhum.
-     */
-    private static void exigirLembreteUtil(Lembrete lembrete) {
-        if (lembrete.quando() == null || lembrete.texto() == null || lembrete.texto().isBlank()) {
-            throw new FalhasTriagem.LembreteInvalido("lembrete exige quando e texto");
-        }
-        OffsetDateTime agora = OffsetDateTime.now(java.time.ZoneOffset.UTC);
-        if (!lembrete.quando().isAfter(agora)) {
-            throw new FalhasTriagem.LembreteInvalido("lembrete no passado: " + lembrete.quando());
-        }
-        if (lembrete.quando().isAfter(agora.plusMonths(12))) {
-            throw new FalhasTriagem.LembreteInvalido("lembrete a mais de 12 meses: " + lembrete.quando());
-        }
     }
 
     /** Horizonte pela distância até a data, no fuso do tenant (ADR-0008). */

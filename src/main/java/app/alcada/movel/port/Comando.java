@@ -34,7 +34,15 @@ public record Comando(
     public record Campos(
             UUID dono, String nivel, String prazo, String voltaEm, String oQueFalta,
             String nota, String titulo, String quemEspera, String oQueTrava, String classe,
-            String pergunta, String aliasFalado, Contato contato) {
+            String pergunta, String aliasFalado, Contato contato, Lembrete lembrete) {
+    }
+
+    /**
+     * Compromisso datado que sobra de um RESOLVER (RFC-0009): "resolvi, mas marquei
+     * a reunião pra quinta". {@code quando} é ISO-8601 com fuso, já resolvido por
+     * quem falou — o backend valida e agenda; não interpreta linguagem.
+     */
+    public record Lembrete(String quando, String texto) {
     }
 
     /**

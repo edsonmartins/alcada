@@ -10,9 +10,10 @@
 - Nota (questão aberta 1 da RFC): o encolhimento conta eventos `CAPTADA`, e o lembrete não emite nenhum — a métrica já não infla, sem mudar `RadarJdbc`. Coberto por C7.
 
 ## Comando móvel e voz (F2.2)
-- [ ] `Comando.Campos.lembrete` ({quando, texto}) e `case RESOLVER` chamando `triagem.resolver(..., lembrete, ...)` (C12)
-- [ ] `InterpretadorVoz`: extrai `quando` (ISO-8601 resolvido no fuso do tenant) + `texto`; ambíguo → pergunta (C10/C11)
-- [ ] App: confirmação de "resolver + lembrar" numa frase; fala do resultado ("resolvido; te lembro quinta")
+- [x] `Comando.Campos.lembrete` ({quando, texto}) e `case RESOLVER` chamando `triagem.resolver(..., lembrete, ...)`; validação **antes** da transação, via `Lembrete.exigirUtil()` na porta (C12)
+- [x] `InterpretadorVoz`: prompt com o "agora" no fuso do tenant; `lembreteQuando`/`lembreteTexto` no schema; data que não sobrevive à validação vira pergunta (C10/C11)
+- [x] App (`alcada-mobile`): `LembreteComando` + `Despachador.resolver(lembrete:)`, interação `Perguntar`, fala do resultado "Te lembro quinta, 6, às 10h" (`dataFalada` em pt-BR, sem `intl`)
+- [x] Testes: backend `InterpretadorVozTest` (+4) e `ComandoRepasseExternoTest` (+2); mobile `test/lembrete_datado_test.dart` (4); `spec/docs/API.md`
 
 ## Calendário (F2.3 Google, F2.4 Outlook)
 - [ ] Porta `Calendario` + `ContasCalendario` (OAuth por gestor, token cifrado, escopo mínimo)

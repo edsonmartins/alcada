@@ -1,6 +1,10 @@
 package app.alcada.movel.internal;
 
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import app.alcada.autonomia.port.ContatosExternos;
@@ -14,7 +18,9 @@ import app.alcada.plataforma.gateway.port.ModelGateway;
 import app.alcada.plataforma.gateway.port.Sensibilidade;
 import app.alcada.plataforma.gateway.port.Tarefas.Extracao;
 import app.alcada.plataforma.gateway.port.Tarefas.TarefaExtracao;
+import app.alcada.plataforma.multitenancy.port.FusoTenant;
 import app.alcada.plataforma.multitenancy.port.OrgId;
+import app.alcada.triagem.port.Triagem;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -41,23 +47,30 @@ public class InterpretadorVoz {
                "intencao":{"type":"string","enum":["RESOLVER","REPASSAR","ADIAR","REGISTRAR","CONSULTAR","NENHUMA"]},
                "item":{"type":"integer"},
                "donoNome":{"type":"string"},"nivel":{"type":"string"},
-               "quandoVoltar":{"type":"string"},"tituloNovo":{"type":"string"},"pergunta":{"type":"string"}},
+               "quandoVoltar":{"type":"string"},"tituloNovo":{"type":"string"},"pergunta":{"type":"string"},
+               "lembreteQuando":{"type":"string"},"lembreteTexto":{"type":"string"}},
              "required":["intencao"]}""";
+
+    /** Como o assistente fala a data de volta ("quinta, 6, às 10h"). */
+    private static final DateTimeFormatter FALA_DATA =
+            DateTimeFormatter.ofPattern("EEEE, d, 'às' HH'h'", Locale.of("pt", "BR"));
 
     private final ModelGateway modelo;
     private final Consulta consulta;
     private final Pessoas pessoas;
     private final ContatosExternos contatos;
     private final Preferencias preferencias;
+    private final FusoTenant fuso;
     private final ObjectMapper json = new ObjectMapper();
 
     public InterpretadorVoz(ModelGateway modelo, Consulta consulta, Pessoas pessoas,
-            ContatosExternos contatos, Preferencias preferencias) {
+            ContatosExternos contatos, Preferencias preferencias, FusoTenant fuso) {
         this.modelo = modelo;
         this.consulta = consulta;
         this.pessoas = pessoas;
         this.contatos = contatos;
         this.preferencias = preferencias;
+        this.fuso = fuso;
     }
 
     public record ItemFila(String id, String titulo) {
@@ -87,20 +100,34 @@ public class InterpretadorVoz {
      * dois. {@code podeRegistrarContato} avisa que o app pode oferecer o cadastro
      * do nome falado como contato novo (canal e endereço são coletados lá, não
      * extraídos da fala — o modelo não inventa endereço de terceiro, INV-10).
+     * {@code lembreteQuando}/{@code lembreteTexto} vêm no RESOLVER que deixa um
+     * compromisso datado (RFC-0009); sem {@code lembreteQuando}, a frase está
+     * perguntando a data e o app ainda não pode despachar.
      */
     public record Resultado(
             String intencao, String pendenciaId, String titulo,
             String donoId, String donoNome, String nivel, String tituloNovo,
             String resposta, String frase, boolean precisaConfirmar,
             List<Candidato> candidatosDono, String termoFalado,
-            String contatoId, String contatoCanal, boolean podeRegistrarContato) {
+            String contatoId, String contatoCanal, boolean podeRegistrarContato,
+            String lembreteQuando, String lembreteTexto) {
 
         /** Resultado sem destino externo (o caso comum das demais intenções). */
         Resultado(String intencao, String pendenciaId, String titulo, String donoId, String donoNome,
                 String nivel, String tituloNovo, String resposta, String frase,
                 boolean precisaConfirmar, List<Candidato> candidatosDono, String termoFalado) {
             this(intencao, pendenciaId, titulo, donoId, donoNome, nivel, tituloNovo, resposta, frase,
-                    precisaConfirmar, candidatosDono, termoFalado, null, null, false);
+                    precisaConfirmar, candidatosDono, termoFalado, null, null, false, null, null);
+        }
+
+        /** Resultado com destino externo (RFC-0008), sem lembrete. */
+        Resultado(String intencao, String pendenciaId, String titulo, String donoId, String donoNome,
+                String nivel, String tituloNovo, String resposta, String frase,
+                boolean precisaConfirmar, List<Candidato> candidatosDono, String termoFalado,
+                String contatoId, String contatoCanal, boolean podeRegistrarContato) {
+            this(intencao, pendenciaId, titulo, donoId, donoNome, nivel, tituloNovo, resposta, frase,
+                    precisaConfirmar, candidatosDono, termoFalado, contatoId, contatoCanal,
+                    podeRegistrarContato, null, null);
         }
     }
 
@@ -109,7 +136,9 @@ public class InterpretadorVoz {
         Bruto b;
         try {
             Extracao<Bruto> ex = modelo.extrair(new TarefaExtracao<>(
-                    org, Sensibilidade.INTERNA, null, prompt(texto, contexto, fila), SCHEMA, this::parse));
+                    org, Sensibilidade.INTERNA, null,
+                    prompt(texto, contexto, fila, OffsetDateTime.now(fuso.fuso(org))),
+                    SCHEMA, this::parse));
             b = ex == null ? null : ex.valor();
         } catch (RuntimeException degrada) {
             b = null;
@@ -132,6 +161,9 @@ public class InterpretadorVoz {
                 ItemFila alvo = alvo(fila, b.item);
                 if (alvo == null) {
                     yield nada("Não identifiquei o item na fila. Qual deles?");
+                }
+                if (b.intencao.equals("RESOLVER") && (b.lembreteTexto != null || b.lembreteQuando != null)) {
+                    yield resolverComLembrete(org, alvo, b);
                 }
                 String verbo = b.intencao.equals("RESOLVER") ? "Resolver" : "Adiar";
                 yield new Resultado(b.intencao, alvo.id(), alvo.titulo(), null, null, null, null, null,
@@ -205,15 +237,57 @@ public class InterpretadorVoz {
         return "EMAIL".equals(canal) ? "por e-mail" : "no WhatsApp";
     }
 
+    /**
+     * RESOLVER que deixa um compromisso datado (RFC-0009). O modelo só devolve a
+     * data quando consegue resolvê-la; se não veio — ou não sobrevive à validação
+     * (passado, longe demais) — o assistente **pergunta**, nunca chuta: um lembrete
+     * na data errada é pior que nenhum.
+     */
+    private Resultado resolverComLembrete(OrgId org, ItemFila alvo, Bruto b) {
+        String texto = vazioOu(b.lembreteTexto, alvo.titulo());
+        OffsetDateTime quando = dataUtil(b.lembreteQuando);
+        if (quando == null) {
+            return new Resultado("RESOLVER", alvo.id(), alvo.titulo(), null, null, null, null, null,
+                    "Resolver “" + alvo.titulo() + "”. Para quando eu te lembro de " + texto + "?",
+                    false, List.of(), null, null, null, false, null, texto);
+        }
+        return new Resultado("RESOLVER", alvo.id(), alvo.titulo(), null, null, null, null, null,
+                "Resolver “" + alvo.titulo() + "” e te lembro " + quandoFalado(org, quando)
+                        + ". Confirma?",
+                true, List.of(), null, null, null, false, quando.toString(), texto);
+    }
+
+    /** Data que sobrevive à validação do domínio; null quando não dá para confiar. */
+    private static OffsetDateTime dataUtil(String iso) {
+        if (iso == null || iso.isBlank()) {
+            return null;
+        }
+        try {
+            OffsetDateTime quando = OffsetDateTime.parse(iso);
+            new Triagem.Lembrete(quando, "x").exigirUtil();
+            return quando;
+        } catch (DateTimeParseException | IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /** "quinta, 6, às 10h" — no fuso do tenant, para o gestor conferir de ouvido. */
+    private String quandoFalado(OrgId org, OffsetDateTime quando) {
+        return FALA_DATA.format(quando.atZoneSameInstant(fuso.fuso(org)));
+    }
+
     private static Resultado nada(String frase) {
         return new Resultado("NENHUMA", null, null, null, null, null, null, null, frase, false, List.of(), null);
     }
 
     // ---- prompt + parsing --------------------------------------------------
 
-    private static String prompt(String texto, List<String> contexto, List<ItemFila> fila) {
+    private static String prompt(String texto, List<String> contexto, List<ItemFila> fila,
+            OffsetDateTime agora) {
         StringBuilder sb = new StringBuilder();
         sb.append("Interprete a fala do gestor no canal de voz da Alçada em UMA intenção.\n");
+        // O modelo precisa da âncora para resolver "quinta"/"amanhã" (RFC-0009).
+        sb.append("Agora é ").append(agora).append(" (fuso do gestor).\n");
         sb.append("Intenções: RESOLVER (já feito), REPASSAR (delegar a alguém), ADIAR (deixar pra depois), ");
         sb.append("REGISTRAR (criar lembrete/cobrança), CONSULTAR (pergunta sobre a fila), NENHUMA (não entendi).\n");
         if (fila != null && !fila.isEmpty()) {
@@ -233,6 +307,11 @@ public class InterpretadorVoz {
         sb.append("recebe, seja da equipe ou de fora; NUNCA telefone ou e-mail); ");
         sb.append("nivel (N1/N2/N3) APENAS se o gestor disser explicitamente — senão OMITA o campo, não invente. ");
         sb.append("ADIAR → quandoVoltar. REGISTRAR → tituloNovo. ");
+        sb.append("RESOLVER pode trazer um compromisso que sobrou (\"resolvi, mas marquei reunião ");
+        sb.append("quinta 10h\"): \"lembreteTexto\" = o compromisso em poucas palavras e ");
+        sb.append("\"lembreteQuando\" = data/hora ISO-8601 COM FUSO, resolvida a partir do agora ");
+        sb.append("acima. Se não der para resolver a data com segurança, OMITA lembreteQuando ");
+        sb.append("(o assistente pergunta) — nunca invente. ");
         sb.append("CONSULTAR → reescreva a pergunta COMPLETA em \"pergunta\" usando o contexto ");
         sb.append("(ex.: follow-up \"e para a semana que vem\" → \"o que tenho para a semana que vem\").\n");
         sb.append("Responda só o JSON do schema.");
@@ -250,6 +329,8 @@ public class InterpretadorVoz {
             b.quandoVoltar = txt(n, "quandoVoltar");
             b.tituloNovo = txt(n, "tituloNovo");
             b.pergunta = txt(n, "pergunta");
+            b.lembreteQuando = txt(n, "lembreteQuando");
+            b.lembreteTexto = txt(n, "lembreteTexto");
             return b;
         } catch (Exception e) {
             return null;
@@ -301,5 +382,7 @@ public class InterpretadorVoz {
         String quandoVoltar;
         String tituloNovo;
         String pergunta;
+        String lembreteQuando;
+        String lembreteTexto;
     }
 }

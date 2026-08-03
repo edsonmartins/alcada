@@ -60,7 +60,7 @@ public class TriagemResource {
                 triagem.resolver(org, UUID.fromString(id), req == null ? null : req.nota(),
                         lembrete, gestor);
                 return Response.noContent().build();
-            } catch (FalhasTriagem.LembreteInvalido e) {
+            } catch (IllegalArgumentException e) {
                 return problema(422, "lembrete.invalido", e.getMessage());
             }
         });

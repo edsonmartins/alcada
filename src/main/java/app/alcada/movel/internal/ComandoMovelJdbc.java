@@ -119,7 +119,8 @@ public class ComandoMovelJdbc implements ComandoMovel {
         }
         try {
             switch (c.intencao()) {
-                case RESOLVER -> triagem.resolver(org, c.pendenciaId(), f.nota(), pessoa);
+                case RESOLVER -> triagem.resolver(org, c.pendenciaId(), f.nota(),
+                        lembreteDe(f), pessoa);
                 case RESERVAR -> triagem.reservar(org, c.pendenciaId(), prazoOu(f.prazo(), 1), pessoa);
                 case REPOUSAR -> triagem.repousar(org, c.pendenciaId(), prazoOu(f.voltaEm(), 7), pessoa);
                 case ADIAR -> triagem.adiar(org, c.pendenciaId(), prazoOu(f.voltaEm(), 7), f.oQueFalta(), pessoa);
@@ -190,6 +191,30 @@ public class ComandoMovelJdbc implements ComandoMovel {
         return s == null || s.isBlank();
     }
 
+    /**
+     * Lembrete do RESOLVER (RFC-0009), quando veio no comando. Data malformada é
+     * erro do comando, não silêncio: o compromisso não pode sumir sem aviso.
+     */
+    private static Triagem.Lembrete lembreteDe(Comando.Campos f) {
+        Comando.Lembrete l = f.lembrete();
+        if (l == null || (vazio(l.quando()) && vazio(l.texto()))) {
+            return null;
+        }
+        if (vazio(l.quando()) || vazio(l.texto())) {
+            throw new IllegalArgumentException("lembrete exige quando e texto");
+        }
+        Triagem.Lembrete lembrete;
+        try {
+            lembrete = new Triagem.Lembrete(OffsetDateTime.parse(l.quando()), l.texto());
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new IllegalArgumentException("lembrete.quando deve ser ISO-8601 com fuso");
+        }
+        // Valida aqui, fora da transação da porta: a recusa vira ERRO do comando,
+        // e o registro de idempotência sobrevive (INV-13).
+        lembrete.exigirUtil();
+        return lembrete;
+    }
+
     /** Contato sem nenhum campo ({@code {}} no JSON) é ausência de destino, não um destino. */
     private static Comando.Contato contatoOuNulo(Comando.Contato ct) {
         boolean semDados = ct == null || (ct.id() == null && vazio(ct.nome())
@@ -238,6 +263,6 @@ public class ComandoMovelJdbc implements ComandoMovel {
 
     private static Comando.Campos vazio() {
         return new Comando.Campos(null, null, null, null, null, null, null, null, null, null, null,
-                null, null);
+                null, null, null);
     }
 }

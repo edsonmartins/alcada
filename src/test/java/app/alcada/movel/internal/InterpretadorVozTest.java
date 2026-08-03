@@ -63,7 +63,7 @@ class InterpretadorVozTest {
             List<ContatoExterno> contatosAchados, List<ContatoExterno> contatosConhecidos, String nivelPref) {
         return new InterpretadorVoz(new GatewayFixo(json), new ConsultaFixa(),
                 new PessoasFixo(achados, equipe), new ContatosFixo(contatosAchados, contatosConhecidos),
-                new PreferenciasFixo(nivelPref));
+                new PreferenciasFixo(nivelPref), org -> java.time.ZoneId.of("America/Sao_Paulo"));
     }
 
     private static ContatoExterno contato(String nome, String canal) {
@@ -184,6 +184,59 @@ class InterpretadorVozTest {
         assertEquals(2, r.candidatosDono().size(), "equipe + contatos conhecidos");
         assertEquals("Marcello", r.termoFalado(), "app aprende o termo ao escolher da lista");
         assertTrue(r.podeRegistrarContato(), "o app pode oferecer registrar Marcello como contato");
+    }
+
+    // C10 — "resolvi, mas marquei reunião quinta" vira RESOLVER + lembrete datado
+    @Test
+    void resolverComLembreteConfirmaComADataFalada() {
+        String quinta = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).plusDays(3).toString();
+        var r = com("{\"intencao\":\"RESOLVER\",\"item\":1,\"lembreteTexto\":\"reunião Sharpi\","
+                + "\"lembreteQuando\":\"" + quinta + "\"}", List.of(), List.of())
+                .interpretar(ORG, GESTOR, "resolvi a sharpi mas marquei reunião quinta", List.of(), FILA);
+
+        assertEquals("RESOLVER", r.intencao());
+        assertEquals("11", r.pendenciaId());
+        assertEquals(quinta, r.lembreteQuando());
+        assertEquals("reunião Sharpi", r.lembreteTexto());
+        assertTrue(r.precisaConfirmar(), "nada sai sem o sim");
+        assertTrue(r.frase().contains("te lembro"), r.frase());
+    }
+
+    // C11 — o modelo não resolveu a data: pergunta, não chuta (INV-10)
+    @Test
+    void lembreteSemDataPerguntaEmVezDeChutar() {
+        var r = com("{\"intencao\":\"RESOLVER\",\"item\":1,\"lembreteTexto\":\"reunião Sharpi\"}",
+                List.of(), List.of())
+                .interpretar(ORG, GESTOR, "resolvi a sharpi mas marquei uma reunião", List.of(), FILA);
+
+        assertNull(r.lembreteQuando(), "sem data, o app não pode despachar");
+        assertEquals("reunião Sharpi", r.lembreteTexto());
+        assertFalse(r.precisaConfirmar());
+        assertTrue(r.frase().contains("Para quando"), r.frase());
+    }
+
+    // C11 — data que não sobrevive à validação do domínio também vira pergunta
+    @Test
+    void lembreteComDataNoPassadoPergunta() {
+        String ontem = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).minusDays(1).toString();
+        var r = com("{\"intencao\":\"RESOLVER\",\"item\":1,\"lembreteTexto\":\"reunião\","
+                + "\"lembreteQuando\":\"" + ontem + "\"}", List.of(), List.of())
+                .interpretar(ORG, GESTOR, "resolvi e marquei reunião", List.of(), FILA);
+
+        assertNull(r.lembreteQuando(), "data no passado não passa");
+        assertFalse(r.precisaConfirmar());
+    }
+
+    // Regressão: RESOLVER sem compromisso segue como era
+    @Test
+    void resolverSemLembreteContinuaSimples() {
+        var r = com("{\"intencao\":\"RESOLVER\",\"item\":1}", List.of(), List.of())
+                .interpretar(ORG, GESTOR, "já resolvi esse", List.of(), FILA);
+
+        assertNull(r.lembreteQuando());
+        assertNull(r.lembreteTexto());
+        assertTrue(r.precisaConfirmar());
+        assertTrue(r.frase().startsWith("Resolver"), r.frase());
     }
 
     @Test

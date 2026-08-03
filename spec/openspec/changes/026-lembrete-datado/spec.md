@@ -47,19 +47,22 @@
 - **THEN** `204` e o lembrete criado; data no passado → `422 alcada:lembrete.invalido` em problem+json, com o item intacto.
 - *Teste:* `LembreteDatadoTest.endpoint_resolve_com_lembrete_e_recusa_data_passada`
 
-## Comando móvel e voz (F2.2) — pendentes
+## Comando móvel e voz (F2.2)
 
 ## C10 — "resolvi, mas marquei reunião quinta" vira RESOLVER + lembrete
 - **WHEN** o gestor dita a decisão com um compromisso
-- **THEN** o assistente **propõe** as duas coisas numa frase só e confirma antes de despachar (ADR-0014 §2).
+- **THEN** o assistente **propõe** as duas coisas numa frase só, com a data falada de volta ("te lembro quinta, 6, às 10h"), e só despacha após o "sim" (ADR-0014 §2); no fim, a fala do resultado diz quando ele será lembrado.
+- *Testes:* `InterpretadorVozTest.resolverComLembreteConfirmaComADataFalada` · mobile `test/lembrete_datado_test.dart` ("resolver com lembrete enfileira campos.lembrete", "dataFalada…")
 
-## C11 — data ambígua o assistente pergunta
-- **WHEN** o modelo não resolve a data com segurança ("quinta" sem semana)
-- **THEN** o assistente pergunta ("quinta que vem, dia 6?") — nunca chuta (INV-10).
+## C11 — data que não dá para resolver: o assistente pergunta
+- **WHEN** o modelo não devolve a data, ou devolve uma que não sobrevive à validação (passado, >12 meses)
+- **THEN** o assistente **pergunta** ("Para quando eu te lembro de…?") e nada é despachado — nunca chuta (INV-10).
+- *Testes:* `InterpretadorVozTest.lembreteSemDataPerguntaEmVezDeChutar`, `.lembreteComDataNoPassadoPergunta` · mobile "lembrete sem data pergunta em vez de despachar"
 
-## C12 — offline
-- **WHEN** o comando é ditado sem rede
-- **THEN** `RESOLVER` + lembrete ficam na fila local e sincronizam depois, idempotentes por `comandoId` (INV-13).
+## C12 — pelo comando (offline-first)
+- **WHEN** o comando `RESOLVER` chega com `campos.lembrete`
+- **THEN** o item fecha e o lembrete nasce **na mesma transação** (reenvio não duplica, INV-13); data malformada vira `ERRO` do comando e o item **não** fecha.
+- *Testes:* `ComandoRepasseExternoTest.comando_resolver_com_lembrete_fecha_e_agenda`, `.comando_com_lembrete_invalido_e_recusado`
 
 ## Calendário (F2.3/F2.4) — pendentes
 
