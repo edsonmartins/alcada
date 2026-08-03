@@ -120,5 +120,6 @@ INV-13 (outbox, nada se perde) · INV-14 (janela antes de comunicar) · INV-15 (
 decisão mas agenda um compromisso para outra data e precisa ser lembrado (ex.: "resolvi a Sharpi, mas
 marquei a reunião pra quinta"). Isso é um **RESOLVER que também cria um lembrete datado**, e idealmente
 **cria o evento no calendário** do gestor (OAuth Google/Outlook) — o lembrete dispara pelo motor de
-autonomia (DESPERTAR/LEMBRETE, RFC-0002) na data. Merece **RFC próprio** (OAuth, criação de evento,
-sync bidirecional, disparo do lembrete), separado deste. Este RFC cobre só a **notificação do repasse**.
+autonomia (DESPERTAR/LEMBRETE, RFC-0002) na data. Virou a **RFC-0009** (OAuth, criação de evento,
+disparo do lembrete; sync bidirecional ficou de fora lá também). Este RFC cobre só a **notificação
+do repasse**.
