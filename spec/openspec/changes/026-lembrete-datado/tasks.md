@@ -13,7 +13,8 @@
 - [x] `Comando.Campos.lembrete` ({quando, texto}) e `case RESOLVER` chamando `triagem.resolver(..., lembrete, ...)`; validação **antes** da transação, via `Lembrete.exigirUtil()` na porta (C12)
 - [x] `InterpretadorVoz`: prompt com o "agora" no fuso do tenant; `lembreteQuando`/`lembreteTexto` no schema; data que não sobrevive à validação vira pergunta (C10/C11)
 - [x] App (`alcada-mobile`): `LembreteComando` + `Despachador.resolver(lembrete:)`, interação `Perguntar`, fala do resultado "Te lembro quinta, 6, às 10h" (`dataFalada` em pt-BR, sem `intl`)
-- [x] Testes: backend `InterpretadorVozTest` (+4) e `ComandoRepasseExternoTest` (+2); mobile `test/lembrete_datado_test.dart` (4); `spec/docs/API.md`
+- [x] Offline (F2.2b): `Interpretador.dataDaFala` lê hoje/amanhã/dia da semana/"semana que vem" com hora opcional no relógio do aparelho; sem data legível o assistente pergunta (C12b)
+- [x] Testes: backend `InterpretadorVozTest` (+4) e `ComandoRepasseExternoTest` (+2); mobile `test/lembrete_datado_test.dart` (7); `spec/docs/API.md`
 
 ## Calendário (F2.3 Google, F2.4 Outlook)
 - [ ] Porta `Calendario` + `ContasCalendario` (OAuth por gestor, token cifrado, escopo mínimo)

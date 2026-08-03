@@ -64,6 +64,11 @@
 - **THEN** o item fecha e o lembrete nasce **na mesma transação** (reenvio não duplica, INV-13); data malformada vira `ERRO` do comando e o item **não** fecha.
 - *Testes:* `ComandoRepasseExternoTest.comando_resolver_com_lembrete_fecha_e_agenda`, `.comando_com_lembrete_invalido_e_recusado`
 
+## C12b — sem rede, o compromisso não se perde (INV-13)
+- **WHEN** o gestor dita "resolvi X, mas marquei reunião quinta 10h" **offline**
+- **THEN** o matcher local resolve a data no relógio do aparelho e o comando leva o lembrete; se a data não for legível, o assistente **pergunta** em vez de resolver sem o compromisso.
+- *Testes (mobile):* "offline: …guarda o lembrete", "offline: compromisso sem data vira pergunta", "dataDaFala resolve as formas comuns e recusa o que não dá"
+
 ## Calendário (F2.3/F2.4) — pendentes
 
 ## C13 — o compromisso entra no calendário do gestor
