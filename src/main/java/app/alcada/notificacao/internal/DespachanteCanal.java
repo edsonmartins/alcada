@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import app.alcada.captura.port.AvisoGrupo;
 import app.alcada.captura.port.EnviarAvisoGrupo;
+import app.alcada.captura.port.EnviarDireto;
 import app.alcada.captura.port.EnviarMensagem;
 import app.alcada.notificacao.port.Canal;
 import app.alcada.plataforma.multitenancy.port.OrgId;
@@ -50,6 +51,7 @@ public class DespachanteCanal implements Despachante {
             case "item.fechado" -> entregarFechamento(m);
             case "canal.resposta" -> entregarResposta(m);
             case "grupo.aviso" -> entregarAvisoGrupo(m);
+            case "AVISO_REPASSE" -> entregarAvisoRepasse(m);
             default -> {
                 // eventos internos (delegacao.executada/escalada/devolvida, …): sem saída ao solicitante
             }
@@ -96,6 +98,49 @@ public class DespachanteCanal implements Despachante {
         canal.enviarAvisoGrupo(m.org(), new EnviarAvisoGrupo(
                 campo(p, "channel_id"), grupoId, campo(p, "texto"), m.idempotencyKey()));
         avisoGrupo.marcarPublicado(m.org(), grupoId);
+    }
+
+    /**
+     * Avisa um contato externo de repasse (RFC-0008 F1.3a). Inicia a mensagem no
+     * canal do tenant (envio direto), sem conversa prévia, e emite COMUNICADA.
+     * EMAIL fica para a fatia F1.3b (SMTP).
+     */
+    private void entregarAvisoRepasse(MensagemOutbox m) {
+        String p = m.payloadJson();
+        String canalTipo = campo(p, "canal");
+        String endereco = campo(p, "endereco");
+        UUID pendenciaId = UUID.fromString(campo(p, "pendencia_id"));
+
+        if (!"WHATSAPP".equals(canalTipo)) {
+            // EMAIL (SMTP) é a fatia F1.3b; sem canal ainda — não trava o outbox.
+            LOG.infof("AVISO_REPASSE canal %s ainda sem entrega (F1.3b); marcado entregue", canalTipo);
+            return;
+        }
+        String channelId = canalWhatsappDaOrg(m.org());
+        if (channelId == null || channelId.isBlank()) {
+            trilha.registrar(new EventoTrilha(m.org(), pendenciaId, TipoEvento.COMUNICACAO_IMPOSSIVEL,
+                    Ator.sistemaMotor("notificacao"), null, null, null,
+                    "{\"motivo\":\"sem_canal_whatsapp\"}"));
+            return;
+        }
+        String texto = "Você recebeu um repasse no Alçada para acompanhar. (ref " + pendenciaId + ")";
+        boolean novo = canal.enviarDireto(m.org(),
+                new EnviarDireto(channelId, endereco, texto, m.idempotencyKey()));
+        if (novo) {
+            comunicada(m.org(), pendenciaId, canalTipo);
+        }
+    }
+
+    private String canalWhatsappDaOrg(OrgId org) {
+        try {
+            Object v = em.createNativeQuery(
+                    "SELECT linktor_channel_id FROM fonte "
+                    + "WHERE org_id = ? AND tipo = 'WHATSAPP' AND ativa = true LIMIT 1")
+                    .setParameter(1, org.valor()).getSingleResult();
+            return v == null ? null : v.toString();
+        } catch (NoResultException e) {
+            return null;
+        }
     }
 
     private void entregarResposta(MensagemOutbox m) {

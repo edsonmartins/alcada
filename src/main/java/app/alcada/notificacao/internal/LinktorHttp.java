@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import app.alcada.captura.port.EnviarDireto;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import app.alcada.captura.port.EnviarAvisoGrupo;
 import app.alcada.captura.port.EnviarMensagem;
@@ -75,6 +76,42 @@ public class LinktorHttp implements Canal {
                 return true;
             }
             // 4xx/5xx → indisponível; o outbox reprocessa (ADR-0025, decisão 5)
+            throw new CanalIndisponivel("Linktor respondeu " + r.statusCode());
+        } catch (CanalIndisponivel e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CanalIndisponivel("Linktor indisponível: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public boolean enviarDireto(OrgId org, EnviarDireto m) {
+        if (apiKey.isEmpty()) {
+            throw new CanalIndisponivel("Linktor sem API key configurada");
+        }
+        if (m.channelId() == null || m.channelId().isBlank() || m.to() == null || m.to().isBlank()) {
+            throw new CanalIndisponivel("envio direto sem canal ou destinatário");
+        }
+        // Envio iniciado (sem conversa prévia): endpoint channel_id + to do Linktor.
+        String url = baseUrl + "/api/v1/messages/send";
+        ObjectNode raiz = json.createObjectNode();
+        raiz.put("channel_id", m.channelId());
+        raiz.put("to", m.to());
+        raiz.put("content_type", "text");
+        raiz.put("text", m.texto());
+        ObjectNode meta = raiz.putObject("metadata");
+        meta.put("source", "alcada");
+        meta.put("idempotency_key", m.idempotencyKey());
+        try {
+            HttpResponse<String> r = http.send(HttpRequest.newBuilder(URI.create(url))
+                    .header("X-API-Key", apiKey.get())
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(30))
+                    .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(raiz)))
+                    .build(), HttpResponse.BodyHandlers.ofString());
+            if (r.statusCode() / 100 == 2) {
+                return true;
+            }
             throw new CanalIndisponivel("Linktor respondeu " + r.statusCode());
         } catch (CanalIndisponivel e) {
             throw e;

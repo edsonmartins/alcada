@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import app.alcada.captura.port.EnviarAvisoGrupo;
+import app.alcada.captura.port.EnviarDireto;
 import app.alcada.captura.port.EnviarMensagem;
 import app.alcada.notificacao.port.Canal;
 import app.alcada.plataforma.multitenancy.port.OrgId;
@@ -33,6 +34,7 @@ public class LinktorStub implements Canal {
     private final Set<String> destinosQueFalham = ConcurrentHashMap.newKeySet();
     private final List<EnviarMensagem> enviadas = new CopyOnWriteArrayList<>();
     private final List<EnviarAvisoGrupo> avisos = new CopyOnWriteArrayList<>();
+    private final List<EnviarDireto> diretas = new CopyOnWriteArrayList<>();
 
     @Override
     public boolean enviar(OrgId org, EnviarMensagem m) {
@@ -60,8 +62,25 @@ public class LinktorStub implements Canal {
         return true;
     }
 
+    @Override
+    public boolean enviarDireto(OrgId org, EnviarDireto m) {
+        if (destinosQueFalham.contains(m.to())) {
+            throw new CanalIndisponivel("canal indisponível para " + m.to());
+        }
+        if (!entregues.add(m.idempotencyKey())) {
+            return false; // já enviado — idempotente
+        }
+        diretas.add(m);
+        LOG.debugf("Linktor(stub) direto → %s [canal %s]: %s", m.to(), m.channelId(), m.texto());
+        return true;
+    }
+
     public List<EnviarMensagem> enviadas() {
         return enviadas;
+    }
+
+    public List<EnviarDireto> diretas() {
+        return diretas;
     }
 
     public List<EnviarAvisoGrupo> avisos() {
@@ -90,5 +109,6 @@ public class LinktorStub implements Canal {
         entregues.clear();
         destinosQueFalham.clear();
         enviadas.clear();
+        diretas.clear();
     }
 }
