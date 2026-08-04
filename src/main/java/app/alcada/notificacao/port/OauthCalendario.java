@@ -16,6 +16,14 @@ public interface OauthCalendario {
      */
     Conta trocar(String codigo, String redirectUri);
 
+    /**
+     * URL para onde mandar o gestor autorizar. Montada no servidor porque é ele
+     * que sabe o client id e o **escopo mínimo** pedido — a tela só redireciona.
+     *
+     * @param state valor opaco devolvido pelo provedor no retorno (anti-CSRF)
+     */
+    String urlConsentimento(String redirectUri, String state);
+
     /** 422 — o consentimento não vale; o gestor precisa autorizar de novo. */
     class ConsentimentoInvalido extends RuntimeException {
         public ConsentimentoInvalido(String msg) {

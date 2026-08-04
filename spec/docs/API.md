@@ -44,10 +44,14 @@ lembrete.
 
 ### Calendário do gestor (RFC-0009, OAuth por pessoa)
 ```
-GET    /v1/calendario                      # { conectado, provedor?, escopo? }
+GET    /v1/calendario?redirectUri=&state=  # { conectado, provedor?, escopo?, urlConsentimento? }
 POST   /v1/calendario                      { codigo, redirectUri }   # troca o consentimento
 DELETE /v1/calendario                      # desconecta e esquece os tokens
 ```
+Com `redirectUri`, o `GET` devolve também a **URL do consentimento** — montada no servidor, que é
+quem sabe o client id e o escopo mínimo (`calendar.events`: escreve eventos, **não lê** a agenda).
+O `state` vem do cliente e volta pelo provedor (anti-CSRF); a tela confere antes de trocar o código.
+O adaptador real é ligado por `alcada.calendario.real` (piloto e prod); sem isso valem os stubs.
 A conta é **do gestor**, não do tenant: quem conecta é o `X-Pessoa-Id` do contexto. Os tokens ficam
 **cifrados** no banco (AES-GCM, `alcada.cripto.chave`) e **nunca** voltam por esses endpoints —
 `GET` diz apenas se há conta, de qual provedor e com que escopo. `422

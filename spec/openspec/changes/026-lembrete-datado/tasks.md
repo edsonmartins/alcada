@@ -37,8 +37,18 @@
 - [ ] Adaptador Outlook no mesmo contrato (`Calendario` + `OauthCalendario`)
 
 ## Web (F2.5)
-- [ ] Conectar/revogar o calendário na sessão (C16)
+- [x] Seção "Meu calendário" em `/canais` (é pessoal, não do tenant): conectar, ver o provedor e desconectar (C16)
+- [x] `GET /v1/calendario?redirectUri=&state=` devolve a URL do consentimento montada no servidor (client id + escopo mínimo); `state` anti-CSRF gerado e conferido no cliente
+- [x] Rota `/calendario/callback` (`CalendarioCallbackPage`) troca o código, trata recusa do gestor e `state` que não confere
+- [x] Ambiente sem integração configurada avisa em vez de mostrar botão morto
+- [x] Testes `web/src/__tests__/calendario.test.tsx` (6)
 - [ ] O lembrete visível na Entrada ao despertar (herda a tela; validar rótulo/ícone de origem)
+
+## Piloto (ligar o calendário real)
+- [x] Gate por propriedade `alcada.calendario.real` (em vez de profile): o piloto `demo` ganha calendário de verdade com Linktor/OpenRouter ainda em stub
+- [x] `%demo.alcada.google.client-id/secret` e `%demo.alcada.cripto.chave` por variável de ambiente; `Cofre` exige a chave onde o calendário é real
+- [ ] `docker-compose.yml` do `alcada-devops` repassar `ALCADA_GOOGLE_CLIENT_ID`, `ALCADA_GOOGLE_CLIENT_SECRET` e `ALCADA_CRIPTO_CHAVE` ao container
+- [ ] Redirect URI `https://alcada.vendax.ai/calendario/callback` no console do Google
 
 ## Questões abertas herdadas da RFC-0009
 - [x] 1. Métricas — resolvida na F2.1: sem `CAPTADA`, o lembrete não entra no encolhimento

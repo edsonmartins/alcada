@@ -9,12 +9,14 @@ import {
   type ContatoExterno,
   type DadosContato,
 } from "../api/contatos";
+import { getCalendario, revogarCalendario } from "../api/calendario";
 import { definirCanal, getFontes, type Fonte } from "../api/fontes";
 import { ProblemaError } from "../api/types";
 import { PageHeader, Vazio } from "./PageHeader";
 
 const CONTATOS = ["contatos"] as const;
 const FONTES = ["fontes"] as const;
+const CALENDARIO = ["calendario"] as const;
 
 const CANAIS: { value: CanalContato; label: string }[] = [
   { value: "WHATSAPP", label: "WhatsApp" },
@@ -34,10 +36,75 @@ export function CanaisPage() {
       />
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md" style={{ alignItems: "start" }}>
         <SecaoContatos />
-        <SecaoCanalSaida />
+        <Stack gap="md">
+          <SecaoCanalSaida />
+          <SecaoCalendario />
+        </Stack>
       </SimpleGrid>
     </Stack>
   );
+}
+
+// ---- calendário do gestor (pessoal) ---------------------------------------
+
+/**
+ * Diferente do resto da página, esta parte é **sua**, não do tenant: o
+ * compromisso vai para a sua agenda, com a conta que você conectar (RFC-0009).
+ */
+function SecaoCalendario() {
+  const { data: estado } = useQuery({
+    queryKey: CALENDARIO,
+    queryFn: () => getCalendario(true),
+  });
+  const qc = useQueryClient();
+  const revogar = useMutation({
+    mutationFn: revogarCalendario,
+    onSuccess: () => qc.invalidateQueries({ queryKey: CALENDARIO }),
+  });
+
+  return (
+    <Stack gap="xs">
+      <Title order={6}>Meu calendário</Title>
+      <Text size="xs" c="dimmed">
+        Quando você resolve algo e marca um compromisso ("resolvi, mas ficou a reunião de quinta"),
+        o Alçada põe o evento na <b>sua</b> agenda. Ele só escreve os eventos que criou — não lê
+        seus compromissos.
+      </Text>
+
+      {estado?.conectado ? (
+        <Paper withBorder p="sm">
+          <Group justify="space-between" wrap="nowrap">
+            <div>
+              <Text size="sm" fw={500}>Conectado ao {rotuloProvedor(estado.provedor)}</Text>
+              <Text size="xs" c="dimmed">
+                Desconectar não apaga nada da agenda; só para de criar eventos novos.
+              </Text>
+            </div>
+            <Button size="xs" variant="default" onClick={() => revogar.mutate()}
+              disabled={revogar.isPending}>
+              Desconectar
+            </Button>
+          </Group>
+        </Paper>
+      ) : estado?.urlConsentimento ? (
+        <Button component="a" href={estado.urlConsentimento} size="xs" variant="light"
+          style={{ alignSelf: "flex-start" }}>
+          Conectar meu Google Agenda
+        </Button>
+      ) : (
+        estado && (
+          <Alert color="yellow" variant="light">
+            Integração de calendário não configurada neste ambiente — o lembrete continua
+            funcionando dentro do Alçada, só não vira evento.
+          </Alert>
+        )
+      )}
+    </Stack>
+  );
+}
+
+function rotuloProvedor(p: string | null): string {
+  return p === "OUTLOOK" ? "Outlook" : "Google Agenda";
 }
 
 // ---- contatos externos -----------------------------------------------------

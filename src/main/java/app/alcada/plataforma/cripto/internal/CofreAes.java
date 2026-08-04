@@ -38,10 +38,14 @@ public class CofreAes implements Cofre {
     @Inject
     public CofreAes(
             @ConfigProperty(name = "alcada.cripto.chave") Optional<String> chaveBase64,
-            @ConfigProperty(name = "quarkus.profile", defaultValue = "dev") String perfil) {
-        if (chaveBase64.isEmpty() && "prod".equals(perfil)) {
+            @ConfigProperty(name = "quarkus.profile", defaultValue = "dev") String perfil,
+            @ConfigProperty(name = "alcada.calendario.real", defaultValue = "false") boolean real) {
+        // Onde há segredo de verdade a guardar (prod, ou calendário real ligado no
+        // piloto), a chave é obrigatória — a de desenvolvimento está no código.
+        if (chaveBase64.isEmpty() && ("prod".equals(perfil) || real)) {
             throw new ConfigurationException(
-                    "alcada.cripto.chave é obrigatória em prod (32 bytes em base64)");
+                    "alcada.cripto.chave é obrigatória quando há segredo real a guardar "
+                    + "(32 bytes em base64)");
         }
         byte[] bytes = Base64.getDecoder().decode(chaveBase64.orElse(CHAVE_DEV));
         if (bytes.length != 32) {

@@ -10,17 +10,17 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import app.alcada.notificacao.port.Calendario;
 import app.alcada.notificacao.port.CriarEvento;
 import app.alcada.plataforma.multitenancy.port.OrgId;
-import io.quarkus.arc.profile.UnlessBuildProfile;
+import io.quarkus.arc.properties.UnlessBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
 /**
  * Stub de calendário: registra o compromisso; não fala com Google/Microsoft.
- * Fora de {@code prod}, sempre — dev/test nunca mexem na agenda de ninguém por
- * acidente. O adaptador real (OAuth por gestor) entra na fatia F2.3b.
+ * Vale sempre que {@code alcada.calendario.real} não estiver ligado — dev/test
+ * nunca mexem na agenda de ninguém por acidente.
  */
 @ApplicationScoped
-@UnlessBuildProfile("prod")
+@UnlessBuildProperty(name = "alcada.calendario.real", stringValue = "true")
 public class CalendarioStub implements Calendario {
 
     private static final Logger LOG = Logger.getLogger(CalendarioStub.class);

@@ -28,6 +28,7 @@ import logoHorizontal from "./assets/logo-horizontal.png";
 import { AlcadasPage } from "./components/AlcadasPage";
 import { BlocoPage } from "./components/BlocoPage";
 import { CallbackPage } from "./components/CallbackPage";
+import { CalendarioCallbackPage } from "./components/CalendarioCallbackPage";
 import { CanaisPage } from "./components/CanaisPage";
 import { EntradaPage } from "./components/EntradaPage";
 import { EsteiraPage } from "./components/EsteiraPage";
@@ -142,6 +143,7 @@ const radarRoute = createRoute({ getParentRoute: () => rootRoute, path: "/radar"
 const alcadasRoute = createRoute({ getParentRoute: () => rootRoute, path: "/alcadas", component: AlcadasPage });
 const esteiraRoute = createRoute({ getParentRoute: () => rootRoute, path: "/esteira", component: EsteiraPage });
 const canaisRoute = createRoute({ getParentRoute: () => rootRoute, path: "/canais", component: CanaisPage });
+const calendarioCallbackRoute = createRoute({ getParentRoute: () => rootRoute, path: "/calendario/callback", component: CalendarioCallbackPage });
 const blocoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/bloco/$id", component: BlocoPage });
 const portalInstanciaRoute = createRoute({ getParentRoute: () => rootRoute, path: "/portal/instancia/$token", component: PortalInstanciaPage });
 const sextaRoute = createRoute({ getParentRoute: () => rootRoute, path: "/sexta", component: SextaPage });
@@ -150,7 +152,7 @@ const callbackRoute = createRoute({ getParentRoute: () => rootRoute, path: "/cal
 const router = createRouter({
   routeTree: rootRoute.addChildren([
     indexRoute, hojeRoute, executorRoute, radarRoute, alcadasRoute, esteiraRoute, canaisRoute,
-    blocoRoute, portalInstanciaRoute, sextaRoute, sessaoRoute, callbackRoute,
+    calendarioCallbackRoute, blocoRoute, portalInstanciaRoute, sextaRoute, sessaoRoute, callbackRoute,
   ]),
 });
 

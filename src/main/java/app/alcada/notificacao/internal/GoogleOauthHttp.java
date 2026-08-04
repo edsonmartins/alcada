@@ -14,20 +14,24 @@ import app.alcada.notificacao.port.ContasCalendario.Conta;
 import app.alcada.notificacao.port.OauthCalendario;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.quarkus.arc.profile.IfBuildProfile;
+import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
- * Troca de código por tokens no Google (RFC-0009 F2.3b). Só em {@code prod} — em
- * dev/test vale o {@link OauthCalendarioStub}, que não fala com ninguém.
+ * Troca de código por tokens no Google (RFC-0009 F2.3b). Só existe quando
+ * {@code alcada.calendario.real=true}; sem isso vale o {@link OauthCalendarioStub},
+ * que não fala com ninguém.
  */
 @ApplicationScoped
-@IfBuildProfile("prod")
+@IfBuildProperty(name = "alcada.calendario.real", stringValue = "true")
 public class GoogleOauthHttp implements OauthCalendario {
 
     private static final String TOKEN = "https://oauth2.googleapis.com/token";
+    private static final String AUTORIZAR = "https://accounts.google.com/o/oauth2/v2/auth";
+    /** Escopo mínimo: escrever eventos. Não lê a agenda do gestor (ADR-0011). */
+    private static final String ESCOPO = "https://www.googleapis.com/auth/calendar.events";
 
     private final ObjectMapper json = new ObjectMapper();
     private final HttpClient http;
@@ -46,6 +50,21 @@ public class GoogleOauthHttp implements OauthCalendario {
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.http = http;
+    }
+
+    @Override
+    public String urlConsentimento(String redirectUri, String state) {
+        if (clientId.isEmpty()) {
+            throw new ConsentimentoInvalido("Google sem client-id configurado");
+        }
+        // access_type=offline + prompt=consent: precisamos do refresh token, senão
+        // o acesso morre em uma hora e o gestor teria de reconectar toda vez.
+        return AUTORIZAR + "?response_type=code"
+                + "&client_id=" + enc(clientId.get())
+                + "&redirect_uri=" + enc(redirectUri)
+                + "&scope=" + enc(ESCOPO)
+                + "&access_type=offline&include_granted_scopes=true&prompt=consent"
+                + "&state=" + enc(state);
     }
 
     @Override

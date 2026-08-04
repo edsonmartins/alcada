@@ -95,8 +95,14 @@
 - **THEN** `CANCELAR_EVENTO_CALENDARIO` remove o evento, a pendência para de apontar para ele e o lembrete fecha (`DESCARTADA`); cancelar de novo não faz nada (idempotente).
 - *Testes:* `CompromissoCalendarioTest.cancelar_lembrete_depois_do_evento_remove_da_agenda`, `.cancelar_lembrete_na_janela_descarta_o_efeito`, `.cancelar_lembrete_e_idempotente`
 
-## Web (F2.5) — pendente
+## Web (F2.5)
 
 ## C16 — conectar e revogar o calendário
-- **WHEN** o gestor abre a sessão/config
-- **THEN** conecta o Google/Outlook (OAuth) e pode revogar; sem conta conectada, o lembrete funciona igual — só não vira evento.
+- **WHEN** o gestor abre "Canais e contatos"
+- **THEN** vê a seção **pessoal** "Meu calendário": sem conta, o botão leva ao consentimento (URL montada no servidor, escopo mínimo); com conta, mostra o provedor e permite desconectar; em ambiente sem integração configurada, avisa em vez de oferecer botão morto.
+- *Testes (web):* `calendario.test.tsx` — "oferece conectar quando não há conta", "mostra a conta conectada e permite desconectar", "avisa quando o ambiente não tem calendário configurado"
+
+## C16b — o retorno do consentimento
+- **WHEN** o provedor devolve o gestor em `/calendario/callback`
+- **THEN** o código é trocado por tokens no servidor; `state` que não confere **não** troca nada (anti-CSRF), e recusa do gestor (`access_denied`) vira explicação, não erro de sistema.
+- *Testes (web):* `calendario.test.tsx` — "callback troca o código do provedor por tokens", "callback recusa quando o state não confere", "callback explica quando o gestor não autoriza"

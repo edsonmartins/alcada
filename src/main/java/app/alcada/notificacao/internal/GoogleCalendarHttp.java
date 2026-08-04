@@ -18,7 +18,7 @@ import app.alcada.notificacao.port.CriarEvento;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.quarkus.arc.profile.IfBuildProfile;
+import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -26,8 +26,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 /**
  * Google Calendar pela API HTTP (RFC-0009 F2.3b). Cliente simples com
  * serialização explícita — sem SDK (CLAUDE.md §4: reflexão é inimiga do native
- * image). <b>Só existe em {@code prod}</b>; fora dele vale o {@link CalendarioStub},
- * para dev/test nunca tocarem a agenda de ninguém.
+ * image). Só existe quando {@code alcada.calendario.real=true} (piloto e prod);
+ * sem isso vale o {@link CalendarioStub}, e dev/test nunca tocam a agenda de ninguém.
  *
  * <p>O access token vive pouco: quando vencido, renova pelo refresh token antes
  * de chamar. Falha de rede/5xx vira {@link CalendarioIndisponivel} (o outbox
@@ -35,7 +35,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * repetir não resolveria, o gestor precisa reconectar.
  */
 @ApplicationScoped
-@IfBuildProfile("prod")
+@IfBuildProperty(name = "alcada.calendario.real", stringValue = "true")
 public class GoogleCalendarHttp implements Calendario {
 
     private static final String API = "https://www.googleapis.com/calendar/v3/calendars/primary/events";

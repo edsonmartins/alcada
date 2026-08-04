@@ -4,17 +4,28 @@ import java.time.OffsetDateTime;
 
 import app.alcada.notificacao.port.ContasCalendario.Conta;
 import app.alcada.notificacao.port.OauthCalendario;
-import io.quarkus.arc.profile.UnlessBuildProfile;
+import io.quarkus.arc.properties.UnlessBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**
  * Consentimento simulado: aceita qualquer código não vazio e devolve tokens de
- * mentira. Fora de {@code prod}, sempre — dev/test conectam "calendário" sem
- * falar com o Google. O código {@code recusar} permite exercitar a recusa.
+ * mentira. Vale sempre que {@code alcada.calendario.real} não estiver ligado —
+ * dev/test conectam "calendário" sem falar com o Google. O código {@code recusar}
+ * permite exercitar a recusa.
  */
 @ApplicationScoped
-@UnlessBuildProfile("prod")
+@UnlessBuildProperty(name = "alcada.calendario.real", stringValue = "true")
 public class OauthCalendarioStub implements OauthCalendario {
+
+    /**
+     * Volta direto para o callback com um código de mentira: em dev dá para
+     * percorrer a tela inteira sem passar pelo Google.
+     */
+    @Override
+    public String urlConsentimento(String redirectUri, String state) {
+        String sep = redirectUri.contains("?") ? "&" : "?";
+        return redirectUri + sep + "code=dev-" + state + "&state=" + state;
+    }
 
     @Override
     public Conta trocar(String codigo, String redirectUri) {

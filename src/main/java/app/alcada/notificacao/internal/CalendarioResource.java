@@ -13,6 +13,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -38,16 +39,31 @@ public class CalendarioResource {
         this.contextoPessoa = contextoPessoa;
     }
 
+    /**
+     * Estado da conta e, quando o cliente informa para onde voltar, a URL do
+     * consentimento — montada aqui porque é o servidor que sabe o client id e o
+     * escopo mínimo. O {@code state} vem do cliente e volta pelo provedor.
+     */
     @GET
-    public Response estado() {
+    public Response estado(@QueryParam("redirectUri") String redirectUri,
+                           @QueryParam("state") String state) {
         Optional<OrgId> org = contexto.atual();
         Optional<UUID> pessoa = contextoPessoa.atual();
         if (org.isEmpty() || pessoa.isEmpty()) {
             return problema(400, "requisicao.invalida", "X-Org-Id e X-Pessoa-Id são obrigatórios");
         }
+        String url = null;
+        if (redirectUri != null && !redirectUri.isBlank()) {
+            try {
+                url = oauth.urlConsentimento(redirectUri, state == null ? "" : state);
+            } catch (OauthCalendario.ConsentimentoInvalido e) {
+                url = null; // sem client id configurado: a tela avisa que não dá para conectar
+            }
+        }
+        String finalUrl = url;
         return contas.doGestor(org.get(), pessoa.get())
-                .map(c -> Response.ok(new EstadoConta(true, c.provedor(), c.escopo())).build())
-                .orElseGet(() -> Response.ok(new EstadoConta(false, null, null)).build());
+                .map(c -> Response.ok(new EstadoConta(true, c.provedor(), c.escopo(), finalUrl)).build())
+                .orElseGet(() -> Response.ok(new EstadoConta(false, null, null, finalUrl)).build());
     }
 
     @POST
@@ -63,7 +79,7 @@ public class CalendarioResource {
         try {
             var conta = oauth.trocar(req.codigo(), req.redirectUri());
             contas.salvar(org.get(), pessoa.get(), conta);
-            return Response.ok(new EstadoConta(true, conta.provedor(), conta.escopo())).build();
+            return Response.ok(new EstadoConta(true, conta.provedor(), conta.escopo(), null)).build();
         } catch (OauthCalendario.ConsentimentoInvalido e) {
             return problema(422, "calendario.consentimento_invalido", e.getMessage());
         }
@@ -87,8 +103,12 @@ public class CalendarioResource {
 
     public record ConectarRequest(String codigo, String redirectUri) {}
 
-    /** Nunca devolve token: só se há conta, de qual provedor e com que escopo. */
-    public record EstadoConta(boolean conectado, String provedor, String escopo) {}
+    /**
+     * Nunca devolve token: só se há conta, de qual provedor, com que escopo e —
+     * quando pedido — para onde mandar o gestor autorizar.
+     */
+    public record EstadoConta(boolean conectado, String provedor, String escopo,
+                              String urlConsentimento) {}
 
     public record Problema(String type, String detail, int status) {}
 }
