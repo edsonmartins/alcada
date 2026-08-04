@@ -16,6 +16,7 @@ POST   /v1/pendencias/{id}/delegar         { dono_id, nivel, prazo }
 POST   /v1/pendencias/{id}/reservar        { agendado_para, gerar_dossie: bool }
 POST   /v1/pendencias/{id}/repousar        { volta_em }
 POST   /v1/pendencias/{id}/adiar           { volta_em, o_que_falta: NADA|INSUMO|TERCEIRO }
+POST   /v1/pendencias/{id}/lembrete/cancelar  # desiste do compromisso (RFC-0009)
 POST   /v1/pendencias/{id}/intervir        # interrompe N2, devolve para ENTRADA
 POST   /v1/pendencias/{id}/desfazer        # dentro da janela de reversibilidade
 GET    /v1/pendencias/{id}/trilha
@@ -35,6 +36,22 @@ fecha**. Com `comCalendario`, o compromisso também vai para a agenda do gestor:
 (`EVENTO_CALENDARIO`) e só **depois da janela** `alcada.calendario.janela` (default 5 min), para o
 desfazer chegar antes do evento existir (INV-14). Sem calendário conectado, a trilha registra
 `FALHA_COMPROMISSO` e o lembrete continua valendo dentro do Alçada.
+
+`POST .../lembrete/cancelar`: o gestor desiste do compromisso. Fecha o lembrete (mesmo dormindo) e
+limpa a agenda — se o evento ainda não saiu, o efeito é descartado do outbox; se já existe, enfileira
+`CANCELAR_EVENTO_CALENDARIO`. Idempotente; `409 alcada:pendencia.estado_invalido` se o id não é um
+lembrete.
+
+### Calendário do gestor (RFC-0009, OAuth por pessoa)
+```
+GET    /v1/calendario                      # { conectado, provedor?, escopo? }
+POST   /v1/calendario                      { codigo, redirectUri }   # troca o consentimento
+DELETE /v1/calendario                      # desconecta e esquece os tokens
+```
+A conta é **do gestor**, não do tenant: quem conecta é o `X-Pessoa-Id` do contexto. Os tokens ficam
+**cifrados** no banco (AES-GCM, `alcada.cripto.chave`) e **nunca** voltam por esses endpoints —
+`GET` diz apenas se há conta, de qual provedor e com que escopo. `422
+alcada:calendario.consentimento_invalido` quando o código expirou ou é de outro app.
 
 Perguntas ao dossiê (014, RFC-0004 §1): `POST .../dossie/perguntar` → `{encontrou, resposta,
 fontes:[{fonteTipo, fonteRef, trecho}]}`. Recuperação híbrida BM25 (`tsvector`) + embeddings

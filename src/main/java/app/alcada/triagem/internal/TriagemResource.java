@@ -67,6 +67,16 @@ public class TriagemResource {
         });
     }
 
+    /** O gestor desistiu do compromisso (RFC-0009): fecha o lembrete e limpa a agenda. */
+    @POST
+    @Path("/{id}/lembrete/cancelar")
+    public Response cancelarLembrete(@PathParam("id") String id) {
+        return comContexto((org, gestor) -> {
+            triagem.cancelarLembrete(org, UUID.fromString(id), gestor);
+            return Response.noContent().build();
+        });
+    }
+
     @POST
     @Path("/{id}/descartar")
     public Response descartar(@PathParam("id") String id) {

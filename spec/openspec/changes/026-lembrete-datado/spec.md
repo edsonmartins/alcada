@@ -85,9 +85,15 @@
 - **WHEN** o provedor está fora ⇒ a mensagem volta para retentativa (INV-13); **WHEN** o gestor não tem calendário conectado ⇒ `FALHA_COMPROMISSO` e a mensagem é dada por entregue (não adianta repetir), com o lembrete valendo dentro do Alçada.
 - *Testes:* `CompromissoCalendarioTest.provedor_indisponivel_reprocessa`, `.sem_conta_conectada_registra_falha_e_nao_repete`, `.reprocesso_nao_duplica_o_evento`, `.lembrete_sem_calendario_nao_publica_efeito`
 
-## C15b — conectar/revogar o calendário (F2.3b) — pendente
-- **WHEN** o gestor conecta a conta Google/Outlook por OAuth
-- **THEN** o token fica cifrado, escopo mínimo, revogável; sem conta, `comCalendario` só produz `FALHA_COMPROMISSO`.
+## C15b — conectar/revogar o calendário (F2.3b)
+- **WHEN** o gestor troca o consentimento OAuth em `POST /v1/calendario`
+- **THEN** a conta fica guardada **por gestor** com os tokens **cifrados** (o banco não tem nada em claro), o `GET` diz só se há conta/provedor/escopo, o `DELETE` esquece tudo, e a conta de um tenant não vale no outro (INV-15). Consentimento inválido → `422`.
+- *Testes:* `ContaCalendarioTest.conecta_le_o_estado_e_revoga`, `.consentimento_invalido_recusado`, `.token_fica_cifrado_no_banco`, `.conta_nao_atravessa_organizacoes`, `.cofre_ida_e_volta_com_nonce_diferente_a_cada_vez`
+
+## C14b — cancelar o compromisso depois de criado
+- **WHEN** o gestor cancela o lembrete e o evento já existe na agenda
+- **THEN** `CANCELAR_EVENTO_CALENDARIO` remove o evento, a pendência para de apontar para ele e o lembrete fecha (`DESCARTADA`); cancelar de novo não faz nada (idempotente).
+- *Testes:* `CompromissoCalendarioTest.cancelar_lembrete_depois_do_evento_remove_da_agenda`, `.cancelar_lembrete_na_janela_descarta_o_efeito`, `.cancelar_lembrete_e_idempotente`
 
 ## Web (F2.5) — pendente
 

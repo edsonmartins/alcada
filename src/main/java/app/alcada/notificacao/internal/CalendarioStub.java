@@ -29,6 +29,7 @@ public class CalendarioStub implements Calendario {
     private final Set<UUID> gestoresSemConta = ConcurrentHashMap.newKeySet();
     private final Set<UUID> gestoresQueFalham = ConcurrentHashMap.newKeySet();
     private final List<CriarEvento> eventos = new CopyOnWriteArrayList<>();
+    private final Set<String> cancelados = ConcurrentHashMap.newKeySet();
 
     @Override
     public String criarEvento(OrgId org, CriarEvento e) {
@@ -49,8 +50,25 @@ public class CalendarioStub implements Calendario {
         return eventoId;
     }
 
+    @Override
+    public void cancelarEvento(OrgId org, UUID gestorId, String eventoId) {
+        if (gestoresSemConta.contains(gestorId)) {
+            throw new SemConta("gestor sem calendário conectado: " + gestorId);
+        }
+        if (gestoresQueFalham.contains(gestorId)) {
+            throw new CalendarioIndisponivel("provedor indisponível para " + gestorId);
+        }
+        cancelados.add(eventoId);
+        criados.values().removeIf(eventoId::equals);
+        eventos.removeIf(e -> eventoId.equals(criados.get(e.idempotencyKey())));
+    }
+
     public List<CriarEvento> eventos() {
         return eventos;
+    }
+
+    public Set<String> cancelados() {
+        return cancelados;
     }
 
     public void programarSemConta(UUID gestorId) {
@@ -66,5 +84,6 @@ public class CalendarioStub implements Calendario {
         gestoresSemConta.clear();
         gestoresQueFalham.clear();
         eventos.clear();
+        cancelados.clear();
     }
 }

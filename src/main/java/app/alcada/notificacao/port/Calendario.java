@@ -19,6 +19,15 @@ public interface Calendario {
      */
     String criarEvento(OrgId org, CriarEvento evento);
 
+    /**
+     * Tira o compromisso da agenda do gestor. Idempotente: evento já removido (ou
+     * inexistente) não é erro — o estado desejado é o mesmo.
+     *
+     * @throws CalendarioIndisponivel falha temporária — o outbox reprocessa.
+     * @throws SemConta o gestor desconectou o calendário; não adianta repetir.
+     */
+    void cancelarEvento(OrgId org, java.util.UUID gestorId, String eventoId);
+
     /** Falha de entrega — o efeito volta para retentativa no outbox (INV-13). */
     class CalendarioIndisponivel extends RuntimeException {
         public CalendarioIndisponivel(String msg) {

@@ -115,12 +115,30 @@ class LembreteDatadoTest {
         assertEquals("ENTRADA", status(c.org, c.pend));
     }
 
-    // C6 — o horizonte sai da distância até a data (ADR-0008)
+    // C6 — o horizonte sai da distância até a data, em dias do calendário do
+    // tenant: "hoje às 23h" é HOJE; "amanhã 00h30" não é, mesmo faltando pouco.
     @Test
     void horizonte_deriva_da_data_do_compromisso() {
-        assertEquals("HOJE", horizonteDeLembrete(agora().plusHours(3)));
+        java.time.ZoneId sp = java.time.ZoneId.of("America/Sao_Paulo");
+        OffsetDateTime agora = OffsetDateTime.parse("2026-08-05T09:00-03:00"); // quarta
+
+        assertEquals("HOJE", horizonte(sp, agora, "2026-08-05T23:00-03:00"));
+        assertEquals("SEMANA", horizonte(sp, agora, "2026-08-06T00:30-03:00"), "virou o dia");
+        assertEquals("SEMANA", horizonte(sp, agora, "2026-08-12T10:00-03:00"));
+        assertEquals("TRIMESTRE", horizonte(sp, agora, "2026-08-13T10:00-03:00"));
+        // o instante é o mesmo; o dia do tenant é que decide
+        assertEquals("HOJE", horizonte(sp, agora, "2026-08-06T02:00Z"));
+    }
+
+    // C6 — e o horizonte calculado chega mesmo na pendência criada
+    @Test
+    void horizonte_calculado_vai_para_o_item() {
         assertEquals("SEMANA", horizonteDeLembrete(agora().plusDays(3)));
         assertEquals("TRIMESTRE", horizonteDeLembrete(agora().plusDays(40)));
+    }
+
+    private static String horizonte(java.time.ZoneId zona, OffsetDateTime agora, String quando) {
+        return new Triagem.Lembrete(OffsetDateTime.parse(quando), "x").horizonte(zona, agora);
     }
 
     // C7 — o lembrete não é captura: não conta como "entrou" no encolhimento (INV-01)

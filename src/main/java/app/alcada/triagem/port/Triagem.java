@@ -44,6 +44,21 @@ public interface Triagem {
         }
 
         /**
+         * Horizonte do item que vai nascer, pela distância até a data (ADR-0008):
+         * o dia de hoje é HOJE, até uma semana é SEMANA, mais que isso é
+         * TRIMESTRE. Comparado em **dias do calendário do tenant** — "hoje às
+         * 23h" é hoje, "amanhã às 00h30" não é, mesmo faltando pouco.
+         */
+        public String horizonte(java.time.ZoneId zona, OffsetDateTime agora) {
+            java.time.LocalDate hoje = agora.atZoneSameInstant(zona).toLocalDate();
+            java.time.LocalDate dia = quando.atZoneSameInstant(zona).toLocalDate();
+            if (!dia.isAfter(hoje)) {
+                return "HOJE";
+            }
+            return dia.isAfter(hoje.plusDays(7)) ? "TRIMESTRE" : "SEMANA";
+        }
+
+        /**
          * Um lembrete só serve se for para o futuro e tiver o que dizer. Longe
          * demais quase sempre é data mal interpretada (INV-10: o código valida o
          * que o modelo propôs) — e um lembrete na data errada é pior que nenhum.

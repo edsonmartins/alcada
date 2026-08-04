@@ -114,7 +114,7 @@ public class TriagemService implements app.alcada.triagem.port.Triagem {
                 """)
                 .setParameter(1, lembreteId).setParameter(2, org.valor())
                 .setParameter(3, lembrete.texto().trim())
-                .setParameter(4, horizonteDe(org, lembrete.quando()))
+                .setParameter(4, lembrete.horizonte(fuso.fuso(org), OffsetDateTime.now(ZoneOffset.UTC)))
                 .setParameter(5, lembrete.quando()).setParameter(6, origemId)
                 .executeUpdate();
         // O evento fica na pendência de ORIGEM: é lá que se lê "resolvi, e sobrou isto".
@@ -146,15 +146,44 @@ public class TriagemService implements app.alcada.triagem.port.Triagem {
         return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
-    /** Horizonte pela distância até a data, no fuso do tenant (ADR-0008). */
-    private String horizonteDe(OrgId org, OffsetDateTime quando) {
-        java.time.ZoneId zona = fuso.fuso(org);
-        java.time.LocalDate hoje = java.time.LocalDate.now(zona);
-        java.time.LocalDate dia = quando.atZoneSameInstant(zona).toLocalDate();
-        if (!dia.isAfter(hoje)) {
-            return "HOJE";
+    /**
+     * O gestor desistiu do compromisso (RFC-0009). Vale mesmo com o lembrete
+     * ainda dormindo — é o único jeito de cancelá-lo antes da data. Se o evento
+     * na agenda ainda não saiu, some do outbox e nunca existiu; se já foi criado,
+     * enfileira a remoção pelo mesmo caminho de sempre (INV-14).
+     */
+    @Transactional
+    public void cancelarLembrete(OrgId org, UUID lembreteId, UUID gestorId) {
+        Object[] l;
+        try {
+            l = (Object[]) em.createNativeQuery("""
+                    SELECT status, origem, evento_calendario_id FROM pendencia
+                    WHERE org_id = ? AND id = ?
+                    """).setParameter(1, org.valor()).setParameter(2, lembreteId).getSingleResult();
+        } catch (NoResultException e) {
+            throw new FalhasTriagem.EstadoInvalido("lembrete não encontrado");
         }
-        return dia.isAfter(hoje.plusDays(7)) ? "TRIMESTRE" : "SEMANA";
+        if (!"LEMBRETE".equals(l[1])) {
+            throw new FalhasTriagem.EstadoInvalido("esta pendência não é um lembrete");
+        }
+        String status = (String) l[0];
+        if ("FECHADA".equals(status)) {
+            return; // já cancelado: nada a fazer (idempotente)
+        }
+        setStatus(org, lembreteId, "FECHADA");
+        trilha.registrar(new EventoTrilha(org, lembreteId, TipoEvento.DESCARTADA,
+                Ator.humano(gestorId), status, "FECHADA", null, "{\"motivo\":\"lembrete_cancelado\"}"));
+
+        String eventoId = (String) l[2];
+        if (eventoId == null) {
+            // ainda na janela (ou sem calendário): descartar basta — a agenda nunca soube
+            outbox.descartarPendente(org, app.alcada.triagem.port.Triagem.chaveCompromisso(lembreteId));
+            return;
+        }
+        outbox.publicar(new MensagemOutbox(org, "CANCELAR_EVENTO_CALENDARIO",
+                "{\"lembrete_id\":\"" + lembreteId + "\",\"gestor_id\":\"" + gestorId
+                        + "\",\"evento_id\":" + jsonTexto(eventoId) + "}",
+                lembreteId + ":cancelar_evento"));
     }
 
     /**

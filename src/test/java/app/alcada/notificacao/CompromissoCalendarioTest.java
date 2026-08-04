@@ -136,6 +136,53 @@ class CompromissoCalendarioTest {
         assertEquals(1, calendario.eventos().size(), "um evento só");
     }
 
+    // C14b — cancelar o lembrete depois do evento existir: sai da agenda
+    @Test
+    void cancelar_lembrete_depois_do_evento_remove_da_agenda() {
+        Ctx c = novo();
+        resolverComCompromisso(c, agora().plusDays(3), "Reunião Sharpi");
+        liberarJanela(c.org);
+        worker.processarLote();
+        UUID lembrete = lembreteDe(c.org, c.pend);
+        String eventoId = eventoIdDe(c.org, lembrete);
+
+        triagem.cancelarLembrete(c.org, lembrete, c.gestor);
+        worker.processarLote();
+
+        assertTrue(calendario.cancelados().contains(eventoId), "o evento foi removido");
+        assertNull(eventoIdDe(c.org, lembrete), "e a pendência não aponta mais para ele");
+        assertEquals("FECHADA", statusDe(c.org, lembrete));
+        assertTrue(tipos(c.org, lembrete).contains("DESCARTADA"));
+    }
+
+    // C14 — cancelar antes da janela vencer: o evento nunca chega a existir
+    @Test
+    void cancelar_lembrete_na_janela_descarta_o_efeito() {
+        Ctx c = novo();
+        resolverComCompromisso(c, agora().plusDays(3), "Reunião Sharpi");
+        UUID lembrete = lembreteDe(c.org, c.pend);
+
+        triagem.cancelarLembrete(c.org, lembrete, c.gestor);
+        liberarJanela(c.org);
+        worker.processarLote();
+
+        assertTrue(calendario.eventos().isEmpty(), "a agenda nunca soube");
+        assertEquals("FECHADA", statusDe(c.org, lembrete));
+    }
+
+    // Cancelar duas vezes não faz nada demais (idempotente)
+    @Test
+    void cancelar_lembrete_e_idempotente() {
+        Ctx c = novo();
+        resolverComCompromisso(c, agora().plusDays(3), "Reunião Sharpi");
+        UUID lembrete = lembreteDe(c.org, c.pend);
+
+        triagem.cancelarLembrete(c.org, lembrete, c.gestor);
+        triagem.cancelarLembrete(c.org, lembrete, c.gestor);
+
+        assertEquals(1, tipos(c.org, lembrete).stream().filter("DESCARTADA"::equals).count());
+    }
+
     // Lembrete sem calendário não gera efeito externo nenhum
     @Test
     void lembrete_sem_calendario_nao_publica_efeito() {
@@ -178,6 +225,12 @@ class CompromissoCalendarioTest {
 
     private static OffsetDateTime agora() {
         return OffsetDateTime.now(ZoneOffset.UTC);
+    }
+
+    private String statusDe(OrgId org, UUID pendenciaId) {
+        return (String) QuarkusTransaction.requiringNew().call(() -> em.createNativeQuery(
+                "SELECT status FROM pendencia WHERE org_id = ? AND id = ?")
+                .setParameter(1, org.valor()).setParameter(2, pendenciaId).getSingleResult());
     }
 
     private String statusOutbox(OrgId org) {

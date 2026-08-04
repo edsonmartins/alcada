@@ -67,6 +67,7 @@ public class DespachanteCanal implements Despachante {
             case "grupo.aviso" -> entregarAvisoGrupo(m);
             case "AVISO_REPASSE" -> entregarAvisoRepasse(m);
             case "EVENTO_CALENDARIO" -> entregarCompromisso(m);
+            case "CANCELAR_EVENTO_CALENDARIO" -> cancelarCompromisso(m);
             default -> {
                 // eventos internos (delegacao.executada/escalada/devolvida, …): sem saída ao solicitante
             }
@@ -182,6 +183,31 @@ public class DespachanteCanal implements Despachante {
         trilha.registrar(new EventoTrilha(m.org(), lembreteId, TipoEvento.COMPROMISSO_AGENDADO,
                 Ator.sistemaMotor("notificacao"), null, null, null,
                 "{\"quando\":\"" + quando + "\"}"));
+    }
+
+    /**
+     * Tira o compromisso da agenda quando o gestor cancela o lembrete depois do
+     * evento existir. Sem conta conectada não há como remover — registra e segue,
+     * em vez de reprocessar para sempre.
+     */
+    private void cancelarCompromisso(MensagemOutbox m) {
+        String p = m.payloadJson();
+        UUID lembreteId = UUID.fromString(campo(p, "lembrete_id"));
+        UUID gestorId = UUID.fromString(campo(p, "gestor_id"));
+        try {
+            calendario.cancelarEvento(m.org(), gestorId, campo(p, "evento_id"));
+        } catch (Calendario.SemConta e) {
+            trilha.registrar(new EventoTrilha(m.org(), lembreteId, TipoEvento.FALHA_COMPROMISSO,
+                    Ator.sistemaMotor("notificacao"), null, null, null,
+                    "{\"motivo\":\"sem_calendario_conectado\",\"acao\":\"cancelar\"}"));
+            return;
+        }
+        em.createNativeQuery(
+                "UPDATE pendencia SET evento_calendario_id = NULL WHERE org_id = ? AND id = ?")
+                .setParameter(1, m.org().valor()).setParameter(2, lembreteId).executeUpdate();
+        trilha.registrar(new EventoTrilha(m.org(), lembreteId, TipoEvento.COMPENSACAO,
+                Ator.sistemaMotor("notificacao"), null, null, null,
+                "{\"o_que\":\"compromisso_cancelado\"}"));
     }
 
     private String canalWhatsappDaOrg(OrgId org) {

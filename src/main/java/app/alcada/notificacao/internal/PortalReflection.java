@@ -7,7 +7,10 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         PortalTokens.ProjecaoPublica.class,
         EmissaoPortalResource.EmitirRequest.class,
         EmissaoPortalResource.LinkResposta.class,
-        EmissaoPortalResource.Problema.class
+        EmissaoPortalResource.Problema.class,
+        CalendarioResource.ConectarRequest.class,
+        CalendarioResource.EstadoConta.class,
+        CalendarioResource.Problema.class
 })
 public final class PortalReflection {
     private PortalReflection() {

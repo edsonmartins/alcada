@@ -24,11 +24,17 @@
 - [x] Testes `CompromissoCalendarioTest` (6) + `spec/docs/API.md`
 - Nota (divergência consciente da RFC): a RFC dizia "após a janela" pensando na janela do motor (horas). Para o compromisso isso deixaria a agenda vazia por horas — a janela virou config curta (5 min), o suficiente para o desfazer.
 
-## Calendário — provedor real (F2.3b Google, F2.4 Outlook)
-- [ ] `ContasCalendario` + `conta_calendario` (OAuth por gestor, token cifrado, escopo mínimo, revogação) (C15b)
-- [ ] `GoogleCalendarHttp` (@prod): criar evento, refresh de token, erros → `CalendarioIndisponivel`/`SemConta`
-- [ ] Cancelar: `Calendario.cancelarEvento` + `CANCELAR_EVENTO_CALENDARIO` no outbox quando o lembrete é cancelado depois da janela
-- [ ] Adaptador Outlook no mesmo contrato
+## Calendário — provedor real (F2.3b Google)
+- [x] `Cofre` (AES-GCM, `alcada.cripto.chave`; obrigatória em prod) em `plataforma/cripto`
+- [x] `ContasCalendario` + `V37 conta_calendario` (por gestor, tokens cifrados) e `/v1/calendario` GET/POST/DELETE (C15b)
+- [x] `OauthCalendario` com `GoogleOauthHttp` (@prod) e `OauthCalendarioStub` fora de prod
+- [x] `GoogleCalendarHttp` (@prod): cria/cancela evento, renova o access token pelo refresh; 401/403 e refresh recusado → `SemConta`, resto → `CalendarioIndisponivel`
+- [x] Cancelar: `Triagem.cancelarLembrete` + `POST /v1/pendencias/{id}/lembrete/cancelar` — descarta o efeito na janela ou enfileira `CANCELAR_EVENTO_CALENDARIO` (C14b)
+- [x] Testes `ContaCalendarioTest` (5) e `CompromissoCalendarioTest` (9, +3 de cancelamento)
+- [ ] **Teste ao vivo**: client id/secret reais no Google Cloud, consentimento de verdade e um evento na agenda (combinado: implementar agora, testar depois)
+
+## Calendário — Outlook (F2.4)
+- [ ] Adaptador Outlook no mesmo contrato (`Calendario` + `OauthCalendario`)
 
 ## Web (F2.5)
 - [ ] Conectar/revogar o calendário na sessão (C16)
