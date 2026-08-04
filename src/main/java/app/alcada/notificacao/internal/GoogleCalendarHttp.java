@@ -66,9 +66,11 @@ public class GoogleCalendarHttp implements Calendario {
     @Override
     public String criarEvento(OrgId org, CriarEvento e) {
         String token = tokenValido(org, e.gestorId());
+        // Corpo mínimo de propósito: o `source` do Google exige `url` junto do
+        // título e só serviria de enfeite — não vale arriscar 400 por enfeite.
         String corpo = """
                 {"summary":%s,"start":{"dateTime":"%s"},"end":{"dateTime":"%s"},\
-                "reminders":{"useDefault":true},"source":{"title":"Alçada"}}"""
+                "reminders":{"useDefault":true}}"""
                 .formatted(texto(e.titulo()), e.quando(), e.quando().plus(e.duracao()));
         HttpResponse<String> r = enviar(HttpRequest.newBuilder(URI.create(API))
                 .header("Authorization", "Bearer " + token)
