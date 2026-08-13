@@ -90,9 +90,10 @@ class CompensacaoECargaTest {
     void referencia_por_id_e_aceita() {
         OrgId org = new OrgId(UUID.randomUUID());
         UUID pend = UUID.randomUUID();
+        UUID referenciaNumerica = UUID.fromString("12345678-abcd-4abc-8abc-123456789012");
         QuarkusTransaction.requiringNew().run(() -> trilha.registrar(new EventoTrilha(
                 org, pend, TipoEvento.ROTEADA_POR_REGRA, Ator.sistemaRegra("bloqueio_tecnico"),
-                "ENTRADA", "DELEGADA", null, "{\"pessoa_id\":\"" + UUID.randomUUID() + "\"}")));
+                "ENTRADA", "DELEGADA", null, "{\"pessoa_id\":\"" + referenciaNumerica + "\"}")));
         assertEquals(1, QuarkusTransaction.requiringNew().call(() -> consulta.daPendencia(org, pend)).size());
     }
 

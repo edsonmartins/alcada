@@ -40,7 +40,10 @@ public class TrilhaAppendOnly implements Trilha {
     private static final Pattern CNPJ =
             Pattern.compile("\\b\\d{2}\\.?\\d{3}\\.?\\d{3}/?\\d{4}-?\\d{2}\\b");
     private static final Pattern EMAIL = Pattern.compile("[\\w.+-]+@[\\w-]+\\.[\\w.-]+");
-    private static final Pattern TELEFONE = Pattern.compile("\\b(?:\\+?55\\s?)?\\(?\\d{2}\\)?\\s?9?\\d{4}-?\\d{4}\\b");
+    // Os limites também excluem hífen para não confundir um trecho só numérico
+    // de UUID (ex.: 12345678-abcd-...) com telefone.
+    private static final Pattern TELEFONE = Pattern.compile(
+            "(?<![\\p{Alnum}-])(?:\\+?55\\s?)?\\(?\\d{2}\\)?\\s?9?\\d{4}-?\\d{4}(?![\\p{Alnum}-])");
 
     private final EntityManager em;
 
