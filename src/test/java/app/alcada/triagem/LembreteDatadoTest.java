@@ -49,9 +49,10 @@ class LembreteDatadoTest {
         assertEquals("Reunião Sharpi", l[1]);
         assertEquals("DORMINDO", l[2], "dorme até a data — invisível na Entrada");
         assertEquals("LEMBRETE", l[3]);
-        // PostgreSQL persiste timestamp com precisão de micros; a JVM mantém nanos.
-        assertEquals(quinta.toInstant().truncatedTo(ChronoUnit.MICROS),
-                (java.time.Instant) l[4], "desperta na data marcada");
+        // PostgreSQL persiste timestamp com precisão de micros e arredonda nanos.
+        java.time.Instant persistido = (java.time.Instant) l[4];
+        long diferencaMicros = Math.abs(ChronoUnit.MICROS.between(quinta.toInstant(), persistido));
+        assertTrue(diferencaMicros <= 1, "desperta na data marcada");
     }
 
     // C2 — a trilha liga origem → lembrete (INV-11)
