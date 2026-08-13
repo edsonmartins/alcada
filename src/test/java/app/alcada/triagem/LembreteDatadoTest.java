@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,7 +49,9 @@ class LembreteDatadoTest {
         assertEquals("Reunião Sharpi", l[1]);
         assertEquals("DORMINDO", l[2], "dorme até a data — invisível na Entrada");
         assertEquals("LEMBRETE", l[3]);
-        assertEquals(quinta.toInstant(), (java.time.Instant) l[4], "desperta na data marcada");
+        // PostgreSQL persiste timestamp com precisão de micros; a JVM mantém nanos.
+        assertEquals(quinta.toInstant().truncatedTo(ChronoUnit.MICROS),
+                (java.time.Instant) l[4], "desperta na data marcada");
     }
 
     // C2 — a trilha liga origem → lembrete (INV-11)
