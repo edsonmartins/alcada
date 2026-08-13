@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import app.alcada.captura.port.EnviarMensagem;
+import app.alcada.captura.port.EnviarDireto;
 import app.alcada.notificacao.port.Canal;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import com.sun.net.httpserver.HttpServer;
@@ -36,7 +37,7 @@ class LinktorHttpTest {
             path.set(ex.getRequestURI().getPath());
             apiKey.set(ex.getRequestHeaders().getFirst("X-API-Key"));
             body.set(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-            responder(ex, 200, "{\"data\":{\"id\":\"m1\"}}");
+            responder(ex, 201, "{\"data\":{\"id\":\"m1\"}}");
         });
         server.start();
         try {
@@ -47,9 +48,34 @@ class LinktorHttpTest {
             assertTrue(ok);
             assertEquals("/api/v1/conversations/conv-123/messages", path.get());
             assertEquals("lk_teste", apiKey.get());
-            assertTrue(body.get().contains("\"text\""));
+            assertTrue(body.get().contains("\"content_type\":\"text\""));
+            assertTrue(body.get().contains("\"content\":\"Sua solicitação foi resolvida.\""));
             assertTrue(body.get().contains("\"idempotency_key\":\"chave-1\""));
             assertTrue(body.get().contains("\"source\":\"alcada\""));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void envio_direto_propaga_correlacao_opaca_no_metadata() throws Exception {
+        AtomicReference<String> body = new AtomicReference<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", ex -> {
+            body.set(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            responder(ex, 202, "{\"success\":true,\"data\":{\"id\":\"m2\",\"status\":\"queued\"}}");
+        });
+        server.start();
+        try {
+            Canal linktor = new LinktorHttp(base(server), Optional.of("lk_teste"), HttpClient.newHttpClient());
+            assertTrue(linktor.enviarDireto(new OrgId(UUID.randomUUID()),
+                    new EnviarDireto("ch-1", "+5511999999999", "repasse", "k-2", "token-opaco")));
+            assertTrue(body.get().contains("\"channel_id\":\"ch-1\""));
+            assertTrue(body.get().contains("\"to\":\"+5511999999999\""));
+            assertTrue(body.get().contains("\"content_type\":\"text\""));
+            assertTrue(body.get().contains("\"text\":\"repasse\""));
+            assertTrue(body.get().contains("\"alcada_correlation\":\"token-opaco\""));
+            assertTrue(body.get().contains("\"idempotency_key\":\"k-2\""));
         } finally {
             server.stop(0);
         }
@@ -65,6 +91,20 @@ class LinktorHttpTest {
             assertThrows(Canal.CanalIndisponivel.class, () -> linktor.enviar(
                     new OrgId(UUID.randomUUID()),
                     new EnviarMensagem("WHATSAPP", "rafael", "oi", "conv-9", "k")));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void reserva_idempotente_em_andamento_retorna_para_retry_do_outbox() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", ex -> responder(ex, 409, "{\"error\":\"idempotency in progress\"}"));
+        server.start();
+        try {
+            Canal linktor = new LinktorHttp(base(server), Optional.of("lk_teste"), HttpClient.newHttpClient());
+            assertThrows(Canal.CanalIndisponivel.class, () -> linktor.enviarDireto(
+                    new OrgId(UUID.randomUUID()), new EnviarDireto("ch-1", "+5511999999999", "oi", "k", null)));
         } finally {
             server.stop(0);
         }

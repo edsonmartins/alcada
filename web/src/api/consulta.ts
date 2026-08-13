@@ -5,6 +5,8 @@ export interface ItemConsulta {
   titulo: string;
   classe: string;
   valorEmJogo: number | null;
+  status: string;
+  links: Array<{ tipo: string; href: string }>;
 }
 
 export interface ResultadoConsulta {

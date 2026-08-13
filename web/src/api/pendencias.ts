@@ -34,6 +34,10 @@ export function adiar(id: string, body: AdiarBody): Promise<{ oferta: string }> 
   return post<{ oferta: string }>(`/v1/pendencias/${id}/adiar`, body);
 }
 
+export function pedirInformacao(id: string, body: { contatoId: string; pergunta: string; prazo: string }): Promise<{ id: string }> {
+  return post<{ id: string }>(`/v1/pendencias/${id}/pedidos-informacao`, body);
+}
+
 function emDias(dias: number): string {
   const d = new Date();
   d.setDate(d.getDate() + dias);

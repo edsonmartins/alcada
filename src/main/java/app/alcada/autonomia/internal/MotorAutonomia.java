@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import app.alcada.autonomia.port.DestinoRepasse;
+import app.alcada.autonomia.port.CorrelacoesRetorno;
+import app.alcada.autonomia.port.CalendarioComercial;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import app.alcada.plataforma.outbox.port.MensagemOutbox;
 import app.alcada.plataforma.outbox.port.Outbox;
@@ -37,12 +39,17 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
     private final Agenda agenda;
     private final Outbox outbox;
     private final Trilha trilha;
+    private final CorrelacoesRetorno correlacoes;
+    private final CalendarioComercial calendarioComercial;
 
-    public MotorAutonomia(EntityManager em, Agenda agenda, Outbox outbox, Trilha trilha) {
+    public MotorAutonomia(EntityManager em, Agenda agenda, Outbox outbox, Trilha trilha,
+                          CorrelacoesRetorno correlacoes, CalendarioComercial calendarioComercial) {
         this.em = em;
         this.agenda = agenda;
         this.outbox = outbox;
         this.trilha = trilha;
+        this.correlacoes = correlacoes;
+        this.calendarioComercial = calendarioComercial;
     }
 
     // ---- ações de comando --------------------------------------------------
@@ -63,6 +70,10 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
     @Transactional
     public UUID delegar(OrgId org, UUID pendenciaId, DestinoRepasse destino, String nivelPedido,
                         OffsetDateTime prazo, UUID gestorId) {
+        // Contato externo é PII persistida e precisa existir no tenant. Destinos
+        // internos são validados nas bordas (web/voz); a porta continua aceitando
+        // executores sintéticos usados por integrações e testes legados.
+        if (destino instanceof DestinoRepasse.Externo) validarDestino(org, destino);
         String classe = classePendencia(org, pendenciaId);
         Parametros p = parametros(org, classe);
 
@@ -80,14 +91,14 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
         UUID destinoId = destino instanceof DestinoRepasse.Externo e ? e.contatoId()
                 : ((DestinoRepasse.Interno) destino).pessoaId();
         em.createNativeQuery(("""
-                INSERT INTO delegacao (id, org_id, pendencia_id, %s, nivel, prazo,
+                INSERT INTO delegacao (id, org_id, pendencia_id, %s, nivel, prazo, gestor_id,
                                        janela, escalonamento, status)
-                VALUES (?, ?, ?, ?, ?, ?, (?::bigint * interval '1 second'),
+                VALUES (?, ?, ?, ?, ?, ?, ?, (?::bigint * interval '1 second'),
                         (?::bigint * interval '1 second'), 'ABERTA')
                 """).formatted(coluna))
                 .setParameter(1, delegacaoId).setParameter(2, org.valor()).setParameter(3, pendenciaId)
                 .setParameter(4, destinoId).setParameter(5, nivel).setParameter(6, prazo)
-                .setParameter(7, p.janela().toSeconds()).setParameter(8, p.escalonamento().toSeconds())
+                .setParameter(7, gestorId).setParameter(8, p.janela().toSeconds()).setParameter(9, p.escalonamento().toSeconds())
                 .executeUpdate();
 
         atualizarStatusPendencia(org, pendenciaId, "DELEGADA");
@@ -106,6 +117,10 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
         // Externo (RFC-0008): enfileira o aviso de repasse; o WorkerOutbox/DespachanteCanal
         // entrega ao contato pelo canal (WhatsApp/e-mail). Represado/liberado com a janela.
         if (destino instanceof DestinoRepasse.Externo ext) {
+            Object[] contato = (Object[]) em.createNativeQuery(
+                    "SELECT canal,endereco FROM contato_externo WHERE org_id=? AND id=?")
+                    .setParameter(1,org.valor()).setParameter(2,ext.contatoId()).getSingleResult();
+            correlacoes.criar(org,delegacaoId,(String)contato[0],(String)contato[1],prazo.plusDays(30));
             avisarRepasseExterno(org, delegacaoId, pendenciaId, ext.contatoId());
         }
 
@@ -115,14 +130,15 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
                     prazo, payload(delegacaoId)));
             agenda.agendar(new TarefaAgendada(org, TiposAutonomia.ESCALONAMENTO, delegacaoId.toString(),
                     prazo.plus(p.escalonamento()), payload(delegacaoId)));
-            // Lembretes: a 50% do prazo cutuca o executor; a 90%, o gestor (002).
+            // P032: percentuais sobre TEMPO ÚTIL; a porta mantém o expediente local
+            // estável e devolve instantes absolutos para o scheduler persistente.
             OffsetDateTime agora = OffsetDateTime.now(ZoneOffset.UTC);
-            long dur = Duration.between(agora, prazo).toSeconds();
-            if (dur > 0) {
+            Duration util = calendarioComercial.tempoUtilEntre(org, agora, prazo);
+            if (!util.isZero()) {
                 agenda.agendar(new TarefaAgendada(org, TiposAutonomia.LEMBRETE_50, delegacaoId.toString(),
-                        agora.plusSeconds(dur / 2), payload(delegacaoId)));
+                        calendarioComercial.instanteNaFracao(org, agora, prazo, 50), payload(delegacaoId)));
                 agenda.agendar(new TarefaAgendada(org, TiposAutonomia.LEMBRETE_90, delegacaoId.toString(),
-                        agora.plusSeconds((dur * 9) / 10), payload(delegacaoId)));
+                        calendarioComercial.instanteNaFracao(org, agora, prazo, 90), payload(delegacaoId)));
             }
         }
         return delegacaoId;
@@ -187,12 +203,31 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
     /** Gestor intervém antes do prazo: devolve à entrada, sem efeito externo. */
     @Transactional
     public void intervir(OrgId org, UUID pendenciaId, UUID gestorId) {
+        intervir(org, pendenciaId, gestorId, null, null);
+    }
+
+    /** Intervenção com evidência opcional do piloto; o motivo não condiciona a segurança. */
+    @Transactional
+    public void intervir(OrgId org, UUID pendenciaId, UUID gestorId, String motivo, String observacao) {
         Delegacao d = carregarAtual(org, pendenciaId, "ABERTA", "PROPOSTA", "AGUARDANDO_JANELA");
+        if (motivo != null && !java.util.Set.of("DISCORDOU", "RISCO_ALTO", "PRAZO_INADEQUADO",
+                "PROPOSTA_INCOMPLETA", "NAO_CONFIA_NO_SILENCIO", "OUTRO").contains(motivo)) {
+            throw new IllegalArgumentException("motivo de intervenção inválido");
+        }
         setStatusDelegacao(org, d.id(), "DEVOLVIDA");
         atualizarStatusPendencia(org, pendenciaId, "ENTRADA");
         trilha.registrar(new EventoTrilha(org, pendenciaId, TipoEvento.INTERROMPIDA,
                 Ator.humano(gestorId), "DELEGADA", "ENTRADA", null, "{\"delegacao_id\":\"" + d.id() + "\"}"));
         notificar(org, "delegacao.interrompida", d.id(), "gestor interrompeu; nenhum efeito emitido");
+        if (motivo != null || (observacao != null && !observacao.isBlank())) {
+            em.createNativeQuery("""
+                    INSERT INTO intervencao_n2_motivo
+                        (org_id,delegacao_id,motivo,observacao,registrado_por)
+                    VALUES (?,?,?,?,?)
+                    """).setParameter(1, org.valor()).setParameter(2, d.id()).setParameter(3, motivo)
+                    .setParameter(4, observacao == null ? null : observacao.substring(0, Math.min(500, observacao.length())))
+                    .setParameter(5, gestorId).executeUpdate();
+        }
     }
 
     /** Desfazer: só vale dentro da janela (INV-14). Após publicação → 409. */
@@ -268,10 +303,13 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
     @Transactional
     public void aoLembrete(OrgId org, UUID delegacaoId, boolean paraGestor) {
         Delegacao d = carregar(org, delegacaoId);
-        if (!ATIVO.contains(d.status())) {
+        if (!"ABERTA".equals(d.status())) {
             return; // já executada/escalada/devolvida — nada a lembrar
         }
         if (paraGestor) {
+            if (calendarioComercial.tempoUtilEntre(org, OffsetDateTime.now(ZoneOffset.UTC), d.prazo()).isZero()) {
+                return; // não há ação útil possível antes do prazo
+            }
             notificar(org, "delegacao.lembrete_gestor", delegacaoId,
                     "90% do prazo; sem ação, o sistema executa por ausência em breve");
         } else {
@@ -282,10 +320,8 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
 
     // ---- helpers -----------------------------------------------------------
 
-    private static final java.util.Set<String> ATIVO =
-            java.util.Set.of("ABERTA", "PROPOSTA", "AGUARDANDO_JANELA");
-
-    private record Delegacao(UUID id, UUID pendenciaId, String status, Duration janela, String proposta) {
+    private record Delegacao(UUID id, UUID pendenciaId, String status, Duration janela, String proposta,
+                             OffsetDateTime prazo) {
     }
 
     private record Parametros(String nivelMaximo, Duration janela, Duration escalonamento) {
@@ -293,25 +329,25 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
 
     private Delegacao carregar(OrgId org, UUID delegacaoId) {
         Object[] r = (Object[]) em.createNativeQuery("""
-                SELECT pendencia_id, status, EXTRACT(EPOCH FROM janela)::bigint, proposta
+                SELECT pendencia_id, status, EXTRACT(EPOCH FROM janela)::bigint, proposta, prazo
                 FROM delegacao WHERE org_id = ? AND id = ?
                 """)
                 .setParameter(1, org.valor()).setParameter(2, delegacaoId).getSingleResult();
         return new Delegacao(delegacaoId, (UUID) r[0], (String) r[1],
-                Duration.ofSeconds(((Number) r[2]).longValue()), (String) r[3]);
+                Duration.ofSeconds(((Number) r[2]).longValue()), (String) r[3], instante(r[4]));
     }
 
     private Delegacao carregarAtual(OrgId org, UUID pendenciaId, String... statuses) {
         String inList = String.join("','", statuses);
         try {
             Object[] r = (Object[]) em.createNativeQuery("""
-                    SELECT id, status, EXTRACT(EPOCH FROM janela)::bigint, proposta
+                    SELECT id, status, EXTRACT(EPOCH FROM janela)::bigint, proposta, prazo
                     FROM delegacao
                     WHERE org_id = ? AND pendencia_id = ? AND status IN ('""" + inList + "')"
                     + " ORDER BY criada_em DESC LIMIT 1")
                     .setParameter(1, org.valor()).setParameter(2, pendenciaId).getSingleResult();
             return new Delegacao((UUID) r[0], pendenciaId, (String) r[1],
-                    Duration.ofSeconds(((Number) r[2]).longValue()), (String) r[3]);
+                    Duration.ofSeconds(((Number) r[2]).longValue()), (String) r[3], instante(r[4]));
         } catch (NoResultException e) {
             throw new Falhas.EstadoInvalido("nenhuma delegação ativa para a pendência");
         }
@@ -320,12 +356,12 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
     private Delegacao carregarUltima(OrgId org, UUID pendenciaId) {
         try {
             Object[] r = (Object[]) em.createNativeQuery("""
-                    SELECT id, status, EXTRACT(EPOCH FROM janela)::bigint, proposta
+                    SELECT id, status, EXTRACT(EPOCH FROM janela)::bigint, proposta, prazo
                     FROM delegacao WHERE org_id = ? AND pendencia_id = ? ORDER BY criada_em DESC LIMIT 1
                     """)
                     .setParameter(1, org.valor()).setParameter(2, pendenciaId).getSingleResult();
             return new Delegacao((UUID) r[0], pendenciaId, (String) r[1],
-                    Duration.ofSeconds(((Number) r[2]).longValue()), (String) r[3]);
+                    Duration.ofSeconds(((Number) r[2]).longValue()), (String) r[3], instante(r[4]));
         } catch (NoResultException e) {
             throw new Falhas.EstadoInvalido("nenhuma delegação para a pendência");
         }
@@ -338,6 +374,23 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
         } catch (NoResultException e) {
             throw new Falhas.EstadoInvalido("pendência inexistente");
         }
+    }
+
+    private void validarDestino(OrgId org, DestinoRepasse destino) {
+        String sql;
+        UUID id;
+        if (destino instanceof DestinoRepasse.Interno interno) {
+            sql = "SELECT count(*) FROM pessoa WHERE org_id = ? AND id = ?";
+            id = interno.pessoaId();
+        } else if (destino instanceof DestinoRepasse.Externo externo) {
+            sql = "SELECT count(*) FROM contato_externo WHERE org_id = ? AND id = ?";
+            id = externo.contatoId();
+        } else {
+            throw new Falhas.Inelegivel("destino de repasse inválido");
+        }
+        Number n = (Number) em.createNativeQuery(sql).setParameter(1, org.valor()).setParameter(2, id)
+                .getSingleResult();
+        if (n.longValue() != 1L) throw new Falhas.Inelegivel("destino de repasse não encontrado");
     }
 
     private Parametros parametros(OrgId org, String classe) {
@@ -428,5 +481,11 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
 
     private static String json(String s) {
         return s == null ? "null" : "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
+
+    private static OffsetDateTime instante(Object valor) {
+        if (valor instanceof OffsetDateTime o) return o;
+        if (valor instanceof java.time.Instant i) return i.atOffset(ZoneOffset.UTC);
+        throw new IllegalStateException("instante PostgreSQL inesperado: " + valor);
     }
 }

@@ -1,4 +1,5 @@
-import { get } from "./client";
+import { get, post } from "./client";
+import type { PropostaRegra } from "./regras";
 
 export interface ItemAdiado {
   id: string;
@@ -42,3 +43,17 @@ export function getRadar(): Promise<RadarDados> {
 export function getRevisao(): Promise<RevisaoDados> {
   return get<RevisaoDados>("/v1/revisao-semanal");
 }
+
+export interface SessaoRevisao {
+  id:string;status:"ABERTA"|"CONCLUIDA";iniciadaEm:string;concluidaEm:string|null;revisao:RevisaoDados;
+  propostas:PropostaRegra[];
+  candidatasNivel:Array<{classe:string;donoId:string;dono:string;nivelAtual:string;nivelSugerido:string;ocorrencias:number;fontes:Array<{pendenciaId:string;titulo:string;href:string}>}>;
+  trimestre:{quantidade:number;valorEmJogo:number|null;fontes:Array<{pendenciaId:string;titulo:string;href:string}>;acaoHref:string};
+  resumo:null|{dependenciasRemovidas:number;continuamDependendo:number;regrasAceitas:number;regrasRecusadas:number;regrasObservadas:number;niveisPromovidos:number;improdutiva:boolean;remanescentes:Array<{pendenciaId:string;titulo:string;href:string}>};
+}
+export const iniciarSessaoRevisao=():Promise<SessaoRevisao>=>post("/v1/revisao-semanal/sessoes",{});
+export const obterSessaoRevisao=(id:string):Promise<SessaoRevisao>=>get(`/v1/revisao-semanal/sessoes/${id}`);
+export const concluirSessaoRevisao=(id:string):Promise<SessaoRevisao>=>post(`/v1/revisao-semanal/sessoes/${id}/concluir`,{});
+export const deliberarRegraRevisao=(id:string,classe:string,acao:"aceitar"|"recusar"|"observar"):Promise<void>=>post(`/v1/revisao-semanal/sessoes/${id}/regras/${classe}/${acao}`,{});
+export const promoverNivelRevisao=(id:string,c:{classe:string;donoId:string;nivelAtual:string}):Promise<void>=>post(`/v1/revisao-semanal/sessoes/${id}/promocoes`,c);
+export const protegerAgendaRevisao=(id:string,inicio:string,duracaoMinutos=120):Promise<{id:string}>=>post(`/v1/revisao-semanal/sessoes/${id}/protecao-agenda`,{inicio,duracaoMinutos});

@@ -83,7 +83,7 @@ export function ConsultaBox() {
                     <Badge size="xs" variant="light" color={corClasse(it.classe)}>
                       {rotulo(it.classe)}
                     </Badge>
-                    <Anchor href={`/bloco/${it.id}`} size="sm" lineClamp={1}>
+                    <Anchor href={it.links.find((l) => l.tipo === "BLOCO")?.href ?? it.links[0]?.href ?? `/itens/${it.id}`} size="sm" lineClamp={1}>
                       {it.titulo}
                     </Anchor>
                   </Group>

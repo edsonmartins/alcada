@@ -19,7 +19,7 @@
 - [x] `POST /v1/delegacoes/{id}/propor` + `GET /v1/delegacoes`
 
 ## Notificação
-- [ ] Lembrete ao executor a 50% e ao gestor a 90% do prazo — sem cenário no spec; adiado (gancho de agenda pronto)
+- [x] Lembrete ao executor a 50% e ao gestor a 90% do prazo — jobs persistentes, outbox idempotente e `MotorAutonomiaTest.lembretes_50_e_90_notificam_executor_e_gestor`
 - [x] Aviso de execução por ausência / escalonamento / interrupção (efeitos no outbox)
 
 ## Trilha
@@ -30,7 +30,7 @@
 - [x] Reinício da app no meio da janela não duplica nem perde execução
 - [~] Corrida entre intervenção e vencimento — coberta pelas guardas por status; teste de corrida real fica com carga
 - [x] Classe inelegível recusa N2 com `422`
-- [ ] Fuso e horário comercial na virada do dia — âncora de horário comercial entra com a configuração por tenant
+- [x] Fuso e horário comercial na virada do dia — calendário por tenant e lembretes úteis entregues no P032
 
 ## Decisões (aprovadas no plano)
 - Execução por ausência exige `PROPOSTA_REGISTRADA` (RFC-0002); cenário 1 propõe, cenário 5 não.

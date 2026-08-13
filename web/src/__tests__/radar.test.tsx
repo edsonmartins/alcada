@@ -33,7 +33,7 @@ const REVISAO: RevisaoDados = {
 
 vi.mock("../api/metricas", async () => {
   const real = await vi.importActual<typeof import("../api/metricas")>("../api/metricas");
-  return { ...real, getRadar: () => Promise.resolve(RADAR), getRevisao: () => Promise.resolve(REVISAO) };
+  return { ...real, getRadar: () => Promise.resolve(RADAR), getRevisao: () => Promise.resolve(REVISAO), iniciarSessaoRevisao: () => Promise.resolve({id:"s1",status:"ABERTA",iniciadaEm:new Date().toISOString(),concluidaEm:null,revisao:REVISAO,propostas:[],candidatasNivel:[],trimestre:{quantidade:0,valorEmJogo:0,fontes:[],acaoHref:"/canais"},resumo:null}) };
 });
 vi.mock("../api/pendencias", () => ({ aplicarSaida: vi.fn().mockResolvedValue(undefined) }));
 
@@ -60,10 +60,13 @@ describe("revisão de sexta", () => {
     renderComProviders(<SextaPage />);
     await screen.findByText("1. A fila de entrada");
     fireEvent.click(screen.getByRole("button", { name: "Próximo" })); // adiados
-    fireEvent.click(screen.getByRole("button", { name: "Próximo" })); // dica
-    expect(screen.getByText(/pode virar regra/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Próximo" })); // resumo
-    expect(screen.getByText("4. Resumo da semana")).toBeInTheDocument();
-    expect(screen.getByText("resolvidas")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Próximo" })); // regras
+    expect(screen.getByText("3. Propostas de regra")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Próximo" })); // níveis
+    fireEvent.click(screen.getByRole("button", { name: "Próximo" })); // trimestre
+    fireEvent.click(screen.getByRole("button", { name: "Próximo" })); // fechamento
+    expect(screen.getByText("6. Fechamento")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Concluir revisão" })).toBeInTheDocument();
+    expect(screen.queryByText(/arrastar|etiqueta|prioridade|ordenar/i)).not.toBeInTheDocument();
   });
 });

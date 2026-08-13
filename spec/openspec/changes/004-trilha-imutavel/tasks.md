@@ -14,7 +14,7 @@
 ## Rolagem de partição
 - [x] Job SISTEMA de rolagem mensal, idempotente por mês, com folga de antecedência (`RolagemParticoes`)
 - [x] Alerta se a partição `DEFAULT` receber linhas
-- [ ] Job de expurgo/arquivamento frio previsto — **adiado** (fase posterior, conforme design)
+- [x] Job de arquivamento frio implementado em V20 e coberto por `RolagemParticoesTest`
 
 ## Consulta
 - [x] Porta de consulta por pendência + `GET /v1/pendencias/{id}/trilha`, filtrada por `org_id`

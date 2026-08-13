@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type FormDrawer = "repassar" | "adiar" | null;
+export type FormDrawer = "repassar" | "adiar" | "pedido_informacao" | null;
 
 interface UIState {
   cursor: number;

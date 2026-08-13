@@ -55,7 +55,9 @@ captura.
 **Autonomia**
 `PROPOSTA_REGISTRADA` · `JANELA_INICIADA` · `EXECUTADA` · `EXECUTADA_POR_AUSENCIA` ·
 `DESFEITA_NA_JANELA` · `INTERROMPIDA` · `ESCALADA` · `CONVERTIDA_POR_AUSENCIA` · `NIVEL_PROMOVIDO` ·
-`DEVOLVIDA_PELO_EXECUTOR` *(acrescentado por ADR-0024 — não confundir com `ESCALADA`)*
+`DEVOLVIDA_PELO_EXECUTOR` *(acrescentado por ADR-0024 — não confundir com `ESCALADA`)* ·
+`RETORNO_RECEBIDO` · `RETORNO_AVALIADO` *(acrescentado por ADR-0034; decisão humana sobre a evidência,
+sem escolher uma Saída implicitamente)*
 
 **Bloco**
 `BLOCO_AGENDADO` · `DOSSIE_MONTADO` · `DECIDIDA_NO_BLOCO`
@@ -65,7 +67,8 @@ captura.
 `COMUNICACAO_IMPOSSIVEL` (não havia canal — item sem conversa inbound; ADR-0025) *(não confundir com `FALHA_COMUNICACAO`)*
 
 **Assistente** (INV-10: registra proposta e desfecho, nunca execução)
-`SUGESTAO_EMITIDA` · `SUGESTAO_ACEITA` · `SUGESTAO_RECUSADA` · `SUGESTAO_SILENCIADA`
+`SUGESTAO_EMITIDA` · `SUGESTAO_ACEITA` · `SUGESTAO_RECUSADA` · `SUGESTAO_SILENCIADA` ·
+`SUGESTAO_OBSERVADA` *(acrescentado por ADR-0033; adia a deliberação sem ativar ou silenciar)*
 
 **Correção**
 `COMPENSACAO` — único mecanismo de correção. Referencia o evento compensado por id.

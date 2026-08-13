@@ -11,6 +11,8 @@
 | 1 | `CONSTITUTION.md` | invariantes. Nada abaixo pode contradizer |
 | 2 | `docs/METODO.md` | a metodologia — ativo publicável, funciona no papel |
 | 3 | `docs/PRODUTO.md` | personas, superfícies, domínio, roadmap, riscos |
+| 3 | `docs/PLANO-IMPLEMENTACAO.md` | ondas, dependências, gates e ordem das próximas entregas |
+| 3 | `docs/ESTADO-PRODUTO.md` | fotografia verificável: escrito, testado, validado e adotado |
 | 4 | `adr/` | 23 decisões de arquitetura |
 | 5 | `rfc/` | 7 desenhos técnicos das partes difíceis |
 | 6 | `docs/API.md` · `docs/WEB.md` · `docs/MOBILE.md` | superfícies |
@@ -49,7 +51,9 @@
 | 0021 | Linktor como camada única de canais |
 | 0022 | Nome do produto: Alçada |
 | 0023 | Stack: Quarkus, Postgres único, React sem Archbase (substitui 0015) |
+| 0029 | Correlação explícita do retorno pelo canal; nenhuma heurística de identidade |
 
 ## Estado
-Corpus fundacional completo. Pendente: 15 pacotes OpenSpec (índice em `openspec/README.md`) e o
-fechamento dos 7 gates. **G2 é bloqueante** — sem aceitação de N2 pelo gestor-piloto, o roadmap muda.
+Corpus fundacional e diversos pacotes estão implementados, mas validação técnica e adoção são
+estados distintos. Consulte `docs/ESTADO-PRODUTO.md` e o índice em `openspec/README.md`.
+**G2 é bloqueante** — sem aceitação de N2 pelo gestor-piloto, o roadmap muda.

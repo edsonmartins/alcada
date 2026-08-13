@@ -30,11 +30,14 @@ public class TriagemResource {
     private final TriagemService triagem;
     private final ContextoTenant contexto;
     private final ContextoPessoa contextoPessoa;
+    private final PedidosInformacao pedidosInformacao;
 
-    public TriagemResource(TriagemService triagem, ContextoTenant contexto, ContextoPessoa contextoPessoa) {
+    public TriagemResource(TriagemService triagem, ContextoTenant contexto, ContextoPessoa contextoPessoa,
+                           PedidosInformacao pedidosInformacao) {
         this.triagem = triagem;
         this.contexto = contexto;
         this.contextoPessoa = contextoPessoa;
+        this.pedidosInformacao = pedidosInformacao;
     }
 
     /**
@@ -130,6 +133,26 @@ public class TriagemResource {
         });
     }
 
+    @POST
+    @Path("/{id}/pedidos-informacao")
+    public Response pedirInformacao(@PathParam("id") String id, PedidoInformacaoRequest req) {
+        if (req == null || req.contatoId() == null || req.pergunta() == null || req.prazo() == null)
+            return problema(400, "pedido_informacao.invalido", "contatoId, pergunta e prazo são obrigatórios");
+        return comContexto((org, gestor) -> {
+            try {
+                UUID pedido = pedidosInformacao.criar(org, UUID.fromString(id), UUID.fromString(req.contatoId()),
+                        req.pergunta(), OffsetDateTime.parse(req.prazo()), gestor);
+                return Response.status(201).entity(new PedidoInformacaoResposta(pedido.toString())).build();
+            } catch (PedidosInformacao.Inexistente e) {
+                return problema(404, "pedido_informacao.inexistente", "Pendência ou contato não encontrado");
+            } catch (PedidosInformacao.Invalido | IllegalArgumentException e) {
+                return problema(422, "pedido_informacao.invalido", e.getMessage());
+            } catch (PedidosInformacao.Conflito e) {
+                return problema(409, "pedido_informacao.conflito", e.getMessage());
+            }
+        });
+    }
+
     // ---- infra -------------------------------------------------------------
 
     private interface Acao {
@@ -176,6 +199,8 @@ public class TriagemResource {
 
     public record AdiarResposta(String oferta) {
     }
+    public record PedidoInformacaoRequest(String contatoId, String pergunta, String prazo) {}
+    public record PedidoInformacaoResposta(String id) {}
 
     public record Problema(String type, String detail, int status) {
     }

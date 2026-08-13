@@ -27,13 +27,29 @@ public class ContatosExternosJdbc implements ContatosExternos {
     @Transactional
     public UUID registrar(OrgId org, String nome, String canal, String endereco, UUID gestorId) {
         validar(nome, canal, endereco);
+        String normalizado = normalizarEndereco(canal, endereco);
+        // Serializa somente criações da mesma organização+canal+endereço. Evita
+        // duplicata sob corrida sem exigir limpeza destrutiva de dados legados.
+        em.createNativeQuery("SELECT pg_advisory_xact_lock(hashtext(?))")
+                .setParameter(1, org.valor() + ":" + canal + ":" + normalizado).getSingleResult();
+        @SuppressWarnings("unchecked")
+        List<Object> existentes = em.createNativeQuery("""
+                SELECT id FROM contato_externo
+                WHERE org_id = ? AND canal = ? AND lower(trim(endereco)) = ?
+                LIMIT 1
+                """)
+                .setParameter(1, org.valor()).setParameter(2, canal)
+                .setParameter(3, normalizado).getResultList();
+        if (!existentes.isEmpty()) {
+            return UUID.fromString(existentes.getFirst().toString());
+        }
         UUID id = UUID.randomUUID();
         em.createNativeQuery("""
                 INSERT INTO contato_externo (id, org_id, nome, canal, endereco, criado_por)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """)
                 .setParameter(1, id).setParameter(2, org.valor()).setParameter(3, nome)
-                .setParameter(4, canal).setParameter(5, endereco).setParameter(6, gestorId)
+                .setParameter(4, canal).setParameter(5, normalizado).setParameter(6, gestorId)
                 .executeUpdate();
         return id;
     }
@@ -58,6 +74,15 @@ public class ContatosExternosJdbc implements ContatosExternos {
         if (!CANAIS.contains(canal)) {
             throw new IllegalArgumentException("canal inválido: " + canal);
         }
+    }
+
+    private static String normalizarEndereco(String canal, String endereco) {
+        String v = endereco.trim().toLowerCase();
+        if ("WHATSAPP".equals(canal)) {
+            String digitos = v.replaceAll("\\D", "");
+            return "+" + digitos;
+        }
+        return v;
     }
 
     @Override

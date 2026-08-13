@@ -6,8 +6,11 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import app.alcada.autonomia.port.CorrelacoesRetorno;
 import app.alcada.captura.port.MensagemRecebida;
+import app.alcada.captura.port.Minimizador;
 import app.alcada.plataforma.multitenancy.port.OrgId;
+import app.alcada.triagem.port.RetornoPedidoInformacao;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.transaction.Transactional;
@@ -32,11 +35,19 @@ public class LinktorWebhookResource {
 
     private final EntityManager em;
     private final Ingestao ingestao;
+    private final CorrelacoesRetorno correlacoes;
+    private final Minimizador minimizador;
+    private final RetornoPedidoInformacao pedidosInformacao;
     private final ObjectMapper json = new ObjectMapper();
 
-    public LinktorWebhookResource(EntityManager em, Ingestao ingestao) {
+    public LinktorWebhookResource(EntityManager em, Ingestao ingestao,
+                                  CorrelacoesRetorno correlacoes, Minimizador minimizador,
+                                  RetornoPedidoInformacao pedidosInformacao) {
         this.em = em;
         this.ingestao = ingestao;
+        this.correlacoes = correlacoes;
+        this.minimizador = minimizador;
+        this.pedidosInformacao = pedidosInformacao;
     }
 
     @POST
@@ -79,6 +90,28 @@ public class LinktorWebhookResource {
         String mensagemId = texto(msg, "id");
         if (mensagemId == null) {
             return Response.status(400).build(); // sem id não há idempotência
+        }
+
+        // P030: uma resposta explicitamente correlacionada é observada como retorno
+        // da delegação e não vira uma nova pendência. Token ausente, inválido ou
+        // autor divergente segue exatamente o fluxo normal de captura (fail-closed,
+        // sem inferência por telefone, conversa ou semelhança textual).
+        String tokenCorrelacao = texto(data.path("context"), "alcada_correlation");
+        if (tokenCorrelacao != null) {
+            String textoMinimizado = minimizador.minimizar(
+                    textoMensagem(msg), List.of(), List.of()).textoMinimizado();
+            CorrelacoesRetorno.Recepcao recepcao = correlacoes.receberDetalhado(
+                    new OrgId(fonte.orgId), tokenCorrelacao, upper(texto(data, "channelType")),
+                    autor(data, msg), mensagemId, textoMinimizado);
+            CorrelacoesRetorno.Resultado resultado = recepcao.resultado();
+            if (resultado == CorrelacoesRetorno.Resultado.OBSERVADO
+                    && recepcao.pedidoInformacaoId() != null) {
+                pedidosInformacao.responder(new OrgId(fonte.orgId), recepcao.pedidoInformacaoId());
+            }
+            if (resultado == CorrelacoesRetorno.Resultado.OBSERVADO
+                    || resultado == CorrelacoesRetorno.Resultado.REPETIDO) {
+                return Response.ok().build();
+            }
         }
 
         // Grupo (024): o Linktor envia `data.group.id` quando a mensagem veio de um

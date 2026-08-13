@@ -5,12 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import app.alcada.plataforma.multitenancy.port.OrgId;
+import app.alcada.autonomia.port.CorrelacoesRetorno;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -24,6 +26,7 @@ class LinktorInboundTest {
     private static final String SEGREDO = "segredo-do-canal";
 
     @Inject EntityManager em;
+    @Inject CorrelacoesRetorno correlacoes;
 
     @Test
     void assinatura_valida_ingere_a_mensagem() {
@@ -88,6 +91,26 @@ class LinktorInboundTest {
             .then().statusCode(200); // reentrega não dá 500 (senão o webhook entra em loop)
         }
         assertEquals(1L, contar(org, "SELECT count(*) FROM evento_bruto WHERE org_id = ? AND mensagem_id = 'MSG-4'"));
+    }
+
+    @Test
+    void fixture_assinada_com_contexto_registra_retorno_sem_criar_nova_pendencia() {
+        OrgId org = novaOrg();
+        criarFonteLinktor(org, "CH-RET");
+        UUID delegacao = criarDelegacao(org);
+        correlacoes.criar(org, delegacao, "WHATSAPP", "5544", OffsetDateTime.now().plusDays(1));
+        String token = correlacoes.tokenParaEnvio(org, delegacao).orElseThrow();
+        String body = envelopeCorrelacionado("MSG-RET", "conv-ret", token);
+        long ts = Instant.now().getEpochSecond();
+
+        given().header("X-Linktor-Signature", hmac(SEGREDO, ts + "." + body))
+                .header("X-Linktor-Timestamp", String.valueOf(ts))
+                .contentType("application/json").body(body)
+        .when().post("/v1/captura/linktor")
+        .then().statusCode(200);
+
+        assertEquals(1L, contar(org, "SELECT count(*) FROM retorno_delegacao WHERE org_id = ?"));
+        assertEquals(0L, contar(org, "SELECT count(*) FROM evento_bruto WHERE org_id = ? AND mensagem_id = 'MSG-RET'"));
     }
 
     @Test
@@ -188,6 +211,15 @@ class LinktorInboundTest {
                 + "\"metadata\":{\"phone\":\"5544\"},\"senderId\":\"s1\"}}}";
     }
 
+    private static String envelopeCorrelacionado(String messageId, String conversationId, String token) {
+        return "{\"id\":\"evt\",\"type\":\"message.received\",\"tenantId\":\"t\",\"environment\":\"prod\","
+                + "\"data\":{\"channelId\":\"" + canalDoTeste + "\",\"channelType\":\"whatsapp\","
+                + "\"conversationId\":\"" + conversationId + "\",\"contactId\":\"c1\","
+                + "\"context\":{\"alcada_correlation\":\"" + token + "\"},"
+                + "\"message\":{\"id\":\"" + messageId + "\",\"content\":{\"text\":\"Concluído\"},"
+                + "\"metadata\":{\"phone\":\"5544\"},\"senderId\":\"s1\"}}}";
+    }
+
     private static String envelopeGrupo(String messageId, String grupoId) {
         return "{\"id\":\"evt\",\"type\":\"message.received\",\"tenantId\":\"t\",\"environment\":\"prod\","
                 + "\"data\":{\"channelId\":\"" + canalDoTeste + "\",\"channelType\":\"whatsapp\","
@@ -247,6 +279,21 @@ class LinktorInboundTest {
                 em.createNativeQuery("INSERT INTO organizacao (id, nome) VALUES (?, 'Org')")
                         .setParameter(1, org.valor()).executeUpdate());
         return org;
+    }
+
+    private UUID criarDelegacao(OrgId org) {
+        UUID pendencia = UUID.randomUUID();
+        UUID delegacao = UUID.randomUUID();
+        QuarkusTransaction.requiringNew().run(() -> {
+            em.createNativeQuery("INSERT INTO pendencia(id,org_id,titulo,classe,horizonte,status)"
+                    + " VALUES (?,?,'Retorno','DECISAO','SEMANA','ENTRADA')")
+                    .setParameter(1, pendencia).setParameter(2, org.valor()).executeUpdate();
+            em.createNativeQuery("INSERT INTO delegacao(id,org_id,pendencia_id,dono_id,nivel,prazo,janela,escalonamento)"
+                    + " VALUES (?,?,?,?, 'N2', now()+interval '1 day', interval '4 hours', interval '1 day')")
+                    .setParameter(1, delegacao).setParameter(2, org.valor()).setParameter(3, pendencia)
+                    .setParameter(4, UUID.randomUUID()).executeUpdate();
+        });
+        return delegacao;
     }
 
     private long contar(OrgId org, String sql) {

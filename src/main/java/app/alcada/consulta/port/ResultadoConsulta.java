@@ -10,6 +10,13 @@ import java.util.List;
  */
 public record ResultadoConsulta(String pergunta, String template, String resposta, List<Item> itens) {
 
-    public record Item(String id, String titulo, String classe, Double valorEmJogo) {
+    public record Item(String id, String titulo, String classe, Double valorEmJogo,
+                       String status, List<Link> links) {
+        public Item(String id,String titulo,String classe,Double valorEmJogo){
+            this(id,titulo,classe,valorEmJogo,null,List.of());
+        }
+    }
+
+    public record Link(String tipo, String href) {
     }
 }

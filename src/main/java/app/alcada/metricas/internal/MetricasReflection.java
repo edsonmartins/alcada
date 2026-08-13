@@ -2,6 +2,8 @@ package app.alcada.metricas.internal;
 
 import app.alcada.metricas.port.RadarDados;
 import app.alcada.metricas.port.RevisaoDados;
+import app.alcada.metricas.port.SessaoRevisaoDados;
+import app.alcada.regras.port.PropostaRegra;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
@@ -23,6 +25,13 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         RevisaoDados.DicaRegra.class,
         RevisaoDados.ResumoSemana.class,
         RevisaoDados.Conducao.class,
+        SessaoRevisaoDados.class,
+        SessaoRevisaoDados.CandidataNivel.class,
+        SessaoRevisaoDados.Fonte.class,
+        SessaoRevisaoDados.ImpactoTrimestre.class,
+        SessaoRevisaoDados.ResumoSessao.class,
+        PropostaRegra.class,
+        PropostaRegra.Caso.class,
         RadarResource.Problema.class
 })
 public final class MetricasReflection {

@@ -159,6 +159,11 @@ sem evidência clicável.
 | **F4 — profundidade** | bloco de decisão com dossiê e redação, esteira e checklist | item aversivo saindo |
 | **F5 — mobilidade** | app Flutter, voz, modo trajeto, offline | trajeto virando decisão |
 
+**Estado técnico em 2026-08-13:** F1–F4 estão testadas localmente; F5 está escrita, com validações
+de dispositivo, STT real e presença nativa pendentes. Isso não encerra os critérios de saída acima:
+adoção do N2, queda de cobrança, encolhimento e saída de item aversivo exigem uso real. A matriz
+auditada está em `docs/ESTADO-PRODUTO.md`.
+
 Ordem é deliberada: **contraparte antes de IA avançada**. N2 sem tela do executor é mecanismo sem
 apoio.
 

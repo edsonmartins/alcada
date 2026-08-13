@@ -36,10 +36,31 @@ export function post<T>(path: string, body?: unknown): Promise<T> {
   return apiFetch<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined });
 }
 
+export function postIdempotente<T>(path: string, body: unknown, chave: string): Promise<T> {
+  return apiFetch<T>(path, {
+    method: "POST",
+    headers: { "Idempotency-Key": chave },
+    body: JSON.stringify(body),
+  });
+}
+
 export function put<T>(path: string, body?: unknown): Promise<T> {
   return apiFetch<T>(path, { method: "PUT", body: body ? JSON.stringify(body) : undefined });
 }
 
 export function del<T>(path: string): Promise<T> {
   return apiFetch<T>(path, { method: "DELETE" });
+}
+
+/** Chamadas administrativas do piloto; em produção o papel vem do token. */
+export function getAdmin<T>(path: string): Promise<T> {
+  return apiFetch<T>(path, { headers: { "X-Alcada-Papel": "ADMIN" } });
+}
+
+export function postAdmin<T>(path: string, body: unknown): Promise<T> {
+  return apiFetch<T>(path, {
+    method: "POST",
+    headers: { "X-Alcada-Papel": "ADMIN" },
+    body: JSON.stringify(body),
+  });
 }

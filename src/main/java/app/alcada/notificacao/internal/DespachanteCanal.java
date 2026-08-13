@@ -10,6 +10,8 @@ import app.alcada.captura.port.AvisoGrupo;
 import app.alcada.captura.port.EnviarAvisoGrupo;
 import app.alcada.captura.port.EnviarDireto;
 import app.alcada.captura.port.EnviarMensagem;
+import app.alcada.autonomia.port.CorrelacoesRetorno;
+import app.alcada.metricas.port.ProtecoesAgenda;
 import app.alcada.notificacao.port.Calendario;
 import app.alcada.notificacao.port.Canal;
 import app.alcada.notificacao.port.CriarEvento;
@@ -48,15 +50,20 @@ public class DespachanteCanal implements Despachante {
     private final Trilha trilha;
     private final AvisoGrupo avisoGrupo;
     private final ObjectMapper json = new ObjectMapper();
+    private final CorrelacoesRetorno correlacoes;
+    private final ProtecoesAgenda protecoesAgenda;
 
     public DespachanteCanal(EntityManager em, Canal canal, Email email, Calendario calendario,
-                            Trilha trilha, AvisoGrupo avisoGrupo) {
+                            Trilha trilha, AvisoGrupo avisoGrupo, CorrelacoesRetorno correlacoes,
+                            ProtecoesAgenda protecoesAgenda) {
         this.em = em;
         this.canal = canal;
         this.email = email;
         this.calendario = calendario;
         this.trilha = trilha;
         this.avisoGrupo = avisoGrupo;
+        this.correlacoes = correlacoes;
+        this.protecoesAgenda = protecoesAgenda;
     }
 
     @Override
@@ -66,8 +73,11 @@ public class DespachanteCanal implements Despachante {
             case "canal.resposta" -> entregarResposta(m);
             case "grupo.aviso" -> entregarAvisoGrupo(m);
             case "AVISO_REPASSE" -> entregarAvisoRepasse(m);
+            case "PEDIDO_INFORMACAO" -> entregarPedidoInformacao(m);
+            case "RESUMO_EXCECOES" -> entregarResumoExcecoes(m);
             case "EVENTO_CALENDARIO" -> entregarCompromisso(m);
             case "CANCELAR_EVENTO_CALENDARIO" -> cancelarCompromisso(m);
+            case "PROTECAO_AGENDA" -> entregarProtecaoAgenda(m);
             default -> {
                 // eventos internos (delegacao.executada/escalada/devolvida, …): sem saída ao solicitante
             }
@@ -126,6 +136,8 @@ public class DespachanteCanal implements Despachante {
         String canalTipo = campo(p, "canal");
         String endereco = campo(p, "endereco");
         UUID pendenciaId = UUID.fromString(campo(p, "pendencia_id"));
+        UUID delegacaoId = UUID.fromString(campo(p, "delegacao_id"));
+        String correlacao = correlacoes.tokenParaEnvio(m.org(),delegacaoId).orElse(null);
         String texto = "Você recebeu um repasse no Alçada para acompanhar. (ref " + pendenciaId + ")";
 
         boolean novo;
@@ -140,7 +152,7 @@ public class DespachanteCanal implements Despachante {
                 return;
             }
             novo = canal.enviarDireto(m.org(),
-                    new EnviarDireto(channelId, endereco, texto, m.idempotencyKey()));
+                    new EnviarDireto(channelId, endereco, texto, m.idempotencyKey(), correlacao));
         } else {
             LOG.warnf("AVISO_REPASSE canal desconhecido: %s; marcado entregue", canalTipo);
             return;
@@ -148,6 +160,43 @@ public class DespachanteCanal implements Despachante {
         if (novo) {
             comunicada(m.org(), pendenciaId, canalTipo);
         }
+    }
+
+    private void entregarPedidoInformacao(MensagemOutbox m) {
+        String p=m.payloadJson();
+        UUID pedidoId=UUID.fromString(campo(p,"pedido_id"));
+        UUID pendenciaId=UUID.fromString(campo(p,"pendencia_id"));
+        String channelId=canalWhatsappDaOrg(m.org());
+        if(channelId==null||channelId.isBlank()){
+            trilha.registrar(new EventoTrilha(m.org(),pendenciaId,TipoEvento.COMUNICACAO_IMPOSSIVEL,
+                    Ator.sistemaMotor("notificacao"),null,null,null,"{\"motivo\":\"sem_canal_whatsapp\"}"));
+            return;
+        }
+        String token=correlacoes.tokenParaPedido(m.org(),pedidoId).orElse(null);
+        if(token==null) throw new Canal.CanalIndisponivel("correlação do pedido indisponível");
+        boolean novo=canal.enviarDireto(m.org(),new EnviarDireto(channelId,campo(p,"endereco"),
+                campo(p,"pergunta"),m.idempotencyKey(),token));
+        if(novo){
+            em.createNativeQuery("UPDATE pedido_informacao SET estado='AGUARDANDO_RESPOSTA'"
+                    +" WHERE org_id=? AND id=? AND estado='AGUARDANDO_ENVIO'")
+                    .setParameter(1,m.org().valor()).setParameter(2,pedidoId).executeUpdate();
+            comunicada(m.org(),pendenciaId,"WHATSAPP");
+        }
+    }
+
+    private void entregarResumoExcecoes(MensagemOutbox m) {
+        UUID gestor=UUID.fromString(campo(m.payloadJson(),"gestor_id"));
+        @SuppressWarnings("unchecked") java.util.List<Object[]> rs=em.createNativeQuery("""
+                SELECT p.email,f.linktor_channel_id FROM pessoa p
+                JOIN fonte f ON f.org_id=p.org_id AND f.tipo='EMAIL' AND f.ativa
+                WHERE p.org_id=? AND p.id=? AND p.email IS NOT NULL AND f.linktor_channel_id IS NOT NULL
+                ORDER BY f.id LIMIT 1
+                """).setParameter(1,m.org().valor()).setParameter(2,gestor).getResultList();
+        if(rs.isEmpty()) return; // gate explícito: sem identidade/canal, silêncio; job seguinte tentará de novo
+        Object[] r=rs.getFirst();
+        String nota=campo(m.payloadJson(),"nota");
+        if(nota==null||nota.isBlank())return;
+        canal.enviarDireto(m.org(),new EnviarDireto((String)r[1],(String)r[0],nota,m.idempotencyKey()));
     }
 
     /**
@@ -208,6 +257,11 @@ public class DespachanteCanal implements Despachante {
         trilha.registrar(new EventoTrilha(m.org(), lembreteId, TipoEvento.COMPENSACAO,
                 Ator.sistemaMotor("notificacao"), null, null, null,
                 "{\"o_que\":\"compromisso_cancelado\"}"));
+    }
+
+    private void entregarProtecaoAgenda(MensagemOutbox m) {
+        String p=m.payloadJson();UUID protecao=UUID.fromString(campo(p,"protecao_id"));UUID pendencia=UUID.fromString(campo(p,"pendencia_id"));UUID gestor=UUID.fromString(campo(p,"gestor_id"));OffsetDateTime quando=OffsetDateTime.parse(campo(p,"quando"));long minutos=Long.parseLong(campo(p,"duracao_minutos"));
+        try{String evento=calendario.criarEvento(m.org(),new CriarEvento(gestor,quando,Duration.ofMinutes(minutos),campo(p,"titulo"),m.idempotencyKey()));if(evento==null)return;protecoesAgenda.agendada(m.org(),protecao,evento);trilha.registrar(new EventoTrilha(m.org(),pendencia,TipoEvento.COMPROMISSO_AGENDADO,Ator.sistemaMotor("revisao"),null,null,null,"{\"protecao_id\":\""+protecao+"\",\"quando\":\""+quando+"\"}"));}catch(Calendario.SemConta e){protecoesAgenda.falhou(m.org(),protecao);trilha.registrar(new EventoTrilha(m.org(),pendencia,TipoEvento.FALHA_COMPROMISSO,Ator.sistemaMotor("revisao"),null,null,null,"{\"motivo\":\"sem_calendario_conectado\"}"));}
     }
 
     private String canalWhatsappDaOrg(OrgId org) {

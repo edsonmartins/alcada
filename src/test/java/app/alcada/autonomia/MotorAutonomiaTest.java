@@ -55,13 +55,13 @@ class MotorAutonomiaTest {
         Ctx c = novo("DECISAO");
         UUID deleg = motor.delegar(c.org, c.pend, c.dono, "N2", futuro(), c.gestor);
 
-        adiantar(c.org, "AUT_LEMBRETE_50");
-        worker.processarDevidos();
+        // O roteamento persistente é coberto por SchedulerReinicioTest; aqui o
+        // executor é chamado diretamente para não depender de jobs de outras classes.
+        motor.aoLembrete(c.org, deleg, false);
         assertEquals(1L, countOutbox(c.org, "delegacao.lembrete_executor"), "50%: cutuca o executor");
         assertEquals(0L, countOutbox(c.org, "delegacao.lembrete_gestor"));
 
-        adiantar(c.org, "AUT_LEMBRETE_90");
-        worker.processarDevidos();
+        motor.aoLembrete(c.org, deleg, true);
         assertEquals(1L, countOutbox(c.org, "delegacao.lembrete_gestor"), "90%: avisa o gestor");
     }
 
@@ -75,6 +75,26 @@ class MotorAutonomiaTest {
         worker.processarDevidos();
         assertEquals(0L, countOutbox(c.org, "delegacao.lembrete_executor"),
                 "sem lembrete depois que a delegação já saiu da janela");
+    }
+
+    @Test
+    void proposta_suprime_lembretes_50_e_90() {
+        Ctx c = novo("DECISAO");
+        UUID deleg = motor.delegar(c.org, c.pend, c.dono, "N2", futuro(), c.gestor);
+        motor.propor(c.org, deleg, "proposta pronta", c.dono);
+        motor.aoLembrete(c.org, deleg, false);
+        motor.aoLembrete(c.org, deleg, true);
+        assertEquals(0L, countOutbox(c.org, "delegacao.lembrete_executor"));
+        assertEquals(0L, countOutbox(c.org, "delegacao.lembrete_gestor"));
+    }
+
+    @Test
+    void reprocesso_do_mesmo_lembrete_nao_duplica() {
+        Ctx c = novo("DECISAO");
+        UUID deleg = motor.delegar(c.org, c.pend, c.dono, "N2", futuro(), c.gestor);
+        motor.aoLembrete(c.org, deleg, false);
+        motor.aoLembrete(c.org, deleg, false);
+        assertEquals(1L, countOutbox(c.org, "delegacao.lembrete_executor"));
     }
 
     // ---- Cenário: gestor interrompe antes do prazo ------------------------
@@ -226,7 +246,8 @@ class MotorAutonomiaTest {
     }
 
     private static OffsetDateTime futuro() {
-        return OffsetDateTime.now(ZoneOffset.UTC).plusHours(2);
+        // Mantém tempo útil disponível independentemente do horário em que a suíte roda.
+        return OffsetDateTime.now(ZoneOffset.UTC).plusDays(2);
     }
 
     private void adiantar(OrgId org, String tipo) {

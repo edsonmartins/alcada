@@ -17,7 +17,9 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
         ContatosResource.CriarContato.class,
         ContatosResource.ContatoCriado.class,
         ContatosResource.ContatoView.class,
-        ContatosResource.Problema.class
+        ContatosResource.Problema.class,
+        RetornoResource.DecisaoRequest.class,
+        RetornoResource.Problema.class
 })
 public final class AutonomiaReflection {
     private AutonomiaReflection() {

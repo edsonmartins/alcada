@@ -254,7 +254,7 @@ public class ConsultaJdbc implements Consulta {
         List<Item> itens = new ArrayList<>();
         @SuppressWarnings("unchecked")
         List<Object[]> linhas = em.createNativeQuery("""
-                SELECT id, titulo, classe, valor_em_jogo FROM pendencia
+                SELECT id, titulo, classe, valor_em_jogo, status FROM pendencia
                 WHERE org_id = ? AND status = 'ENTRADA' AND (CAST(? AS text) IS NULL OR horizonte = ?)
                 ORDER BY valor_em_jogo DESC NULLS LAST, criada_em ASC LIMIT %d
                 """.formatted(LIMITE_ITENS))
@@ -284,7 +284,7 @@ public class ConsultaJdbc implements Consulta {
 
     private ResultadoConsulta travadoPor(OrgId org, String pergunta, String area) {
         String sql = """
-                SELECT id, titulo, classe, valor_em_jogo FROM pendencia
+                SELECT id, titulo, classe, valor_em_jogo, status FROM pendencia
                 WHERE org_id = ? AND status <> 'FECHADA' AND classe = 'BLOQUEIO'
                   AND (CAST(? AS text) IS NULL
                        OR quem_espera ILIKE ? OR o_que_trava ILIKE ? OR titulo ILIKE ?)
@@ -309,7 +309,7 @@ public class ConsultaJdbc implements Consulta {
 
     private ResultadoConsulta aversivos(OrgId org, String pergunta) {
         List<Item> itens = itens("""
-                SELECT id, titulo, classe, valor_em_jogo FROM pendencia
+                SELECT id, titulo, classe, valor_em_jogo, status FROM pendencia
                 WHERE org_id = ? AND status <> 'FECHADA' AND adiado_count >= 3
                 ORDER BY adiado_count DESC, criada_em ASC LIMIT %d
                 """.formatted(LIMITE_ITENS), org);
@@ -321,7 +321,7 @@ public class ConsultaJdbc implements Consulta {
 
     private ResultadoConsulta delegadasAbertas(OrgId org, String pergunta) {
         List<Item> itens = itens("""
-                SELECT id, titulo, classe, valor_em_jogo FROM pendencia
+                SELECT id, titulo, classe, valor_em_jogo, status FROM pendencia
                 WHERE org_id = ? AND status = 'DELEGADA'
                 ORDER BY valor_em_jogo DESC NULLS LAST, criada_em ASC LIMIT %d
                 """.formatted(LIMITE_ITENS), org);
@@ -336,7 +336,7 @@ public class ConsultaJdbc implements Consulta {
         List<Item> itens = new ArrayList<>();
         @SuppressWarnings("unchecked")
         List<Object[]> linhas = em.createNativeQuery("""
-                SELECT id, titulo, classe, valor_em_jogo FROM pendencia
+                SELECT id, titulo, classe, valor_em_jogo, status FROM pendencia
                 WHERE org_id = ? AND status <> 'FECHADA' AND classe = ?
                 ORDER BY valor_em_jogo DESC NULLS LAST, criada_em ASC LIMIT %d
                 """.formatted(LIMITE_ITENS), Object[].class)
@@ -361,7 +361,7 @@ public class ConsultaJdbc implements Consulta {
         long n = ((Number) agg[0]).longValue();
         double soma = ((Number) agg[1]).doubleValue();
         List<Item> itens = itens("""
-                SELECT id, titulo, classe, valor_em_jogo FROM pendencia
+                SELECT id, titulo, classe, valor_em_jogo, status FROM pendencia
                 WHERE org_id = ? AND status <> 'FECHADA' AND valor_em_jogo IS NOT NULL
                 ORDER BY valor_em_jogo DESC LIMIT %d
                 """.formatted(LIMITE_ITENS), org);
@@ -391,7 +391,7 @@ public class ConsultaJdbc implements Consulta {
         List<Item> itens = new ArrayList<>();
         @SuppressWarnings("unchecked")
         List<Object[]> linhas = em.createNativeQuery("""
-                SELECT t.pendencia_id, p.titulo, p.classe, p.valor_em_jogo FROM trilha t
+                SELECT t.pendencia_id, p.titulo, p.classe, p.valor_em_jogo, p.status FROM trilha t
                 JOIN pendencia p ON p.id = t.pendencia_id
                 WHERE t.org_id = ? AND p.org_id = ? AND t.ator = ?
                   AND t.tipo IN ('RESOLVIDA','REPASSADA','ADIADA','RESERVADA','REPOUSADA',
@@ -433,7 +433,11 @@ public class ConsultaJdbc implements Consulta {
 
     private static Item item(Object[] l) {
         Double valor = l[3] == null ? null : ((Number) l[3]).doubleValue();
-        return new Item(l[0].toString(), (String) l[1], (String) l[2], valor);
+        String id=l[0].toString(),status=(String)l[4];
+        List<ResultadoConsulta.Link> links=new ArrayList<>();
+        links.add(new ResultadoConsulta.Link("TRILHA","/itens/"+id));
+        if(!"FECHADA".equals(status))links.add(new ResultadoConsulta.Link("BLOCO","/bloco/"+id));
+        return new Item(id,(String)l[1],(String)l[2],valor,status,List.copyOf(links));
     }
 
     private static String plural(long n, String um, String muitos) {

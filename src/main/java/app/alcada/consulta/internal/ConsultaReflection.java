@@ -7,6 +7,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @RegisterForReflection(targets = {
         ResultadoConsulta.class,
         ResultadoConsulta.Item.class,
+        ResultadoConsulta.Link.class,
         ConsultaResource.Req.class,
         ConsultaResource.Problema.class
 })

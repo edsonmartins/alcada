@@ -102,6 +102,7 @@ public class LinktorHttp implements Canal {
         ObjectNode meta = raiz.putObject("metadata");
         meta.put("source", "alcada");
         meta.put("idempotency_key", m.idempotencyKey());
+        if (m.correlacao() != null) meta.put("alcada_correlation", m.correlacao());
         try {
             HttpResponse<String> r = http.send(HttpRequest.newBuilder(URI.create(url))
                     .header("X-API-Key", apiKey.get())
@@ -162,7 +163,9 @@ public class LinktorHttp implements Canal {
 
     private String montarCorpo(EnviarMensagem m) {
         ObjectNode raiz = json.createObjectNode();
-        raiz.put("text", m.texto());
+        // Contrato canônico do Linktor para uma conversa já conhecida.
+        raiz.put("content_type", "text");
+        raiz.put("content", m.texto());
         ObjectNode meta = raiz.putObject("metadata");
         meta.put("source", "alcada");
         meta.put("idempotency_key", m.idempotencyKey());

@@ -71,7 +71,7 @@ public class ProcessadorCaptura {
 
         // 1. Relevância determinística (antes do modelo)
         if (!relevante(tipoFonte, texto)) {
-            registrarDescarte(org, fonteId, "SEM_RELEVANCIA");
+            registrarDescarte(org, fonteId, eventoBrutoId, "SEM_RELEVANCIA");
             return;
         }
 
@@ -281,10 +281,11 @@ public class ProcessadorCaptura {
         return n >= limiarDescarte;
     }
 
-    private void registrarDescarte(OrgId org, UUID fonteId, String motivo) {
+    private void registrarDescarte(OrgId org, UUID fonteId, UUID eventoBrutoId, String motivo) {
         em.createNativeQuery(
-                "INSERT INTO descarte_captura (org_id, fonte_id, motivo) VALUES (?, ?, ?)")
-                .setParameter(1, org.valor()).setParameter(2, fonteId).setParameter(3, motivo)
+                "INSERT INTO descarte_captura (org_id, fonte_id, evento_bruto_id, motivo) VALUES (?, ?, ?, ?)")
+                .setParameter(1, org.valor()).setParameter(2, fonteId).setParameter(3, eventoBrutoId)
+                .setParameter(4, motivo)
                 .executeUpdate();
     }
 

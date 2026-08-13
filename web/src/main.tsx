@@ -34,7 +34,10 @@ import { EntradaPage } from "./components/EntradaPage";
 import { EsteiraPage } from "./components/EsteiraPage";
 import { ExecutorPage } from "./components/ExecutorPage";
 import { HojePage } from "./components/HojePage";
+import { ItensPage } from "./components/ItensPage";
+import { ItemDetalhePage } from "./components/ItemDetalhePage";
 import { PortalInstanciaPage } from "./components/PortalInstanciaPage";
+import { PilotoPage } from "./components/PilotoPage";
 import { RadarPage } from "./components/RadarPage";
 import { SessaoPage } from "./components/SessaoPage";
 import { SextaPage } from "./components/SextaPage";
@@ -47,6 +50,7 @@ const NAV = [
       { to: "/", label: "Entrada", ic: "▸" },
       { to: "/hoje", label: "Hoje", ic: "◈" },
       { to: "/executor", label: "Delegado a mim", ic: "◇" },
+      { to: "/itens", label: "Itens e decisões", ic: "⌕" },
     ],
   },
   {
@@ -139,6 +143,8 @@ const rootRoute = createRootRoute({ component: Layout });
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: EntradaPage });
 const hojeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/hoje", component: HojePage });
 const executorRoute = createRoute({ getParentRoute: () => rootRoute, path: "/executor", component: ExecutorPage });
+const itensRoute = createRoute({ getParentRoute: () => rootRoute, path: "/itens", component: ItensPage });
+const itemDetalheRoute = createRoute({ getParentRoute: () => rootRoute, path: "/itens/$id", component: ItemDetalhePage });
 const radarRoute = createRoute({ getParentRoute: () => rootRoute, path: "/radar", component: RadarPage });
 const alcadasRoute = createRoute({ getParentRoute: () => rootRoute, path: "/alcadas", component: AlcadasPage });
 const esteiraRoute = createRoute({ getParentRoute: () => rootRoute, path: "/esteira", component: EsteiraPage });
@@ -147,12 +153,13 @@ const calendarioCallbackRoute = createRoute({ getParentRoute: () => rootRoute, p
 const blocoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/bloco/$id", component: BlocoPage });
 const portalInstanciaRoute = createRoute({ getParentRoute: () => rootRoute, path: "/portal/instancia/$token", component: PortalInstanciaPage });
 const sextaRoute = createRoute({ getParentRoute: () => rootRoute, path: "/sexta", component: SextaPage });
+const pilotoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/piloto", component: PilotoPage });
 const sessaoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/entrar", component: SessaoPage });
 const callbackRoute = createRoute({ getParentRoute: () => rootRoute, path: "/callback", component: CallbackPage });
 const router = createRouter({
   routeTree: rootRoute.addChildren([
-    indexRoute, hojeRoute, executorRoute, radarRoute, alcadasRoute, esteiraRoute, canaisRoute,
-    calendarioCallbackRoute, blocoRoute, portalInstanciaRoute, sextaRoute, sessaoRoute, callbackRoute,
+    indexRoute, hojeRoute, executorRoute, itensRoute, itemDetalheRoute, radarRoute, alcadasRoute, esteiraRoute, canaisRoute,
+    calendarioCallbackRoute, blocoRoute, portalInstanciaRoute, sextaRoute, pilotoRoute, sessaoRoute, callbackRoute,
   ]),
 });
 

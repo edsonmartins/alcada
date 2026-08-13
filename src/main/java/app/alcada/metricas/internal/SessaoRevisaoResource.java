@@ -1,0 +1,21 @@
+package app.alcada.metricas.internal;
+
+import java.util.*;import app.alcada.plataforma.multitenancy.port.*;import jakarta.persistence.NoResultException;import jakarta.ws.rs.*;import jakarta.ws.rs.core.*;
+
+@Path("/v1/revisao-semanal/sessoes") @Produces(MediaType.APPLICATION_JSON)
+public class SessaoRevisaoResource {
+ private final SessoesRevisao sessoes;private final ContextoTenant tenant;private final ContextoPessoa pessoa;
+ public SessaoRevisaoResource(SessoesRevisao s,ContextoTenant t,ContextoPessoa p){sessoes=s;tenant=t;pessoa=p;}
+ @POST public Response iniciar(){Ctx c=ctx();if(c==null)return erro(400,"revisao.contexto_ausente","organização e gestor são obrigatórios");return Response.status(201).entity(sessoes.iniciar(c.org,c.gestor)).build();}
+ @GET @Path("/{id}") public Response obter(@PathParam("id")String id){return executar(id,false);}
+ @POST @Path("/{id}/concluir") public Response concluir(@PathParam("id")String id){return executar(id,true);}
+ @POST @Path("/{id}/regras/{classe}/observar") public Response observar(@PathParam("id")String id,@PathParam("classe")String classe){Ctx c=ctx();if(c==null)return erro(400,"revisao.contexto_ausente","organização e gestor são obrigatórios");try{sessoes.obter(c.org,c.gestor,UUID.fromString(id));sessoes.observar(c.org,c.gestor,classe);return Response.noContent().build();}catch(NoResultException|IllegalArgumentException e){return erro(404,"revisao.inexistente","sessão não encontrada");}}
+ @POST @Path("/{id}/regras/{classe}/aceitar") public Response aceitar(@PathParam("id")String id,@PathParam("classe")String classe){return deliberar(id,classe,true);}
+ @POST @Path("/{id}/regras/{classe}/recusar") public Response recusar(@PathParam("id")String id,@PathParam("classe")String classe){return deliberar(id,classe,false);}
+ @POST @Path("/{id}/promocoes") public Response promover(@PathParam("id")String id,Promocao req){Ctx c=ctx();if(c==null)return erro(400,"revisao.contexto_ausente","organização e gestor são obrigatórios");try{sessoes.obter(c.org,c.gestor,UUID.fromString(id));sessoes.promover(c.org,c.gestor,req.classe,req.donoId,req.nivelAtual);return Response.noContent().build();}catch(NoResultException|IllegalArgumentException|NullPointerException e){return erro(422,"revisao.promocao_inelegivel","promoção não é elegível");}}
+ @POST @Path("/{id}/protecao-agenda") public Response proteger(@PathParam("id")String id,Protecao req){Ctx c=ctx();if(c==null)return erro(400,"revisao.contexto_ausente","organização e gestor são obrigatórios");try{UUID p=sessoes.protegerAgenda(c.org,c.gestor,UUID.fromString(id),java.time.OffsetDateTime.parse(req.inicio),req.duracaoMinutos);return Response.status(201).entity(new ProtecaoCriada(p.toString())).build();}catch(Exception e){return erro(422,"revisao.protecao_invalida",e.getMessage());}}
+ private Response deliberar(String id,String classe,boolean aceitar){Ctx c=ctx();if(c==null)return erro(400,"revisao.contexto_ausente","organização e gestor são obrigatórios");try{sessoes.obter(c.org,c.gestor,UUID.fromString(id));sessoes.deliberarRegra(c.org,c.gestor,classe,aceitar);return Response.noContent().build();}catch(NoResultException e){return erro(404,"revisao.inexistente","sessão não encontrada");}catch(IllegalArgumentException e){return erro(422,"revisao.proposta_inelegivel",e.getMessage());}}
+ private Response executar(String id,boolean concluir){Ctx c=ctx();if(c==null)return erro(400,"revisao.contexto_ausente","organização e gestor são obrigatórios");try{UUID u=UUID.fromString(id);return Response.ok(concluir?sessoes.concluir(c.org,c.gestor,u):sessoes.obter(c.org,c.gestor,u)).build();}catch(NoResultException|IllegalArgumentException e){return erro(404,"revisao.inexistente","sessão não encontrada");}}
+ private Ctx ctx(){Optional<OrgId>o=tenant.atual();Optional<UUID>p=pessoa.atual();return o.isEmpty()||p.isEmpty()?null:new Ctx(o.get(),p.get());}
+ private static Response erro(int s,String t,String d){return Response.status(s).type("application/problem+json").entity(new RadarResource.Problema("urn:alcada:"+t,d,s)).build();}public record Promocao(String classe,String donoId,String nivelAtual){}public record Protecao(String inicio,int duracaoMinutos){}public record ProtecaoCriada(String id){}private record Ctx(OrgId org,UUID gestor){}
+}

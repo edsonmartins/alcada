@@ -7,7 +7,7 @@ vi.mock("../api/consulta", () => ({
     pergunta,
     template: "ESPERANDO_MIM",
     resposta: "Há 2 itens esperando por você, somando R$ 3 mil.",
-    itens: [{ id: "abc", titulo: "Aprovar reembolso", classe: "DECISAO", valorEmJogo: 2000 }],
+    itens: [{ id: "abc", titulo: "Aprovar reembolso", classe: "DECISAO", valorEmJogo: 2000, status: "ENTRADA", links: [{ tipo: "BLOCO", href: "/bloco/abc" }] }],
   })),
 }));
 

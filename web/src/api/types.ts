@@ -37,7 +37,9 @@ export interface ItemHoje {
 }
 
 export interface RepassarBody {
-  donoId: string;
+  destino: { tipo: "INTERNO"; pessoaId: string } |
+    { tipo: "EXTERNO"; contatoId: string } |
+    { tipo: "EXTERNO_NOVO"; nome: string; canal: "WHATSAPP" | "EMAIL"; endereco: string };
   nivel: Nivel;
   prazo: string; // ISO-8601
 }

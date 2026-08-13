@@ -29,7 +29,8 @@ import jakarta.transaction.Transactional;
  * com trilha. `repassar` é do motor de autonomia (002). Só `FECHADA` notifica.
  */
 @ApplicationScoped
-public class TriagemService implements app.alcada.triagem.port.Triagem {
+public class TriagemService implements app.alcada.triagem.port.Triagem,
+        app.alcada.triagem.port.ItensHojeResumo {
 
     static final String JOB_DESPERTAR = "TRIAGEM_DESPERTAR";
     private static final Set<String> MOTIVOS = Set.of("NADA", "INSUMO", "TERCEIRO");
@@ -340,6 +341,12 @@ public class TriagemService implements app.alcada.triagem.port.Triagem {
                     toOdt(l[3]), ((Number) l[4]).intValue()));
         }
         return hoje;
+    }
+
+    @Override
+    public List<app.alcada.triagem.port.ItensHojeResumo.Item> listar(OrgId org) {
+        return hoje(org).stream().map(i -> new app.alcada.triagem.port.ItensHojeResumo.Item(
+                UUID.fromString(i.id()), i.titulo(), i.justificativa())).toList();
     }
 
     private static java.time.OffsetDateTime toOdt(Object v) {

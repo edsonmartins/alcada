@@ -172,9 +172,13 @@ Plataforma:  multitenancy · trilha · outbox · scheduler · gateway
 | **F2 — contraparte** | tela do executor, fechamento no canal de origem, portal externo | ✅ implementado |
 | Integrações | Linktor real (entrada/saída, HMAC) · gateway OpenRouter/DeepInfra real | ✅ implementado |
 | Prontidão de deploy | seed idempotente · SPA same-origin · trilha + countdown na web | ✅ implementado |
-| **F3 — encolhimento** | mineração de regras de autonomia, radar, revisão de sexta | ⏳ planejado |
-| **F4 — profundidade** | bloco de decisão (dossiê + redação), esteira e checklist | ⏳ planejado |
-| **F5 — mobilidade** | app Flutter, voz, modo trajeto, offline | ⏳ planejado |
+| **F3 — encolhimento** | mineração de regras, radar, revisão de sexta | ✅ testado localmente; adoção pendente |
+| **F4 — profundidade** | bloco, dossiê, consulta, esteira e checklist | ✅ testado localmente; adoção pendente |
+| **F5 — mobilidade** | app Flutter, voz, modo trajeto, offline | 🧪 escrito; validação em dispositivo/STT pendente |
+| Incrementos 024–026 | grupos, repasse externo, lembrete e Google Calendar | 🧪 parciais; ver tarefas abertas |
+
+`Implementado` nesta tabela não significa validado com usuário. A fotografia verificável e as
+pendências por jornada estão em `spec/docs/ESTADO-PRODUTO.md`.
 
 Ordem deliberada: **contraparte antes de IA avançada** — N2 sem tela do executor é
 mecanismo sem apoio. Cobertura atual: testes JVM (ArchUnit, guarda de `org_id`, trilha
@@ -221,6 +225,8 @@ Toda em `spec/` (português; palavras-chave e bibliotecas em inglês):
 - `spec/docs/GLOSSARIO.md` — linguagem ubíqua do domínio
 - `spec/docs/API.md` — contrato dos endpoints
 - `spec/docs/PILOTO.md` — pacote de validação do piloto (gate G2)
+- `spec/docs/ESTADO-PRODUTO.md` — implementação × validação × adoção, com pendências reais
+- `spec/docs/PLANO-IMPLEMENTACAO.md` — plano mestre das próximas ondas de produto
 - `spec/adr/` — decisões de arquitetura (ADR-0001…0025)
 - `spec/rfc/` — desenhos técnicos (pipeline de captura, motor de autonomia, gateway…)
 - `spec/prototipo/alcada-sistema.html` — referência visual

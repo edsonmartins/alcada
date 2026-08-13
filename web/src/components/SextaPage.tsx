@@ -1,138 +1,19 @@
-import { Badge, Button, Group, Paper, Progress, SimpleGrid, Stack, Text, Title } from "@mantine/core";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { getRevisao } from "../api/metricas";
-import { PageHeader } from "./PageHeader";
+import { Anchor,Badge,Button,Group,Paper,Progress,SimpleGrid,Stack,Text,TextInput,Title } from "@mantine/core";
+import { useMutation,useQuery,useQueryClient } from "@tanstack/react-query";import { useState } from "react";
+import { concluirSessaoRevisao,deliberarRegraRevisao,iniciarSessaoRevisao,promoverNivelRevisao,protegerAgendaRevisao } from "../api/metricas";import { aplicarSaida } from "../api/pendencias";import { formatValor } from "../util/formato";import { PageHeader } from "./PageHeader";
 
-export function SextaPage() {
-  const { data } = useQuery({ queryKey: ["revisao-semanal"], queryFn: getRevisao });
-  const [passo, setPasso] = useState(0);
-  if (!data) return null;
-  const d = data;
+export function SextaPage(){const [passo,setPasso]=useState(0);const qc=useQueryClient();const {data}=useQuery({queryKey:["sessao-revisao"],queryFn:iniciarSessaoRevisao});const atualizar=()=>qc.invalidateQueries({queryKey:["sessao-revisao"]});const agir=useMutation({mutationFn:({id,saida}:{id:string;saida:"resolver"|"reservar"|"repousar"})=>aplicarSaida(id,saida),onSuccess:atualizar});const regra=useMutation({mutationFn:({classe,acao}:{classe:string;acao:"aceitar"|"recusar"|"observar"})=>deliberarRegraRevisao(data!.id,classe,acao),onSuccess:atualizar});const promover=useMutation({mutationFn:(c:{classe:string;donoId:string;nivelAtual:string})=>promoverNivelRevisao(data!.id,c),onSuccess:atualizar});const concluir=useMutation({mutationFn:()=>concluirSessaoRevisao(data!.id),onSuccess:(s)=>qc.setQueryData(["sessao-revisao"],s)});if(!data)return <Text c="dimmed">Preparando revisão…</Text>;const d=data.revisao;
+ const passos=[
+  {titulo:"1. A fila de entrada",sub:"Esvaziar, não organizar.",corpo:<Stack gap="xs">{d.entrada.itens.map(i=><ItemAcao key={i.id} id={i.id} titulo={i.titulo} agir={s=>agir.mutate({id:i.id,saida:s})}/>)}{d.entrada.qtd===0&&<Vazio t="Entrada limpa."/>}</Stack>},
+  {titulo:"2. Adiados recorrentes",sub:"Dar uma saída ao que voltou três vezes.",corpo:<Stack gap="xs">{d.adiados.map(i=><ItemAcao key={i.id} id={i.id} titulo={i.titulo} extra={`${i.adiadoCount}× adiado`} agir={s=>agir.mutate({id:i.id,saida:s})}/>)}{d.adiados.length===0&&<Vazio t="Nenhum adiamento recorrente."/>}</Stack>},
+  {titulo:"3. Propostas de regra",sub:"Evidência antes de autonomia; nada é automático.",corpo:<Stack gap="xs">{data.propostas.map(p=><Paper key={p.classe} withBorder p="sm"><Text fw={600}>{p.classe} · {p.ocorrencias} casos · {Math.round(p.consistencia*100)}%</Text><Group gap="xs" my="xs">{p.casos.slice(0,5).map(c=><Anchor key={c.pendenciaId} href={`/itens/${c.pendenciaId}`} size="xs">{c.titulo}</Anchor>)}</Group><Group><Button size="xs" disabled={!p.donoSugerido} onClick={()=>regra.mutate({classe:p.classe,acao:"aceitar"})}>Aceitar</Button><Button size="xs" variant="default" onClick={()=>regra.mutate({classe:p.classe,acao:"recusar"})}>Recusar</Button><Button size="xs" variant="subtle" onClick={()=>regra.mutate({classe:p.classe,acao:"observar"})}>Observar</Button></Group></Paper>)}{data.propostas.length===0&&<Vazio t="Nenhuma proposta com evidência suficiente."/>}</Stack>},
+  {titulo:"4. Redução de nível",sub:"Migrar N3→N2→N1 somente com histórico consistente.",corpo:<Stack gap="xs">{data.candidatasNivel.map(c=><Paper key={`${c.classe}-${c.donoId}-${c.nivelAtual}`} withBorder p="sm"><Group justify="space-between"><div><Text fw={600}>{c.classe}: {c.nivelAtual} → {c.nivelSugerido}</Text><Text size="xs" c="dimmed">{c.dono} · {c.ocorrencias} desfechos sem devolução/escalonamento</Text></div><Button size="xs" onClick={()=>promover.mutate({classe:c.classe,donoId:c.donoId,nivelAtual:c.nivelAtual})}>Confirmar promoção</Button></Group></Paper>)}{data.candidatasNivel.length===0&&<Vazio t="Nenhuma promoção conservadora disponível."/>}</Stack>},
+  {titulo:"5. Proteger o trimestre",sub:"Nomear a invasão e reservar espaço deliberadamente.",corpo:<ProtecaoAgenda sessao={data.id} quantidade={data.trimestre.quantidade} valor={data.trimestre.valorEmJogo} fontes={data.trimestre.fontes} aoAgir={atualizar}/>},
+  {titulo:"6. Fechamento",sub:"O que deixou de depender de você.",corpo:data.resumo?<Resumo r={data.resumo}/>:<Stack><Text>Conclua para apurar transições e remanescentes.</Text><Button onClick={()=>concluir.mutate()}>Concluir revisão</Button></Stack>}
+ ];const atual=passos[passo];return <Stack><PageHeader titulo="Revisão de sexta" sub="Sessão de redução. Um passo e uma próxima ação por vez."/><Progress value={((passo+1)/passos.length)*100}/><Paper withBorder p="md"><Title order={5}>{atual.titulo}</Title><Text size="xs" c="dimmed" mb="sm">{atual.sub}</Text>{atual.corpo}</Paper><Group justify="space-between"><Button variant="default" disabled={passo===0} onClick={()=>setPasso(p=>p-1)}>Anterior</Button><Text size="xs">{passo+1} / {passos.length}</Text><Button disabled={passo===passos.length-1} onClick={()=>setPasso(p=>p+1)}>Próximo</Button></Group></Stack>}
 
-  const passos = [
-    {
-      titulo: "1. A fila de entrada",
-      sub: "O que ainda não foi triado. Esvaziar, não organizar.",
-      corpo: (
-        <Stack gap="xs">
-          <Guia texto={d.conducao.entrada} />
-          <Text size="sm">{d.entrada.qtd} item(s) na entrada.</Text>
-          {d.entrada.itens.map((i) => (
-            <Paper key={i.id} withBorder p="xs">
-              <Text size="sm" fw={500}>{i.titulo}</Text>
-              {i.quemEspera && <Text size="xs" c="dimmed">espera: {i.quemEspera}</Text>}
-            </Paper>
-          ))}
-          {d.entrada.qtd === 0 && <Text size="sm" c="dimmed">Entrada limpa. 👏</Text>}
-        </Stack>
-      ),
-    },
-    {
-      titulo: "2. Adiados 3× ou mais",
-      sub: "Diagnóstico, não priorização. Resolver, soltar ou matar.",
-      corpo: (
-        <Stack gap="xs">
-          <Guia texto={d.conducao.adiados} />
-          {d.adiados.map((a) => (
-            <Paper key={a.id} withBorder p="xs">
-              <Group gap={6}>
-                <Text size="sm" fw={500}>{a.titulo}</Text>
-                <Badge size="xs" color="orange">{a.adiadoCount}× adiado</Badge>
-              </Group>
-              {a.oQueTrava && <Text size="xs" c="dimmed">{a.oQueTrava}</Text>}
-            </Paper>
-          ))}
-          {d.adiados.length === 0 && <Text size="sm" c="dimmed">Nada adiado três vezes ou mais.</Text>}
-        </Stack>
-      ),
-    },
-    {
-      titulo: "3. O que pode virar regra",
-      sub: "Dica de repetição — não é regra automática (a mineração vem depois).",
-      corpo: (
-        <Stack gap="xs">
-          <Guia texto={d.conducao.regras} />
-          {d.podeVirarRegra.map((r) => (
-            <Paper key={r.classe} withBorder p="xs">
-              <Text size="sm">
-                <b>{r.classe}</b> — {r.ocorrencias} decisões resolvidas nas últimas 4 semanas.
-              </Text>
-              <Text size="xs" c="dimmed">Candidata a regra de autonomia. Reveja em /alcadas.</Text>
-            </Paper>
-          ))}
-          {d.podeVirarRegra.length === 0 && (
-            <Text size="sm" c="dimmed">Nenhum padrão repetido o suficiente ainda.</Text>
-          )}
-        </Stack>
-      ),
-    },
-    {
-      titulo: "4. Resumo da semana",
-      sub: "O que aconteceu desde segunda.",
-      corpo: (
-        <Stack gap="xs">
-          <Guia texto={d.conducao.resumo} />
-          <SimpleGrid cols={{ base: 2, sm: 3 }}>
-          <Contador v={d.resumoSemana.resolvidas} r="resolvidas" />
-          <Contador v={d.resumoSemana.executadas} r="executadas (N2)" />
-          <Contador v={d.resumoSemana.delegadas} r="delegadas" />
-          <Contador v={d.resumoSemana.escaladas} r="escaladas" />
-          <Contador v={d.resumoSemana.devolvidas} r="devolvidas" />
-          <Contador v={d.resumoSemana.fechadas} r="fechadas" />
-          </SimpleGrid>
-        </Stack>
-      ),
-    },
-  ];
-
-  const atual = passos[passo];
-  return (
-    <Stack>
-      <PageHeader titulo="Revisão de sexta" sub="Roteiro de ~20 minutos. Um passo de cada vez." />
-      <Progress value={((passo + 1) / passos.length) * 100} size="sm" />
-
-      <Paper withBorder p="md">
-        <Title order={5}>{atual.titulo}</Title>
-        <Text size="xs" c="dimmed" mb="sm">{atual.sub}</Text>
-        {atual.corpo}
-      </Paper>
-
-      <Group justify="space-between">
-        <Button variant="default" disabled={passo === 0} onClick={() => setPasso((p) => p - 1)}>
-          Anterior
-        </Button>
-        <Text size="xs" c="dimmed">{passo + 1} / {passos.length}</Text>
-        <Button disabled={passo === passos.length - 1} onClick={() => setPasso((p) => p + 1)}>
-          Próximo
-        </Button>
-      </Group>
-    </Stack>
-  );
-}
-
-/** Frase-guia da condução (RFC-0004 §4): o sistema conduz o passo, o gestor decide. */
-function Guia({ texto }: { texto: string }) {
-  if (!texto) return null;
-  return (
-    <Paper
-      p="xs"
-      radius="md"
-      data-testid="conducao-guia"
-      style={{ background: "var(--mantine-color-indigo-0)", borderColor: "var(--mantine-color-indigo-2)" }}
-    >
-      <Text size="sm" fw={500} c="indigo.9">
-        {texto}
-      </Text>
-    </Paper>
-  );
-}
-
-function Contador({ v, r }: { v: number; r: string }) {
-  return (
-    <Paper withBorder p="sm">
-      <Text fz={26} lh={1} style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, letterSpacing: "-.03em" }}>{v}</Text>
-      <Text size="xs" c="dimmed" mt={4}>{r}</Text>
-    </Paper>
-  );
-}
+function ItemAcao({id,titulo,extra,agir}:{id:string;titulo:string;extra?:string;agir:(s:"resolver"|"reservar"|"repousar")=>void}){return <Paper withBorder p="sm"><Group justify="space-between"><div><Text fw={600}>{titulo}</Text>{extra&&<Badge size="xs">{extra}</Badge>}</div><Group gap="xs"><Button size="xs" onClick={()=>agir("resolver")}>Resolver</Button><Button size="xs" variant="default" component="a" href={`/?item=${id}`}>Repassar</Button><Button size="xs" variant="default" onClick={()=>agir("reservar")}>Reservar</Button><Button size="xs" variant="subtle" onClick={()=>agir("repousar")}>Repousar</Button><Button size="xs" variant="subtle" component="a" href={`/bloco/${id}`}>Abrir bloco</Button></Group></Group></Paper>}
+function Resumo({r}:{r:NonNullable<import("../api/metricas").SessaoRevisao["resumo"]>}){return <Stack>{r.improdutiva&&<Paper p="sm" bg="orange.0"><Text fw={600}>Esta sessão terminou sem transição.</Text><Text size="sm">Comece pelo primeiro item que ainda depende de você.</Text></Paper>}<SimpleGrid cols={{base:2,sm:4}}><Numero n={r.dependenciasRemovidas} t="dependências removidas"/><Numero n={r.continuamDependendo} t="continuam dependendo"/><Numero n={r.regrasAceitas+r.niveisPromovidos} t="autonomias ampliadas"/><Numero n={r.regrasRecusadas+r.regrasObservadas} t="propostas deliberadas"/></SimpleGrid>{r.remanescentes.map(f=><Anchor key={f.pendenciaId} href={f.href}>{f.titulo}</Anchor>)}</Stack>}
+function Numero({n,t}:{n:number;t:string}){return <Paper withBorder p="sm"><Text fz={26} fw={800}>{n}</Text><Text size="xs" c="dimmed">{t}</Text></Paper>}function Vazio({t}:{t:string}){return <Text size="sm" c="dimmed">{t}</Text>}
+function ProtecaoAgenda({sessao,quantidade,valor,fontes,aoAgir}:{sessao:string;quantidade:number;valor:number|null;fontes:Array<{pendenciaId:string;titulo:string;href:string}>;aoAgir:()=>void}){const [inicio,setInicio]=useState(amanha());const m=useMutation({mutationFn:()=>protegerAgendaRevisao(sessao,new Date(inicio).toISOString()),onSuccess:aoAgir});return <Stack><Text><b>{quantidade}</b> item(ns), {formatValor(valor)??"sem valor informado"}, ocupam o Horizonte TRIMESTRE.</Text>{fontes.map(f=><Anchor href={f.href} key={f.pendenciaId}>{f.titulo}</Anchor>)}<Group align="end"><TextInput type="datetime-local" label="Início do espaço protegido" value={inicio} onChange={e=>setInicio(e.currentTarget.value)}/><Button disabled={quantidade===0||!inicio} onClick={()=>m.mutate()}>Confirmar proteção de 2 horas</Button></Group><Text size="xs" c="dimmed">A reserva só chega ao calendário após a janela de reversibilidade.</Text></Stack>}
+function amanha(){const d=new Date();d.setDate(d.getDate()+1);d.setHours(9,0,0,0);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}T09:00`}

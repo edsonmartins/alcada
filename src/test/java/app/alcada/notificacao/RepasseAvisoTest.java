@@ -2,6 +2,7 @@ package app.alcada.notificacao;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
@@ -11,6 +12,7 @@ import java.util.UUID;
 
 import app.alcada.autonomia.internal.MotorAutonomia;
 import app.alcada.autonomia.port.ContatosExternos;
+import app.alcada.autonomia.port.CorrelacoesRetorno;
 import app.alcada.autonomia.port.DestinoRepasse;
 import app.alcada.notificacao.internal.EmailStub;
 import app.alcada.notificacao.internal.LinktorStub;
@@ -31,6 +33,7 @@ class RepasseAvisoTest {
 
     @Inject MotorAutonomia motor;
     @Inject ContatosExternos contatos;
+    @Inject CorrelacoesRetorno correlacoes;
     @Inject WorkerOutbox worker;
     @Inject LinktorStub linktor;
     @Inject EmailStub emailStub;
@@ -55,8 +58,49 @@ class RepasseAvisoTest {
         var diretas = linktor.diretas().stream().filter(d -> "+5521999990000".equals(d.to())).toList();
         assertEquals(1, diretas.size(), "enviou 1 mensagem direta ao contato");
         assertEquals("chan-abc", diretas.get(0).channelId(), "usa o canal WhatsApp do tenant");
+        assertNotNull(diretas.get(0).correlacao(), "propaga correlação opaca no metadata");
         assertTrue(diretas.get(0).texto().contains(c.pend.toString()), "texto referencia a pendência");
         assertTrue(tipos(c.org, c.pend).contains("COMUNICADA"));
+    }
+
+    @Test
+    void retorno_valido_e_observado_minimizado_e_idempotente_sem_executar_acao() {
+        Ctx c = novo("chan-retorno");
+        UUID contato = contatos.registrar(c.org, "Contato", "WHATSAPP", "+5521999990001", c.gestor);
+        motor.delegar(c.org, c.pend, new DestinoRepasse.Externo(contato), "N2", agora(), c.gestor);
+        worker.processarLote();
+
+        UUID delegacao = delegacao(c);
+        String token = correlacoes.tokenParaEnvio(c.org, delegacao).orElseThrow();
+        var primeiro = correlacoes.receber(c.org, token, "WHATSAPP", "5521999990001", "msg-ret-1",
+                "Fale comigo em pessoa@empresa.com ou 5521999990001");
+        var repetido = correlacoes.receber(c.org, token, "WHATSAPP", "5521999990001", "msg-ret-1", "outra");
+
+        assertEquals(CorrelacoesRetorno.Resultado.OBSERVADO, primeiro);
+        assertEquals(CorrelacoesRetorno.Resultado.REPETIDO, repetido);
+        assertEquals(1L, contar(c.org, "SELECT count(*) FROM retorno_delegacao WHERE org_id=?"));
+        assertEquals(1L, contar(c.org, "SELECT count(*) FROM retorno_delegacao WHERE org_id=?"
+                + " AND estado='OBSERVADO' AND trecho_minimizado LIKE '%<EMAIL>%'"
+                + " AND trecho_minimizado LIKE '%<TELEFONE>%'") );
+        assertTrue(tipos(c.org, c.pend).contains("RETORNO_RECEBIDO"));
+        assertEquals(0L, contar(c.org, "SELECT count(*) FROM delegacao WHERE org_id=? AND retorno_pendente"),
+                "modo observar não altera o estado operacional");
+    }
+
+    @Test
+    void retorno_com_autor_ou_tenant_divergente_nao_correlaciona() {
+        Ctx c = novo("chan-isolamento");
+        UUID contato = contatos.registrar(c.org, "Contato", "WHATSAPP", "+5521999990002", c.gestor);
+        motor.delegar(c.org, c.pend, new DestinoRepasse.Externo(contato), "N2", agora(), c.gestor);
+        UUID delegacao = delegacao(c);
+        String token = correlacoes.tokenParaEnvio(c.org, delegacao).orElseThrow();
+
+        assertEquals(CorrelacoesRetorno.Resultado.AUTOR_DIVERGENTE,
+                correlacoes.receber(c.org, token, "WHATSAPP", "5511000000000", "msg-x", "oi"));
+        Ctx outra = novo("chan-outra");
+        assertEquals(CorrelacoesRetorno.Resultado.NAO_CORRELACIONADO,
+                correlacoes.receber(outra.org, token, "WHATSAPP", "5521999990002", "msg-y", "oi"));
+        assertEquals(0L, contar(c.org, "SELECT count(*) FROM retorno_delegacao WHERE org_id=?"));
     }
 
     // WHEN repasse externo (e-mail) THEN o worker envia por SMTP + trilha COMUNICADA
@@ -135,6 +179,17 @@ class RepasseAvisoTest {
     private long pendentes(OrgId org) {
         return ((Number) QuarkusTransaction.requiringNew().call(() -> em.createNativeQuery(
                 "SELECT count(*) FROM outbox WHERE org_id = ? AND tipo = 'AVISO_REPASSE' AND status = 'PENDENTE'")
+                .setParameter(1, org.valor()).getSingleResult())).longValue();
+    }
+
+    private UUID delegacao(Ctx c) {
+        return QuarkusTransaction.requiringNew().call(() -> (UUID) em.createNativeQuery(
+                "SELECT id FROM delegacao WHERE org_id=? AND pendencia_id=? ORDER BY criada_em DESC LIMIT 1")
+                .setParameter(1, c.org.valor()).setParameter(2, c.pend).getSingleResult());
+    }
+
+    private long contar(OrgId org, String sql) {
+        return ((Number) QuarkusTransaction.requiringNew().call(() -> em.createNativeQuery(sql)
                 .setParameter(1, org.valor()).getSingleResult())).longValue();
     }
 
