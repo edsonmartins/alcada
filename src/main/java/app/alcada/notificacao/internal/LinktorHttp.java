@@ -14,7 +14,7 @@ import app.alcada.captura.port.EnviarAvisoGrupo;
 import app.alcada.captura.port.EnviarMensagem;
 import app.alcada.notificacao.port.Canal;
 import app.alcada.plataforma.multitenancy.port.OrgId;
-import io.quarkus.arc.profile.IfBuildProfile;
+import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -23,14 +23,14 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * Adaptador real do Linktor (ADR-0021). Cliente HTTP simples com serialização
  * explícita — sem SDK pesado (CLAUDE.md §4, native-safe), como o vendax.ai faz.
  *
- * <p><b>Só existe em {@code prod}.</b> Endereça por {@code conversationId} (=
+ * <p><b>Só existe quando {@code linktor.real=true}.</b> Endereça por {@code conversationId} (=
  * {@code EnviarMensagem.responderA}), pois o Linktor só responde a conversa que
  * chegou por inbound (ADR-0025). Falha de entrega vira {@link CanalIndisponivel}
  * — o efeito continua no outbox, reprocessa e, ao esgotar, vira
  * {@code FALHA_COMUNICACAO} pelo varredor de mortos (006).
  */
 @ApplicationScoped
-@IfBuildProfile("prod")
+@IfBuildProperty(name = "linktor.real", stringValue = "true")
 public class LinktorHttp implements Canal {
 
     private final ObjectMapper json = new ObjectMapper();

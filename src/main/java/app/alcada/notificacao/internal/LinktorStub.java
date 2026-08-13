@@ -10,7 +10,7 @@ import app.alcada.captura.port.EnviarDireto;
 import app.alcada.captura.port.EnviarMensagem;
 import app.alcada.notificacao.port.Canal;
 import app.alcada.plataforma.multitenancy.port.OrgId;
-import io.quarkus.arc.profile.UnlessBuildProfile;
+import io.quarkus.arc.properties.UnlessBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
@@ -19,13 +19,12 @@ import org.jboss.logging.Logger;
  * WhatsApp/e-mail. Contrato explícito de sucesso e falha (idempotente + falha
  * programável).
  *
- * <p><b>Fora de {@code prod}, sempre.</b> É a garantia de que dev/test NUNCA
- * batem no host externo por acidente — o bean real ({@link LinktorHttp}) só
- * existe em {@code prod} (ADR-0025, decisão 3). Para testar contra o Linktor de
- * verdade, use um profile explícito, nunca o default.
+ * <p>É o default seguro: dev/test nunca batem no host externo por acidente.
+ * O bean real ({@link LinktorHttp}) só entra quando o build ativa explicitamente
+ * {@code linktor.real=true}.
  */
 @ApplicationScoped
-@UnlessBuildProfile("prod")
+@UnlessBuildProperty(name = "linktor.real", stringValue = "true")
 public class LinktorStub implements Canal {
 
     private static final Logger LOG = Logger.getLogger(LinktorStub.class);

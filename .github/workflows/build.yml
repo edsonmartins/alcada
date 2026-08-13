@@ -2,7 +2,7 @@ name: build-image
 
 # Builda a imagem JVM (Java 25) da Alçada — front (SPA) embutido same-origin —
 # e publica no GHCR. A VPS só faz pull (build pesado nunca roda na máquina
-# compartilhada). Imagem `demo`: OIDC off, adapters externos = stub (piloto).
+# compartilhada). Imagem `demo`: OIDC off e Linktor real (piloto controlado).
 on:
   push:
     branches: [ main ]

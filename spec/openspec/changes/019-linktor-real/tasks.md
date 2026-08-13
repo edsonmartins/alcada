@@ -13,7 +13,7 @@ plano + **ADR-0025** (fechamento condicionado à conversa inbound; `COMUNICACAO_
       `X-API-Key`, corpo `{text, metadata:{source, idempotency_key}}` (padrão vendax.ai; sem SDK, native-safe)
 - [x] Endereça por `conversationId` (= `EnviarMensagem.responderA` = `origem_thread`); ADR-0025
 - [x] Falha/5xx → `CanalIndisponivel` → outbox reprocessa → varredor → `FALHA_COMUNICACAO`
-- [x] **Só em `prod`** (`@IfBuildProfile`); stub `@DefaultBean` fora de prod — dev/test nunca batem no host externo
+- [x] Gate explícito `linktor.real`: ligado em `prod` e `demo`; stub fora deles — dev/test nunca batem no host externo
 - [x] `DespachanteCanal`: sem conversa → `COMUNICACAO_IMPOSSIVEL` (não no-op, não FALHA)
 
 ## Inbound (webhook real)
@@ -34,7 +34,7 @@ plano + **ADR-0025** (fechamento condicionado à conversa inbound; `COMUNICACAO_
   sistema/webhook/escape nunca fecham o laço no canal — `COMUNICACAO_IMPOSSIVEL` é **desfecho
   terminal legítimo** para eles, não dívida. Portal (007) é mitigação **parcial** (só onde há
   endereço da contraparte), não a resolução. Ver ADR-0025.
-- Para testar contra `api.linktor.dev`, criar um profile explícito `dev-integracao` (nunca o default).
+- Para testar contra `api.linktor.dev`, usar `prod`/`demo` ou ativar `linktor.real=true` explicitamente no build (nunca no default dev/test).
 
 ---
 **Estado:** implementado — 87 testes JVM (7 novos), nativo ~71 MB RSS, `Canal` real só em prod.
