@@ -44,8 +44,20 @@
 - retorno válido é persistido minimizado e auditado como `OBSERVADO`, sem executar N2 nem criar
   uma segunda pendência;
 - testes locais cobrem ida HTTP, volta assinada, reentrega, isolamento de tenant e autor divergente;
-- gate externo continua aberto: o contrato precisa ser confirmado com a Linktor e exercitado em
-  WhatsApp/e-mail reais antes de qualquer transição operacional.
+- gate externo estava aberto; a confirmação de WhatsApp foi concluída abaixo. O exercício de
+  e-mail e a transição operacional por tenant continuam pendentes.
+
+## Evidência real — WhatsApp (2026-08-14)
+
+- Canal Linktor de produção conectado e webhook configurado para
+  `https://alcada.vendax.ai/v1/captura/linktor`.
+- Mensagem enviada com `metadata.alcada_correlation` de uma delegação real; resposta citada
+  recebida pelo webhook com `context.alcada_correlation`.
+- Alçada persistiu `retorno_delegacao` como `INCONCLUSIVO/OBSERVADO` e registrou
+  `RETORNO_RECEBIDO` na trilha.
+- A delegação permaneceu `ABERTA` (`retorno_pendente=false`); nenhuma execução ou nova pendência
+  foi criada.
+- E-mail ainda não foi validado em ambiente real.
 
 ## Validação
 - [ ] Rodar observação no piloto e comparar com reconciliação humana
