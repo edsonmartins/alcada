@@ -80,6 +80,33 @@ class RepasseAvisoTest {
     }
 
     @Test
+    void aviso_interno_espera_janela_e_entrega_link_da_delegacao() {
+        Ctx c = novo("chan-interno");
+        UUID executor = UUID.randomUUID();
+        QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery("""
+                INSERT INTO pessoa(id,org_id,nome,whatsapp)
+                VALUES (?,?,'Executor','+5544999990000')
+                """).setParameter(1, executor).setParameter(2, c.org.valor()).executeUpdate());
+
+        UUID delegacao = motor.delegar(c.org, c.pend, new DestinoRepasse.Interno(executor),
+                "N2", agora(), c.gestor);
+        worker.processarLote();
+        assertEquals(0, linktor.diretas().size(), "a janela de desfazer represa o reforço");
+
+        QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery("""
+                UPDATE outbox SET disponivel_em=now()-interval '1 second'
+                WHERE org_id=? AND idempotency_key=?
+                """).setParameter(1, c.org.valor())
+                .setParameter(2, delegacao + ":aviso_repasse_interno").executeUpdate());
+        worker.processarLote();
+
+        var enviada = linktor.diretas().stream()
+                .filter(d -> "+5544999990000".equals(d.to())).findFirst().orElseThrow();
+        assertTrue(enviada.texto().contains("/app/delegacoes/" + delegacao));
+        assertTrue(enviada.texto().contains("Aprovar algo"));
+    }
+
+    @Test
     void retorno_valido_e_observado_minimizado_e_idempotente_sem_executar_acao() {
         Ctx c = novo("chan-retorno");
         UUID contato = contatos.registrar(c.org, "Contato", "WHATSAPP", "+5521999990001", c.gestor);

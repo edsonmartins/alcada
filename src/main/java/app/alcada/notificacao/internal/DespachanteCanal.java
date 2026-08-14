@@ -28,6 +28,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import org.jboss.logging.Logger;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
  * Despachante de produção: consome o outbox e entrega ao canal de origem via
@@ -53,6 +54,9 @@ public class DespachanteCanal implements Despachante {
     private final CorrelacoesRetorno correlacoes;
     private final ProtecoesAgenda protecoesAgenda;
 
+    @ConfigProperty(name = "alcada.web.base-url", defaultValue = "https://alcada.vendax.ai")
+    String webBaseUrl;
+
     public DespachanteCanal(EntityManager em, Canal canal, Email email, Calendario calendario,
                             Trilha trilha, AvisoGrupo avisoGrupo, CorrelacoesRetorno correlacoes,
                             ProtecoesAgenda protecoesAgenda) {
@@ -73,6 +77,7 @@ public class DespachanteCanal implements Despachante {
             case "canal.resposta" -> entregarResposta(m);
             case "grupo.aviso" -> entregarAvisoGrupo(m);
             case "AVISO_REPASSE" -> entregarAvisoRepasse(m);
+            case "AVISO_REPASSE_INTERNO" -> entregarAvisoRepasseInterno(m);
             case "PEDIDO_INFORMACAO" -> entregarPedidoInformacao(m);
             case "RESUMO_EXCECOES" -> entregarResumoExcecoes(m);
             case "EVENTO_CALENDARIO" -> entregarCompromisso(m);
@@ -200,6 +205,22 @@ public class DespachanteCanal implements Despachante {
                     .setParameter(1,m.org().valor()).setParameter(2,pedidoId).executeUpdate();
             comunicada(m.org(),pendenciaId,"WHATSAPP");
         }
+    }
+
+    private void entregarAvisoRepasseInterno(MensagemOutbox m) {
+        String p = m.payloadJson();
+        String whatsapp = campo(p, "whatsapp");
+        if (whatsapp == null || whatsapp.isBlank()) return;
+        String channelId = canalWhatsappDaOrg(m.org());
+        if (channelId == null || channelId.isBlank()) return;
+        UUID pendenciaId = UUID.fromString(campo(p, "pendencia_id"));
+        String delegacaoId = campo(p, "delegacao_id");
+        String titulo = campo(p, "titulo");
+        String link = webBaseUrl.replaceAll("/+$", "") + "/app/delegacoes/" + delegacaoId;
+        String texto = "Você recebeu um repasse no Alçada: " + titulo + ".\n\nAbra no aplicativo: " + link;
+        boolean novo = canal.enviarDireto(m.org(), new EnviarDireto(channelId, whatsapp, texto,
+                m.idempotencyKey()));
+        if (novo) comunicada(m.org(), pendenciaId, "WHATSAPP");
     }
 
     private void entregarResumoExcecoes(MensagemOutbox m) {

@@ -28,6 +28,9 @@ public class Pessoa {
     @Column
     public String email;
 
+    @Column
+    public String whatsapp;
+
     @Column(name = "criada_em", nullable = false)
     public OffsetDateTime criadaEm = OffsetDateTime.now();
 }

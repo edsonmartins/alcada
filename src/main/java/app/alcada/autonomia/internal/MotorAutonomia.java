@@ -130,6 +130,9 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
             correlacoes.criar(org,delegacaoId,(String)contato[0],(String)contato[1],prazo.plusDays(30));
             avisarRepasseExterno(org, delegacaoId, pendenciaId, ext.contatoId(), nivel,
                     mensagemRepasse);
+        } else if (destino instanceof DestinoRepasse.Interno interno) {
+            avisarRepasseInterno(org, delegacaoId, pendenciaId, interno.pessoaId(), nivel,
+                    OffsetDateTime.now(ZoneOffset.UTC).plus(p.janela()));
         }
 
         // Só N2 tem o ciclo de ausência (vencimento/janela/escalonamento).
@@ -490,6 +493,24 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
                 + ",\"endereco\":" + json((String) c[1]) + ",\"titulo\":" + json(titulo)
                 + ",\"nivel\":" + json(nivel) + ",\"mensagem\":" + json(mensagemRepasse) + "}";
         outbox.publicar(new MensagemOutbox(org, "AVISO_REPASSE", payload, delegacaoId + ":aviso_repasse"));
+    }
+
+    private void avisarRepasseInterno(OrgId org, UUID delegacaoId, UUID pendenciaId, UUID pessoaId,
+                                      String nivel, OffsetDateTime disponivelEm) {
+        @SuppressWarnings("unchecked")
+        java.util.List<Object[]> rs = em.createNativeQuery("""
+                SELECT p.whatsapp, d.titulo
+                FROM pessoa p CROSS JOIN pendencia d
+                WHERE p.org_id=? AND p.id=? AND d.org_id=? AND d.id=?
+                """).setParameter(1, org.valor()).setParameter(2, pessoaId)
+                .setParameter(3, org.valor()).setParameter(4, pendenciaId).getResultList();
+        if (rs.isEmpty()) return;
+        Object[] r = rs.getFirst();
+        String payload = "{\"delegacao_id\":\"" + delegacaoId + "\",\"pendencia_id\":\"" + pendenciaId
+                + "\",\"pessoa_id\":\"" + pessoaId + "\",\"whatsapp\":" + json((String) r[0])
+                + ",\"titulo\":" + json((String) r[1]) + ",\"nivel\":" + json(nivel) + "}";
+        outbox.publicarApos(new MensagemOutbox(org, "AVISO_REPASSE_INTERNO", payload,
+                delegacaoId + ":aviso_repasse_interno"), disponivelEm);
     }
 
     private static String json(String s) {
