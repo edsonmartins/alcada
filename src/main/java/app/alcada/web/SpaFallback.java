@@ -21,7 +21,8 @@ public class SpaFallback {
         String p = rc.normalizedPath();
         boolean api = p.startsWith("/v1/") || p.equals("/v1")
                 || p.startsWith("/q/") || p.equals("/q")
-                || p.startsWith("/p/") || p.startsWith("/pi/");
+                || p.startsWith("/p/") || p.startsWith("/pi/")
+                || p.startsWith("/.well-known/");
         boolean arquivo = p.equals("/") || p.lastIndexOf('.') > p.lastIndexOf('/');
         if (api || arquivo) {
             rc.next();          // API, health, portal público, raiz e assets: seguem
