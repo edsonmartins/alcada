@@ -17,7 +17,8 @@ const authority: string =
 const clientId: string =
   import.meta.env.VITE_OIDC_CLIENT_ID || "b93137e05e41986ccce3";
 
-export const oidcHabilitado = Boolean(authority && clientId);
+export const oidcHabilitado =
+  import.meta.env.VITE_OIDC_ENABLED !== "false" && Boolean(authority && clientId);
 
 let _mgr: UserManager | null = null;
 function mgr(): UserManager {

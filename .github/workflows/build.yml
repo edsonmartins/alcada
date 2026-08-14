@@ -35,6 +35,10 @@ jobs:
           cache-dependency-path: web/pnpm-lock.yaml
       - name: Build web (SPA)
         working-directory: web
+        env:
+          # O backend demo usa X-Org-Id/X-Pessoa-Id e não sobe OIDC.
+          VITE_LOGIN_DEMO: "true"
+          VITE_OIDC_ENABLED: "false"
         run: |
           pnpm install --frozen-lockfile
           pnpm build
