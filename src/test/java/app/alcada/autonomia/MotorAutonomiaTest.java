@@ -247,7 +247,10 @@ class MotorAutonomiaTest {
 
     private static OffsetDateTime futuro() {
         // Mantém tempo útil disponível independentemente do horário em que a suíte roda.
-        return OffsetDateTime.now(ZoneOffset.UTC).plusDays(2);
+        // Dois dias pode cair no domingo quando a suíte roda na sexta-feira,
+        // deixando o calendário comercial sem tempo útil e tornando o teste
+        // dependente do horário. Cinco dias sempre atravessa o fim de semana.
+        return OffsetDateTime.now(ZoneOffset.UTC).plusDays(5);
     }
 
     private void adiantar(OrgId org, String tipo) {
