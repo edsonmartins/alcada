@@ -42,6 +42,15 @@ class GuardaOrgIdTest {
         });
     }
 
+    @Test
+    void dispositivo_push_sem_org_id_e_rejeitado() {
+        Throwable erro = assertThrows(Throwable.class, () ->
+                QuarkusTransaction.requiringNew().run(() ->
+                        em.createNativeQuery("select token_cifrado from dispositivo_push").getResultList()));
+        assertTrue(mensagemContem(erro, "INV-15"),
+                "esperava isolamento do token push por INV-15, veio: " + erro);
+    }
+
     private static boolean mensagemContem(Throwable t, String trecho) {
         for (Throwable c = t; c != null; c = c.getCause()) {
             if (c.getMessage() != null && c.getMessage().contains(trecho)) {

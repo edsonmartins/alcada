@@ -48,6 +48,8 @@ GET /v1/preferencias-notificacao
 PUT /v1/preferencias-notificacao
 GET /v1/perfil/canais
 PUT /v1/perfil/canais                    { whatsapp: "+5544999990000" | null }
+PUT /v1/dispositivos-push                { instalacaoId, plataforma: "ANDROID"|"IOS", token }
+DELETE /v1/dispositivos-push/{instalacaoId}
     { canal:"EMAIL", resumoInicio:"09:00"?, resumoFim:"17:00"?, ativa:true }
 ```
 

@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["T8N7A2P3TQ.app.alcada.alcadaMobile"],
+        "components": [
+          { "/": "/app/delegacoes/*", "comment": "Repasse interno autenticado" }
+        ]
+      }
+    ]
+  }
+}

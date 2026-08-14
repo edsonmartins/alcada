@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.alcada.alcada_mobile",
+      "sha256_cert_fingerprints": [
+        "DF:1C:ED:3E:98:64:CB:14:F9:E9:7D:89:EA:81:BC:0B:2C:A2:D9:82:73:B3:B5:00:2A:1D:D9:35:6B:87:12:E4"
+      ]
+    }
+  }
+]

@@ -53,13 +53,14 @@ public class DespachanteCanal implements Despachante {
     private final ObjectMapper json = new ObjectMapper();
     private final CorrelacoesRetorno correlacoes;
     private final ProtecoesAgenda protecoesAgenda;
+    private final FirebasePush push;
 
     @ConfigProperty(name = "alcada.web.base-url", defaultValue = "https://alcada.vendax.ai")
     String webBaseUrl;
 
     public DespachanteCanal(EntityManager em, Canal canal, Email email, Calendario calendario,
                             Trilha trilha, AvisoGrupo avisoGrupo, CorrelacoesRetorno correlacoes,
-                            ProtecoesAgenda protecoesAgenda) {
+                            ProtecoesAgenda protecoesAgenda, FirebasePush push) {
         this.em = em;
         this.canal = canal;
         this.email = email;
@@ -68,6 +69,7 @@ public class DespachanteCanal implements Despachante {
         this.avisoGrupo = avisoGrupo;
         this.correlacoes = correlacoes;
         this.protecoesAgenda = protecoesAgenda;
+        this.push = push;
     }
 
     @Override
@@ -210,14 +212,16 @@ public class DespachanteCanal implements Despachante {
     private void entregarAvisoRepasseInterno(MensagemOutbox m) {
         String p = m.payloadJson();
         String whatsapp = campo(p, "whatsapp");
-        if (whatsapp == null || whatsapp.isBlank()) return;
-        String channelId = canalWhatsappDaOrg(m.org());
-        if (channelId == null || channelId.isBlank()) return;
         UUID pendenciaId = UUID.fromString(campo(p, "pendencia_id"));
         String delegacaoId = campo(p, "delegacao_id");
+        UUID pessoaId = UUID.fromString(campo(p, "pessoa_id"));
         String titulo = campo(p, "titulo");
         String link = webBaseUrl.replaceAll("/+$", "") + "/app/delegacoes/" + delegacaoId;
         String texto = "Você recebeu um repasse no Alçada: " + titulo + ".\n\nAbra no aplicativo: " + link;
+        push.enviar(m.org(), pessoaId, "Repasse recebido", titulo, delegacaoId);
+        if (whatsapp == null || whatsapp.isBlank()) return;
+        String channelId = canalWhatsappDaOrg(m.org());
+        if (channelId == null || channelId.isBlank()) return;
         boolean novo = canal.enviarDireto(m.org(), new EnviarDireto(channelId, whatsapp, texto,
                 m.idempotencyKey()));
         if (novo) comunicada(m.org(), pendenciaId, "WHATSAPP");
