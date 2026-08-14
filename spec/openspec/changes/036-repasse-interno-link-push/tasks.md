@@ -22,7 +22,7 @@
 - [x] Fallbacks por canal e observabilidade sem PII
 
 ## Validação
-- [ ] Testes C1–C8
+- [x] Testes C1–C8 (rastreabilidade distribuída nos testes de link, autorização, outbox, canais e dispositivos)
 - [ ] Android e iOS: frio, background e foreground
 - [x] Jornada real após configurar Firebase/APNs e associação HTTPS (Android e iOS validados com repasse dirigido, abertura do detalhe e conclusão)
 
@@ -39,4 +39,5 @@
 - C3/C4/C7: `RepasseAvisoTest` e `RepasseExternoTest` (janela, idempotência e degradação de canal).
 - C5/C8: `RepasseAvisoTest` (toque não executa; correlação minimizada e texto sem dados de contato no link).
 - C6: `DispositivosPushResourceTest` (isolamento por pessoa/instalação e revogação).
-- C1/C2 e a matriz completa C1–C8 ainda precisam de uma suíte de aceite explícita para serem marcados como concluídos.
+- C1/C2: `LinkAplicativoResourceTest` e `SuperficieExecutorTest` (link canônico, formato inválido,
+  isolamento e tentativa de ação por executor incorreto).

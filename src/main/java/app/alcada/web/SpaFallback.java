@@ -22,6 +22,7 @@ public class SpaFallback {
         boolean api = p.startsWith("/v1/") || p.equals("/v1")
                 || p.startsWith("/q/") || p.equals("/q")
                 || p.startsWith("/p/") || p.startsWith("/pi/")
+                || p.startsWith("/app/delegacoes/")
                 || p.startsWith("/.well-known/");
         boolean arquivo = p.equals("/") || p.lastIndexOf('.') > p.lastIndexOf('/');
         if (api || arquivo) {
