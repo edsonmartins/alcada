@@ -18,10 +18,18 @@
 ## Entrega
 - [x] Outbox de reforço interno após janela/trajeto
 - [x] Linktor para WhatsApp interno com link canônico
-- [ ] Porta push e adaptadores FCM/APNs
+- [x] Porta push e adaptadores FCM/APNs
 - [x] Fallbacks por canal e observabilidade sem PII
 
 ## Validação
 - [ ] Testes C1–C8
 - [ ] Android e iOS: frio, background e foreground
-- [ ] Jornada real após configurar Firebase/APNs e associação HTTPS
+- [x] Jornada real após configurar Firebase/APNs e associação HTTPS (Android e iOS validados com repasse dirigido, abertura do detalhe e conclusão)
+
+### Evidências de validação manual
+
+- Firebase/FCM configurado no projeto `alcada`; APNs de desenvolvimento e produção configurados no Firebase.
+- `assetlinks.json` e `apple-app-site-association` publicados em `https://alcada.vendax.ai/.well-known/`.
+- Android: push recebido e link abriu o detalhe correto.
+- iOS: push recebido no iPhone físico e ação “Abrir” abriu o detalhe correto; concluir a delegação não foi causado pelo toque.
+- Os cenários frio/background ainda precisam de execução específica; os testes automatizados C1–C8 permanecem como próxima etapa de cobertura.
