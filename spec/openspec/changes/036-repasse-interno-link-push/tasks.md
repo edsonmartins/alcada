@@ -33,3 +33,10 @@
 - Android: push recebido e link abriu o detalhe correto.
 - iOS: push recebido no iPhone físico e ação “Abrir” abriu o detalhe correto; concluir a delegação não foi causado pelo toque.
 - Os cenários frio/background ainda precisam de execução específica; os testes automatizados C1–C8 permanecem como próxima etapa de cobertura.
+
+### Cobertura automatizada já disponível
+
+- C3/C4/C7: `RepasseAvisoTest` e `RepasseExternoTest` (janela, idempotência e degradação de canal).
+- C5/C8: `RepasseAvisoTest` (toque não executa; correlação minimizada e texto sem dados de contato no link).
+- C6: `DispositivosPushResourceTest` (isolamento por pessoa/instalação e revogação).
+- C1/C2 e a matriz completa C1–C8 ainda precisam de uma suíte de aceite explícita para serem marcados como concluídos.
