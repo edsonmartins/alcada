@@ -34,7 +34,8 @@ public record Comando(
     public record Campos(
             UUID dono, String nivel, String prazo, String voltaEm, String oQueFalta,
             String nota, String titulo, String quemEspera, String oQueTrava, String classe,
-            String pergunta, String aliasFalado, Contato contato, Lembrete lembrete) {
+            String pergunta, String aliasFalado, String mensagemRepasse,
+            Contato contato, Lembrete lembrete) {
     }
 
     /**

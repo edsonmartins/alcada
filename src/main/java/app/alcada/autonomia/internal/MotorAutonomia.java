@@ -70,6 +70,13 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
     @Transactional
     public UUID delegar(OrgId org, UUID pendenciaId, DestinoRepasse destino, String nivelPedido,
                         OffsetDateTime prazo, UUID gestorId) {
+        return delegar(org, pendenciaId, destino, nivelPedido, prazo, gestorId, null);
+    }
+
+    @Override
+    @Transactional
+    public UUID delegar(OrgId org, UUID pendenciaId, DestinoRepasse destino, String nivelPedido,
+                        OffsetDateTime prazo, UUID gestorId, String mensagemRepasse) {
         // Contato externo é PII persistida e precisa existir no tenant. Destinos
         // internos são validados nas bordas (web/voz); a porta continua aceitando
         // executores sintéticos usados por integrações e testes legados.
@@ -121,7 +128,8 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
                     "SELECT canal,endereco FROM contato_externo WHERE org_id=? AND id=?")
                     .setParameter(1,org.valor()).setParameter(2,ext.contatoId()).getSingleResult();
             correlacoes.criar(org,delegacaoId,(String)contato[0],(String)contato[1],prazo.plusDays(30));
-            avisarRepasseExterno(org, delegacaoId, pendenciaId, ext.contatoId());
+            avisarRepasseExterno(org, delegacaoId, pendenciaId, ext.contatoId(), nivel,
+                    mensagemRepasse);
         }
 
         // Só N2 tem o ciclo de ausência (vencimento/janela/escalonamento).
@@ -469,13 +477,18 @@ public class MotorAutonomia implements app.alcada.autonomia.port.Autonomia {
      * Enfileira o AVISO_REPASSE no outbox (idempotente por delegação). O
      * WorkerOutbox/DespachanteCanal entrega ao contato externo pelo canal (fatia F1.3).
      */
-    private void avisarRepasseExterno(OrgId org, UUID delegacaoId, UUID pendenciaId, UUID contatoId) {
+    private void avisarRepasseExterno(OrgId org, UUID delegacaoId, UUID pendenciaId, UUID contatoId,
+                                      String nivel, String mensagemRepasse) {
         Object[] c = (Object[]) em.createNativeQuery(
                 "SELECT canal, endereco FROM contato_externo WHERE org_id = ? AND id = ?")
                 .setParameter(1, org.valor()).setParameter(2, contatoId).getSingleResult();
+        String titulo = (String) em.createNativeQuery(
+                "SELECT titulo FROM pendencia WHERE org_id = ? AND id = ?")
+                .setParameter(1, org.valor()).setParameter(2, pendenciaId).getSingleResult();
         String payload = "{\"delegacao_id\":\"" + delegacaoId + "\",\"contato_id\":\"" + contatoId
                 + "\",\"pendencia_id\":\"" + pendenciaId + "\",\"canal\":" + json((String) c[0])
-                + ",\"endereco\":" + json((String) c[1]) + "}";
+                + ",\"endereco\":" + json((String) c[1]) + ",\"titulo\":" + json(titulo)
+                + ",\"nivel\":" + json(nivel) + ",\"mensagem\":" + json(mensagemRepasse) + "}";
         outbox.publicar(new MensagemOutbox(org, "AVISO_REPASSE", payload, delegacaoId + ":aviso_repasse"));
     }
 

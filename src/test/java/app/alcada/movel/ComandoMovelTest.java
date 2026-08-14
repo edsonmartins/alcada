@@ -156,7 +156,7 @@ class ComandoMovelTest {
 
         Campos build() {
             return new Campos(dono, nivel, prazo, voltaEm, oQueFalta, nota, titulo, quemEspera,
-                    oQueTrava, classe, pergunta, aliasFalado, null, null);
+                    oQueTrava, classe, pergunta, aliasFalado, null, null, null);
         }
     }
 

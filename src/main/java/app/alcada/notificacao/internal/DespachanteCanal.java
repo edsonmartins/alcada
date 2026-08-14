@@ -138,7 +138,7 @@ public class DespachanteCanal implements Despachante {
         UUID pendenciaId = UUID.fromString(campo(p, "pendencia_id"));
         UUID delegacaoId = UUID.fromString(campo(p, "delegacao_id"));
         String correlacao = correlacoes.tokenParaEnvio(m.org(),delegacaoId).orElse(null);
-        String texto = "Você recebeu um repasse no Alçada para acompanhar. (ref " + pendenciaId + ")";
+        String texto = mensagemRepasse(p, pendenciaId);
 
         boolean novo;
         if ("EMAIL".equals(canalTipo)) {
@@ -160,6 +160,24 @@ public class DespachanteCanal implements Despachante {
         if (novo) {
             comunicada(m.org(), pendenciaId, canalTipo);
         }
+    }
+
+    private String mensagemRepasse(String payload, UUID pendenciaId) {
+        String titulo = campo(payload, "titulo");
+        String mensagem = campo(payload, "mensagem");
+        String nivel = campo(payload, "nivel");
+        String autonomia = switch (nivel == null ? "N2" : nivel) {
+            case "N1" -> "Você pode executar e depois informar o resultado.";
+            case "N3" -> "Prepare a solução, mas aguarde a aprovação antes de executar.";
+            default -> "Você pode prosseguir, a menos que receba uma orientação para parar.";
+        };
+        String contexto = mensagem == null || mensagem.isBlank()
+                ? "Tarefa: " + (titulo == null || titulo.isBlank() ? "repasse recebido" : titulo) + "."
+                : mensagem.trim();
+        return "Olá! Você recebeu um repasse de uma pessoa que usa o Alçada.\n\n"
+                + contexto + "\n\n" + autonomia
+                + "\n\nResponda a esta mensagem citando-a para manter o acompanhamento."
+                + " (ref " + pendenciaId + ")";
     }
 
     private void entregarPedidoInformacao(MensagemOutbox m) {

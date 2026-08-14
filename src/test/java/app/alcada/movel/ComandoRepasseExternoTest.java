@@ -264,7 +264,7 @@ class ComandoRepasseExternoTest {
     private static Comando resolverComLembrete(UUID pend, String quando, String texto) {
         return new Comando(UUID.randomUUID(), Intencao.RESOLVER, pend,
                 new Campos(null, null, null, null, null, null, null, null, null, null, null, null,
-                        null, new Comando.Lembrete(quando, texto)));
+                        null, null, new Comando.Lembrete(quando, texto)));
     }
 
     private long countLembretes(OrgId org) {
@@ -286,7 +286,7 @@ class ComandoRepasseExternoTest {
 
     private static Campos campos(UUID dono, Contato contato, String aliasFalado) {
         return new Campos(dono, "N2", null, null, null, null, null, null, null, null, null,
-                aliasFalado, contato, null);
+                aliasFalado, null, contato, null);
     }
 
     private OrgId novaOrg() {

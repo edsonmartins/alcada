@@ -176,7 +176,8 @@ public class ComandoMovelJdbc implements ComandoMovel {
                     contatos.registrar(org, ct.nome(), ct.canal(), ct.endereco(), pessoa));
         }
 
-        autonomia.delegar(org, c.pendenciaId(), destino, f.nivel(), prazoOu(f.prazo(), 2), pessoa);
+        autonomia.delegar(org, c.pendenciaId(), destino, f.nivel(), prazoOu(f.prazo(), 2), pessoa,
+                f.mensagemRepasse());
         // Memória durável (022): o termo falado vira apelido do dono interno (no-op se já
         // casava pelo nome). Apelido de contato externo é resolvido na interpretação.
         if (f.aliasFalado() != null && ct == null) {
@@ -264,6 +265,6 @@ public class ComandoMovelJdbc implements ComandoMovel {
 
     private static Comando.Campos vazio() {
         return new Comando.Campos(null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
     }
 }

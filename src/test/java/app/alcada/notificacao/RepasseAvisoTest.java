@@ -64,6 +64,22 @@ class RepasseAvisoTest {
     }
 
     @Test
+    void aviso_externo_inclui_contexto_do_gestor_e_orienta_resposta() {
+        Ctx c = novo("chan-contexto");
+        UUID contato = contatos.registrar(c.org, "Edson", "WHATSAPP", "+554488122990", c.gestor);
+        motor.delegar(c.org, c.pend, new DestinoRepasse.Externo(contato), "N3", agora(), c.gestor,
+                "Confira os valores e me envie sua recomendação.");
+
+        worker.processarLote();
+
+        String texto = linktor.diretas().stream()
+                .filter(d -> "+554488122990".equals(d.to())).findFirst().orElseThrow().texto();
+        assertTrue(texto.contains("Confira os valores e me envie sua recomendação."));
+        assertTrue(texto.contains("aguarde a aprovação"), "explica o significado do N3");
+        assertTrue(texto.contains("citando-a"), "ensina como manter a resposta correlacionada");
+    }
+
+    @Test
     void retorno_valido_e_observado_minimizado_e_idempotente_sem_executar_acao() {
         Ctx c = novo("chan-retorno");
         UUID contato = contatos.registrar(c.org, "Contato", "WHATSAPP", "+5521999990001", c.gestor);

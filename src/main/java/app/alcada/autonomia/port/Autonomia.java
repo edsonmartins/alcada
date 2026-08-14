@@ -22,4 +22,10 @@ public interface Autonomia {
      */
     UUID delegar(OrgId org, UUID pendenciaId, DestinoRepasse destino, String nivelPedido,
                  OffsetDateTime prazo, UUID gestorId);
+
+    /** Repasse com uma explicação escrita pelo gestor para o destinatário externo. */
+    default UUID delegar(OrgId org, UUID pendenciaId, DestinoRepasse destino, String nivelPedido,
+                         OffsetDateTime prazo, UUID gestorId, String mensagemRepasse) {
+        return delegar(org, pendenciaId, destino, nivelPedido, prazo, gestorId);
+    }
 }
