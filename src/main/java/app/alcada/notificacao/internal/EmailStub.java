@@ -9,6 +9,7 @@ import app.alcada.notificacao.port.Email;
 import app.alcada.notificacao.port.EnviarEmail;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import io.quarkus.arc.profile.UnlessBuildProfile;
+import io.quarkus.arc.properties.UnlessBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
@@ -19,6 +20,7 @@ import org.jboss.logging.Logger;
  */
 @ApplicationScoped
 @UnlessBuildProfile("prod")
+@UnlessBuildProperty(name = "linktor.email.real", stringValue = "true")
 public class EmailStub implements Email {
 
     private static final Logger LOG = Logger.getLogger(EmailStub.class);

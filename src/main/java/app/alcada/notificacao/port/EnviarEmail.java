@@ -5,5 +5,10 @@ public record EnviarEmail(
         String to,
         String assunto,
         String texto,
-        String idempotencyKey) {
+        String idempotencyKey,
+        String correlacao) {
+
+    public EnviarEmail(String to, String assunto, String texto, String idempotencyKey) {
+        this(to, assunto, texto, idempotencyKey, null);
+    }
 }

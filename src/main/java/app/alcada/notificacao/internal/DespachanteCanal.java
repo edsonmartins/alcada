@@ -149,7 +149,8 @@ public class DespachanteCanal implements Despachante {
 
         boolean novo;
         if ("EMAIL".equals(canalTipo)) {
-            novo = email.enviar(m.org(), new EnviarEmail(endereco, "Repasse no Alçada", texto, m.idempotencyKey()));
+            novo = email.enviar(m.org(), new EnviarEmail(endereco, "Repasse no Alçada", texto,
+                    m.idempotencyKey(), correlacao));
         } else if ("WHATSAPP".equals(canalTipo)) {
             String channelId = canalWhatsappDaOrg(m.org());
             if (channelId == null || channelId.isBlank()) {
