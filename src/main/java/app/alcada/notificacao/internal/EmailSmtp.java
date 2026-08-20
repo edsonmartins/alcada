@@ -4,6 +4,7 @@ import app.alcada.notificacao.port.Email;
 import app.alcada.notificacao.port.EnviarEmail;
 import app.alcada.plataforma.multitenancy.port.OrgId;
 import io.quarkus.arc.profile.IfBuildProfile;
+import io.quarkus.arc.properties.UnlessBuildProperty;
 import io.quarkus.mailer.Mail;
 import io.quarkus.mailer.Mailer;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -15,6 +16,7 @@ import jakarta.enterprise.context.ApplicationScoped;
  */
 @ApplicationScoped
 @IfBuildProfile("prod")
+@UnlessBuildProperty(name = "linktor.email.real", stringValue = "true")
 public class EmailSmtp implements Email {
 
     private final Mailer mailer;
